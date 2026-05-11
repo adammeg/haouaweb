@@ -71,6 +71,13 @@ export function OrdonnanceModal({
     }
     setNote(patient.ordonnanceNote ?? "");
     setValidite(patient.ordonnanceValidite ?? "3 mois");
+    /**
+     * On ne veut rehydrater le formulaire qu'à l'ouverture du modal ou quand
+     * la patiente change. Dépendre du `patient` entier réinitialiserait
+     * l'édition en cours à chaque frappe (le draft est mis à jour dans le
+     * store à chaque saisie).
+     */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, patient?.id]);
 
   function closeAndPersist() {

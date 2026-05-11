@@ -197,6 +197,14 @@ export function HawaePanel({ draft }: { draft: PatientSnapshot | null }) {
       window.clearTimeout(timer);
       ac.abort();
     };
+    /**
+     * `draft.hawaeIaHistory` n'est lu qu'à titre de cache (pour afficher la
+     * dernière analyse correspondant au `dataKey` courant). L'inclure dans les
+     * deps déclencherait une boucle infinie puisque l'effet écrit lui-même
+     * dans `hawaeIaHistory` via `appendIaToDraft`. Les vraies dépendances sont
+     * `draft?.id`, `dataKey` et `refreshNonce`.
+     */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft?.id, dataKey, refreshNonce, patchDraft]);
 
   function stopDiagnostic() {
