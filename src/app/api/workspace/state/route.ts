@@ -6,6 +6,7 @@ import {
   upsertWorkspace,
   type WorkspacePersisted,
 } from "@/lib/db/workspace-repository";
+import { dbError } from "@/lib/api/error-response";
 
 export const dynamic = "force-dynamic";
 
@@ -56,8 +57,7 @@ export async function GET() {
       workspace: row.workspace,
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "db_error";
-    return NextResponse.json({ error: msg }, { status: 503 });
+    return dbError("workspace.state.GET", e);
   }
 }
 
@@ -83,7 +83,6 @@ export async function PUT(req: Request) {
     const updatedAt = await upsertWorkspace(session.sub, workspace);
     return NextResponse.json({ ok: true, updatedAt });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "db_error";
-    return NextResponse.json({ error: msg }, { status: 503 });
+    return dbError("workspace.state.PUT", e);
   }
 }

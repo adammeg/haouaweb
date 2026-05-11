@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { isDoctorActive } from "@/lib/auth/require-active";
 import { listClinics } from "@/lib/db/clinics-repository";
 import { listDoctorsAll, setDoctorActiveById } from "@/lib/auth/doctor-store";
+import { dbError } from "@/lib/api/error-response";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,7 @@ export async function GET() {
     const [clinics, doctors] = await Promise.all([listClinics(), listDoctorsAll()]);
     return NextResponse.json({ clinics, doctors });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "db_error";
-    return NextResponse.json({ error: msg }, { status: 503 });
+    return dbError("admin.overview.GET", e);
   }
 }
 
@@ -56,8 +56,7 @@ export async function PATCH(req: Request) {
     if (!ok) return NextResponse.json({ error: "not_found" }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "db_error";
-    return NextResponse.json({ error: msg }, { status: 503 });
+    return dbError("admin.overview.PATCH", e);
   }
 }
 

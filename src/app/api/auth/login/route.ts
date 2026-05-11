@@ -3,6 +3,7 @@ import { findDoctorByEmail } from "@/lib/auth/doctor-store";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSessionToken, setSessionCookie } from "@/lib/auth/session";
 import { clientIpFromRequest, rateLimitMemory } from "@/lib/rate-limit-memory";
+import { serverError } from "@/lib/api/error-response";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,6 @@ export async function POST(req: Request) {
       doctor: { id: doctor.id, email: doctor.email, name: doctor.name },
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "server_error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError("auth.login", e);
   }
 }

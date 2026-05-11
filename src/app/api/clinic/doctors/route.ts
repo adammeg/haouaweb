@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import { createDoctor, listDoctorsByClinicId } from "@/lib/auth/doctor-store";
 import { hashPassword } from "@/lib/auth/password";
 import { isDoctorActive } from "@/lib/auth/require-active";
+import { dbError } from "@/lib/api/error-response";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +26,7 @@ export async function GET() {
     const doctors = await listDoctorsByClinicId(session.clinicId);
     return NextResponse.json({ doctors });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "db_error";
-    return NextResponse.json({ error: msg }, { status: 503 });
+    return dbError("clinic.doctors.GET", e);
   }
 }
 
@@ -93,8 +93,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "db_error";
-    return NextResponse.json({ error: msg }, { status: 503 });
+    return dbError("clinic.doctors.POST", e);
   }
 }
 

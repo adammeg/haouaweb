@@ -4,6 +4,7 @@ import { createDoctor } from "@/lib/auth/doctor-store";
 import { hashPassword } from "@/lib/auth/password";
 import { createSessionToken, setSessionCookie } from "@/lib/auth/session";
 import { clientIpFromRequest, rateLimitMemory } from "@/lib/rate-limit-memory";
+import { serverError } from "@/lib/api/error-response";
 
 export const dynamic = "force-dynamic";
 
@@ -99,8 +100,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "server_error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError("clinic.signup", e);
   }
 }
 
