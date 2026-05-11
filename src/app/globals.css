@@ -1,0 +1,737 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ══════════════════════════════════════════════════════════════════
+   HawaeMD — Design tokens portés depuis hawaemd_v48.html
+   (palette, ombres, rayons, typos). Les tokens restent exposés sous
+   forme de custom properties pour être consommés par Tailwind via
+   var(--x) ou par des helper classes.
+   ══════════════════════════════════════════════════════════════════ */
+:root {
+  /* Palette Teal */
+  --teal: #0a5c5c;
+  --teal-deep: #083f3f;
+  --teal-mid: #0d7272;
+  --teal-light: #1a9a9a;
+  --teal-pale: #e8f5f5;
+  --teal-glass: rgba(10, 92, 92, 0.09);
+
+  /* Accents */
+  --accent: #1a9a9a;
+  --gold: #c9a84c;
+  --gold-light: #e8d28a;
+  --gold-glow: rgba(201, 168, 76, 0.35);
+
+  /* Blush / Cream */
+  --blush: #f4d6da;
+  --blush-mid: #e8b0ba;
+  --blush-pale: #faf1f3;
+  --cream: #f7f5f0;
+  --cream-dark: #eee9e2;
+
+  /* Surfaces & texte */
+  --surface: #ffffff;
+  --surface-raised: #fdfcfa;
+  --card: #ffffff;
+  --ink: #1a2e2e;
+  --ink-mid: #3d5c5c;
+  --muted: #7a9a9a;
+  --muted-light: #adc4c4;
+  --border: #d4e8e8;
+  --border-s: rgba(10, 92, 92, 0.12);
+
+  /* Statuts */
+  --red: #dc2626;
+  --green: #16a34a;
+  --orange: #d97706;
+
+  /* Ombres */
+  --shadow-xs: 0 1px 2px rgba(10, 92, 92, 0.06);
+  --shadow-s: 0 2px 8px rgba(10, 92, 92, 0.08), 0 1px 3px rgba(10, 92, 92, 0.04);
+  --shadow-m: 0 6px 24px rgba(10, 92, 92, 0.12), 0 2px 8px rgba(10, 92, 92, 0.06);
+  --shadow-l: 0 16px 48px rgba(10, 92, 92, 0.16),
+    0 6px 16px rgba(10, 92, 92, 0.08);
+  --shadow: var(--shadow-s);
+
+  /* Rayons */
+  --radius: 14px;
+  --radius-s: 9px;
+  --radius-xs: 6px;
+
+  /* Layout */
+  --sidebar-w: 260px;
+  --topbar-h: 60px;
+  --content-max: 80rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  color: var(--ink);
+  background: var(--cream);
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Contenu principal : rythme vertical cohérent sur toutes les pages */
+.hawae-page {
+  padding-top: 0.25rem;
+  padding-bottom: max(2.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+::selection {
+  background: rgba(10, 92, 92, 0.15);
+  color: var(--ink);
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.font-display {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-sans {
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Helpers partagés (cartes, boutons, chips) — inspirés du design
+   system v48 pour éviter la duplication dans les composants Tailwind.
+   ══════════════════════════════════════════════════════════════════ */
+.hawae-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-s);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.hawae-card:hover {
+  box-shadow: var(--shadow-m);
+}
+
+.hawae-card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hawae-card-body {
+  padding: 18px 20px;
+}
+
+.hawae-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--radius-s);
+  padding: 8px 14px;
+  min-height: 40px;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    opacity 0.15s;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+@media (pointer: coarse) {
+  .hawae-btn {
+    min-height: 44px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+.hawae-btn-primary {
+  background: var(--teal);
+  color: #fff;
+  box-shadow: var(--shadow-xs);
+}
+.hawae-btn-primary:hover {
+  background: var(--teal-mid);
+}
+
+.hawae-btn-ghost {
+  background: #fff;
+  color: var(--ink);
+  border-color: var(--border);
+  box-shadow: var(--shadow-xs);
+}
+.hawae-btn-ghost:hover {
+  background: var(--teal-pale);
+  color: var(--teal);
+  border-color: var(--teal-pale);
+}
+
+.hawae-btn-danger {
+  background: #fff;
+  color: var(--red);
+  border-color: rgba(220, 38, 38, 0.25);
+}
+.hawae-btn-danger:hover {
+  background: #fff5f5;
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.hawae-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--teal-pale);
+  color: var(--teal);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.hawae-chip-gold {
+  background: #fbf3df;
+  color: #8a6b1b;
+}
+
+.hawae-chip-muted {
+  background: var(--cream-dark);
+  color: var(--ink-mid);
+}
+
+/* Scrollbar personnalisée (Webkit) pour les zones scrollables */
+.hawae-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.hawae-scroll::-webkit-scrollbar-thumb {
+  background: rgba(10, 92, 92, 0.18);
+  border-radius: 999px;
+}
+.hawae-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(10, 92, 92, 0.28);
+}
+.hawae-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   AGENDA v48 (port exact du design v48 : .agenda-*, .rdv-*)
+   ══════════════════════════════════════════════════════════════════ */
+.agenda-grid {
+  display: grid;
+  grid-template-columns: 52px repeat(6, 1fr);
+  gap: 0;
+  min-width: 580px;
+}
+.agenda-col-head {
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  border-bottom: 2px solid var(--border);
+}
+.agenda-col-head.today {
+  color: var(--teal);
+}
+.agenda-col-head .day-num {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1;
+}
+.agenda-col-head.today .day-num {
+  background: var(--teal);
+  color: white;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 2px;
+}
+.agenda-time-cell {
+  height: 52px;
+  padding: 4px 6px;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: right;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+.agenda-day-col {
+  position: relative;
+  border-left: 1px solid var(--border);
+}
+.agenda-slot {
+  height: 52px;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+}
+.agenda-slot:hover {
+  background: var(--teal-pale);
+}
+.agenda-slot:hover::after {
+  content: "+ RDV";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--teal);
+  opacity: 0.7;
+}
+.agenda-rdv {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  line-height: 1.25;
+  cursor: pointer;
+  border: 1px solid;
+  overflow: hidden;
+  z-index: 1;
+  transition: opacity 0.12s;
+}
+.agenda-rdv:hover {
+  opacity: 0.85;
+}
+.agenda-rdv.type-consultation {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+.agenda-rdv.type-grossesse {
+  background: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+.agenda-rdv.type-echo {
+  background: #fef9c3;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+.agenda-rdv.type-chirurgie {
+  background: #fce7f3;
+  border-color: #ec4899;
+  color: #9d174d;
+}
+.agenda-rdv.type-bilan {
+  background: #ede9fe;
+  border-color: #8b5cf6;
+  color: #5b21b6;
+}
+.agenda-rdv.type-urgence {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+
+.rdv-type-btn {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-s);
+  padding: 8px 4px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-mid);
+  transition: all 0.12s;
+}
+.rdv-type-btn:hover {
+  border-color: var(--teal);
+}
+.rdv-type-btn.active {
+  border-color: var(--teal);
+  background: var(--teal-pale);
+  color: var(--teal);
+}
+.rdv-type-btn .rdv-type-icon {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 3px;
+}
+
+.rdv-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.rdv-item:last-child {
+  border-bottom: none;
+}
+.rdv-item:hover {
+  background: var(--teal-pale);
+  margin: 0 -12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+.rdv-item-time {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--teal);
+  min-width: 38px;
+}
+.rdv-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.rdv-item-info {
+  flex: 1;
+  min-width: 0;
+}
+.rdv-item-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.rdv-item-type {
+  font-size: 10px;
+  color: var(--muted);
+}
+.rdv-item-del {
+  opacity: 0;
+  font-size: 14px;
+  color: var(--muted);
+  transition: opacity 0.12s;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.rdv-item:hover .rdv-item-del {
+  opacity: 1;
+}
+.rdv-item-del:hover {
+  color: var(--red);
+}
+
+.rdv-modal-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RAPPELS v48 (port exact des classes .rapp-* du tab Rappels v48)
+   ══════════════════════════════════════════════════════════════════ */
+.rapp-filter {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font-family: var(--font-body), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-mid);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.rapp-filter:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+.rapp-filter.active {
+  background: var(--teal);
+  color: #fff;
+  border-color: var(--teal);
+}
+
+.rapp-stat-item {
+  background: var(--surface-raised);
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  text-align: center;
+}
+.rapp-stat-val {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--teal);
+}
+.rapp-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+}
+
+.rapp-empty {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+.rapp-card {
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  transition: box-shadow 0.12s;
+  background: #fafafa;
+  list-style: none;
+}
+.rapp-card:hover {
+  box-shadow: var(--shadow-s);
+}
+.rapp-card.st-confirme {
+  border-left: 4px solid #10b981;
+}
+.rapp-card.st-a_rappeler {
+  border-left: 4px solid #f59e0b;
+}
+.rapp-card.st-non_joint {
+  border-left: 4px solid #6b7280;
+}
+.rapp-card.st-attente {
+  border-left: 4px solid #3b82f6;
+}
+.rapp-card.st-annule {
+  border-left: 4px solid #ef4444;
+  opacity: 0.7;
+}
+
+.rapp-card-time {
+  background: var(--teal);
+  color: #fff;
+  border-radius: 10px;
+  padding: 8px 10px;
+  text-align: center;
+  flex-shrink: 0;
+  min-width: 56px;
+}
+.rapp-card-time-h {
+  font-size: 15px;
+  font-weight: 800;
+}
+.rapp-card-time-type {
+  font-size: 9px;
+  opacity: 0.85;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+.rapp-card-info {
+  flex: 1;
+  min-width: 0;
+}
+.rapp-card-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+.rapp-card-meta {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.rapp-card-tel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.rapp-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.rapp-action-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font-family: var(--font-body), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.rapp-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+.rapp-action-btn.confirme {
+  border-color: #10b981;
+  color: #10b981;
+}
+.rapp-action-btn.confirme:hover {
+  background: #10b981;
+  color: #fff;
+}
+.rapp-action-btn.non_joint {
+  border-color: #6b7280;
+  color: #6b7280;
+}
+.rapp-action-btn.non_joint:hover {
+  background: #6b7280;
+  color: #fff;
+}
+.rapp-action-btn.annule {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+.rapp-action-btn.annule:hover {
+  background: #ef4444;
+  color: #fff;
+}
+.rapp-action-btn.rappeler {
+  border-color: #f59e0b;
+  color: #92400e;
+}
+.rapp-action-btn.rappeler:hover {
+  background: #f59e0b;
+  color: #fff;
+}
+
+@media (pointer: coarse) {
+  .rapp-action-btn,
+  .rapp-filter {
+    min-height: 36px;
+  }
+}
+
+.rapp-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.rapp-status-badge.confirme {
+  background: #dcfce7;
+  color: #166534;
+}
+.rapp-status-badge.a_rappeler {
+  background: #fef3c7;
+  color: #92400e;
+}
+.rapp-status-badge.non_joint {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+.rapp-status-badge.attente {
+  background: #dbeafe;
+  color: #1e40af;
+}
+.rapp-status-badge.annule {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.rapp-hist-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  list-style: none;
+}
+.rapp-hist-item:last-child {
+  border-bottom: none;
+}
+.rapp-hist-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SCORES v50 (port .score-tab + .score-content + .score-progress-fill)
+   ══════════════════════════════════════════════════════════════════ */
+.score-tab {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font-family: var(--font-body), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-mid);
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.score-tab:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+.score-tab.active {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+@media (pointer: coarse) {
+  .score-tab {
+    min-height: 36px;
+  }
+}
