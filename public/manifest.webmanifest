@@ -1,0 +1,24 @@
+{
+  "name": "HawaeMD",
+  "short_name": "HawaeMD",
+  "description": "Intelligence clinique obstétrique, gynécologique et PMA",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f7f4ef",
+  "theme_color": "#0a5c5c",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

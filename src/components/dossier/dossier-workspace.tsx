@@ -22,6 +22,20 @@ import {
 import { OrdonnanceModal } from "@/components/ordo/ordonnance-modal";
 import { HawaePanel } from "@/components/ia/hawae-panel";
 import { UserSwitcher } from "@/components/users/user-switcher";
+import { AssistPanel } from "@/components/assist/assist-panel";
+import {
+  profileFromSnapshot,
+  runAssist,
+  type AssistRunResult,
+} from "@/lib/assist";
+import {
+  BilansTab,
+  GynExtendedFields,
+  InfExtendedFields,
+  ObstExtendedFields,
+} from "@/components/dossier/clinical-sections";
+import { T2MorphoTab } from "@/components/dossier/t2-morpho-tab";
+import { generateDossierCompletPdf } from "@/lib/dossier/dossier-pdf";
 
 const SPECS: Specialty[] = ["gyn", "obst", "inf"];
 
@@ -30,8 +44,16 @@ export function DossierWorkspace() {
   const searchParams = useSearchParams();
   const [ordoOpen, setOrdoOpen] = useState(false);
   const [tab, setTab] = useState<
-    "anamnese" | "examen" | "scores" | "historique" | "hawae"
+    | "anamnese"
+    | "examen"
+    | "bilans"
+    | "t2"
+    | "assist"
+    | "scores"
+    | "historique"
+    | "hawae"
   >("anamnese");
+  const [dossierPdfBusy, setDossierPdfBusy] = useState(false);
   const [listQuery, setListQuery] = useState("");
 
   const patientsMap = useHawaeStore((s) => {
@@ -190,6 +212,20 @@ export function DossierWorkspace() {
                 onClick={() => saveDraft()}
               >
                 Enregistrer
+              </button>
+              <button
+                type="button"
+                disabled={dossierPdfBusy}
+                className="rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--ink)] shadow-sm hover:bg-[var(--teal-pale)]/40 disabled:opacity-60"
+                onClick={() => {
+                  if (!draft) return;
+                  setDossierPdfBusy(true);
+                  void generateDossierCompletPdf(draft).finally(() =>
+                    setDossierPdfBusy(false),
+                  );
+                }}
+              >
+                {dossierPdfBusy ? "PDF…" : "PDF dossier"}
               </button>
               <button
                 type="button"
@@ -425,6 +461,11 @@ export function DossierWorkspace() {
                 [
                   ["anamnese", "Anamnèse"],
                   ["examen", "Examen"],
+                  ["bilans", "Bilans"],
+                  ...(draft?.specialite === "obst"
+                    ? ([["t2", "Écho T2"]] as const)
+                    : []),
+                  ["assist", "Assist"],
                   ["scores", "Scores"],
                   ["historique", "Historique"],
                   ["hawae", "Hawae IA"],
@@ -452,6 +493,15 @@ export function DossierWorkspace() {
             )}
             {draft && tab === "examen" && (
               <ExamenTab draft={draft} onField={onField} />
+            )}
+            {draft && tab === "bilans" && (
+              <BilansTab draft={draft} onField={onField} />
+            )}
+            {draft && tab === "t2" && draft.specialite === "obst" && (
+              <T2MorphoTab draft={draft} onField={onField} />
+            )}
+            {draft && tab === "assist" && (
+              <DossierAssistTab draft={draft} patchDraft={patchDraft} />
             )}
             {draft && tab === "scores" && <ScoresTab />}
             {draft && tab === "historique" && (
@@ -684,6 +734,61 @@ function AnamneseTab({
           onChange={(v) => onField({ allergies: v })}
         />
       </section>
+
+      {spec === "gyn" && <GynExtendedFields draft={draft} onField={onField} />}
+      {spec === "obst" && <ObstExtendedFields draft={draft} onField={onField} />}
+      {spec === "inf" && <InfExtendedFields draft={draft} onField={onField} />}
+    </div>
+  );
+}
+
+function DossierAssistTab({
+  draft,
+  patchDraft,
+}: {
+  draft: PatientSnapshot;
+  patchDraft: (p: Partial<PatientSnapshot>) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AssistRunResult | null>(() => {
+    if (!draft.hawaeAssistResultJson) return null;
+    try {
+      return JSON.parse(draft.hawaeAssistResultJson) as AssistRunResult;
+    } catch {
+      return null;
+    }
+  });
+
+  const run = () => {
+    setLoading(true);
+    setTimeout(() => {
+      const profile = profileFromSnapshot(draft);
+      const r = runAssist(profile);
+      setResult(r);
+      patchDraft({
+        hawaeAssistResultJson: JSON.stringify(r),
+        hawaeAssistAt: new Date().toISOString(),
+      });
+      setLoading(false);
+    }, 80);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-[var(--muted)]">
+          Moteur clinique v2.2 — scores contextuels selon le dossier
+        </p>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={run}
+          className="rounded-xl bg-[var(--teal)] px-4 py-2 text-xs font-bold text-white shadow-sm disabled:opacity-50"
+        >
+          {loading ? "Analyse…" : "Analyser"}
+        </button>
+      </div>
+      <AssistPanel result={result} />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import Script from "next/script";
 import { redirect } from "next/navigation";
 import { AppChrome } from "@/components/layout/app-chrome";
 import { StoreHydration } from "@/components/providers/store-hydration";
+import { PwaRegister } from "@/components/pwa/pwa-register";
 import { getSession } from "@/lib/auth/session";
 import { isDoctorActive } from "@/lib/auth/require-active";
 
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           __html: `window.__HAWAE_DOCTOR_ID__=${JSON.stringify(session.sub)};`,
         }}
       />
+      <PwaRegister />
       <StoreHydration doctorId={session.sub}>
         <AppChrome
           doctor={{

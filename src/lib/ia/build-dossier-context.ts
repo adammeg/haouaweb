@@ -4,6 +4,8 @@ import {
   type Specialty,
 } from "@/types/domain";
 import { getPatientDisplayName } from "@/lib/patient-utils";
+import { buildAssistContextBlock } from "@/lib/assist/context-block";
+import type { AssistRunResult } from "@/lib/assist";
 
 const MAX_LEN = 18_000;
 const MAX_IA_HISTORY_CHARS = 9_000;
@@ -170,11 +172,21 @@ export function buildDossierContextForIa(d: PatientSnapshot | null): string {
     add("Conclusion examen", d.ec_conclusion),
   ].filter((x): x is string => x != null && x.length > 0);
 
+  let assistBlock = "";
+  if (d.hawaeAssistResultJson) {
+    try {
+      const ar = JSON.parse(d.hawaeAssistResultJson) as AssistRunResult;
+      assistBlock = buildAssistContextBlock(ar);
+    } catch {
+      assistBlock = "";
+    }
+  }
+
   const clinical = lines.join("\n");
   const ordo = formatOrdonnanceBlock(d);
   const iaHist = formatIaHistoryBlock(d);
 
-  let text = [clinical, ordo, iaHist].filter(Boolean).join("\n\n");
+  let text = [clinical, assistBlock, ordo, iaHist].filter(Boolean).join("\n\n");
   if (text.length > MAX_LEN) {
     text = text.slice(0, MAX_LEN) + "\n[… contexte global tronqué]";
   }

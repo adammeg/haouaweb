@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "HawaeMD — Intelligence clinique",
   description:
     "Dossier patientes, consultations, ordonnances et assistant clinique (Next.js).",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#0a5c5c",
+  appleWebApp: { capable: true, title: "HawaeMD" },
 };
 
 export default function RootLayout({

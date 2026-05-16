@@ -229,6 +229,12 @@ const PRIMARY_NAV: NavItem[] = [
     sub: "Statistiques cabinet",
     icon: IconDashboard,
   },
+  {
+    href: "/assist",
+    label: "Hawae Assist",
+    sub: "16 scores cliniques",
+    icon: IconSparkles,
+  },
 ];
 
 const TOOLS_NAV: NavItem[] = [
@@ -249,6 +255,48 @@ const TOOLS_NAV: NavItem[] = [
     label: "Scores cliniques",
     sub: "Bishop, Manning, FIGO…",
     icon: IconStethoscope,
+  },
+  {
+    href: "/partogramme",
+    label: "Partogramme",
+    sub: "Travail & dilatation",
+    icon: IconCalendar,
+  },
+  {
+    href: "/certificats",
+    label: "Certificats",
+    sub: "PDF médicaux",
+    icon: IconFolder,
+  },
+  {
+    href: "/pma",
+    label: "PMA / FIV",
+    sub: "Cycles & POSEIDON",
+    icon: IconSparkles,
+  },
+  {
+    href: "/courbes",
+    label: "Courbes croissance",
+    sub: "Salomon / Hadlock",
+    icon: IconDashboard,
+  },
+  {
+    href: "/protocoles",
+    label: "Protocoles",
+    sub: "Fiches procédurales",
+    icon: IconShield,
+  },
+  {
+    href: "/documents",
+    label: "Documents",
+    sub: "Galerie & backup JSON",
+    icon: IconFolder,
+  },
+  {
+    href: "/bridge",
+    label: "Bridge écho",
+    sub: "DICOM SR & OCR",
+    icon: IconHospital,
   },
   {
     href: "/settings",
@@ -325,6 +373,7 @@ export function AppChrome({
     if (pathname.startsWith("/dashboard")) return "Tableau de bord";
     if (pathname.startsWith("/agenda")) return "Agenda & RDV";
     if (pathname.startsWith("/rappels")) return "Rappels";
+    if (pathname.startsWith("/assist")) return "Hawae Assist";
     if (pathname.startsWith("/scores")) return "Scores cliniques";
     if (pathname.startsWith("/settings")) return "Paramètres";
     if (pathname.startsWith("/clinic")) return "Clinique";

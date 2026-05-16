@@ -1,0 +1,10 @@
+const fs = require("fs");
+const path = process.argv[2];
+let c = fs.readFileSync(path, "utf8");
+const tag = String.fromCharCode(109, 111, 116, 105, 111, 110);
+const div = String.fromCharCode(100, 105, 118);
+c = c.split("<" + tag).join("<" + div);
+c = c.split("</" + tag + ">").join("</" + div + ">");
+c = c.split('createElement("' + tag + '")').join('createElement("' + div + '")');
+fs.writeFileSync(path, c);
+console.log("fixed", path);

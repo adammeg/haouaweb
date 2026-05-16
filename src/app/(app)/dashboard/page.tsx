@@ -9,6 +9,7 @@ import {
   getPatientDisplayName,
   patientAgeYears,
 } from "@/lib/patient-utils";
+import { EpidemiologyPanel } from "@/components/dashboard/epidemiology-panel";
 
 export default function DashboardPage() {
   const patientsMap = useHawaeStore((s) => {
@@ -131,6 +132,8 @@ export default function DashboardPage() {
           )}
         </ul>
       </section>
+
+      <EpidemiologyPanel />
     </div>
   );
 }
