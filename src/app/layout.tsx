@@ -15,9 +15,9 @@ const body = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "HawaeMD — Intelligence clinique",
+  title: "HawaeMD — Intelligence clinique pour la gynéco-obstétrique",
   description:
-    "Dossier patientes, consultations, ordonnances et assistant clinique (Next.js).",
+    "Plateforme de dossiers patientes, consultations, scores cliniques et assistant Hawae IA pour la gynécologie, l'obstétrique et la fertilité.",
   manifest: "/manifest.webmanifest",
   themeColor: "#0a5c5c",
   appleWebApp: { capable: true, title: "HawaeMD" },
