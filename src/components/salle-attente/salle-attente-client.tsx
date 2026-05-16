@@ -11,6 +11,8 @@ import {
   getPatientDisplayName,
   patientAgeYears,
 } from "@/lib/patient-utils";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const STATUS_LABELS: Record<WaitingStatus, string> = {
   waiting: "En attente",
@@ -79,25 +81,22 @@ export function SalleAttenteClient() {
   }
 
   return (
-    <div className="space-y-8 px-4 py-6 sm:px-0 sm:py-8">
-      <header className="border-b border-[var(--border)] pb-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-3xl">
-          Salle d&apos;attente
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--muted)]">
-          File du jour ({new Date().toLocaleDateString("fr-FR")}) avec statuts en
-          temps réel.
-        </p>
-      </header>
+    <div className="space-y-8">
+      <PageHeader
+        title="Salle d'attente"
+        description={`File du jour (${new Date().toLocaleDateString("fr-FR")}) avec statuts en temps réel.`}
+        badge="Aujourd'hui"
+      />
 
       <section>
         <h2 className="mb-3 font-display text-lg font-bold text-[var(--ink)]">
           File du jour ({queueToday.length})
         </h2>
         {queueToday.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-[var(--border)] bg-white/80 p-6 text-center text-sm text-[var(--muted)]">
-            Aucune patiente dans la file — ajoutez-en depuis la liste ci-dessous.
-          </p>
+          <EmptyState
+            title="File vide"
+            description="Ajoutez une patiente depuis la liste ci-dessous."
+          />
         ) : (
           <ul className="space-y-2">
             {queueToday.map((entry) => {
@@ -177,7 +176,7 @@ export function SalleAttenteClient() {
             placeholder="Rechercher une patiente…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="w-full max-w-md rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm shadow-sm outline-none focus:ring-2 focus:ring-[var(--teal)]/25"
+            className="hawae-input w-full max-w-md"
           />
         </div>
         <ul className="space-y-2">

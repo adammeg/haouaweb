@@ -60,9 +60,12 @@
   --radius-xs: 6px;
 
   /* Layout */
-  --sidebar-w: 260px;
-  --topbar-h: 60px;
-  --content-max: 80rem;
+  --sidebar-w: 272px;
+  --topbar-h: 64px;
+  --bottom-nav-h: 72px;
+  --content-max: 72rem;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
 }
 
 html {
@@ -77,7 +80,11 @@ html {
 
 body {
   color: var(--ink);
-  background: var(--cream);
+  background-color: var(--cream);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 100% -20%, rgba(26, 154, 154, 0.07), transparent 50%),
+    radial-gradient(ellipse 80% 60% at 0% 100%, rgba(201, 168, 76, 0.06), transparent 45%);
+  background-attachment: fixed;
   font-size: 15px;
   line-height: 1.6;
   letter-spacing: 0.01em;
@@ -85,10 +92,178 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Contenu principal : rythme vertical cohérent sur toutes les pages */
+/* Contenu principal : rythme vertical + safe area mobile */
 .hawae-page {
   padding-top: 0.25rem;
   padding-bottom: max(2.5rem, env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 639px) {
+  .hawae-page {
+    padding-bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + 1rem);
+  }
+}
+
+/* En-tête de page unifié */
+.hawae-page-header {
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.hawae-page-header h1 {
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(1.5rem, 4vw, 1.875rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.hawae-page-header .hawae-lead {
+  margin-top: 0.5rem;
+  max-width: 42rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* Cartes statistiques */
+.hawae-stat {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 1.25rem 1.35rem;
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.hawae-stat:hover {
+  box-shadow: var(--shadow-s);
+}
+
+.hawae-stat-value {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.875rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--teal);
+}
+
+.hawae-stat-label {
+  margin-top: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* Champs de formulaire modernes */
+.hawae-input {
+  width: 100%;
+  min-height: 44px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.9375rem;
+  color: var(--ink);
+  box-shadow: var(--shadow-xs);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.hawae-input:hover:not(:disabled) {
+  border-color: var(--teal-light);
+}
+
+.hawae-input:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(10, 92, 92, 0.12);
+}
+
+.hawae-input::placeholder {
+  color: var(--muted-light);
+}
+
+textarea.hawae-input {
+  min-height: auto;
+  resize: vertical;
+}
+
+/* Panneau glass léger */
+.hawae-panel {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-s);
+}
+
+/* État vide */
+.hawae-empty {
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+
+.hawae-empty-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.hawae-empty-desc {
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+/* Onglets pill (dossier, scores…) */
+.hawae-tabs {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.hawae-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.hawae-tab {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink-mid);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  min-height: 40px;
+}
+
+.hawae-tab:hover {
+  background: var(--teal-pale);
+  color: var(--teal);
+}
+
+.hawae-tab-active {
+  background: var(--teal);
+  color: #fff;
+  border-color: var(--teal);
+  box-shadow: 0 2px 8px rgba(10, 92, 92, 0.2);
 }
 
 ::selection {

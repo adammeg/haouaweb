@@ -319,6 +319,10 @@ export interface PatientSnapshot {
   ec_cons?: string;
   ec_hpres?: string;
   ec_conclusion?: string;
+  /** JSON string[] — puces sélectionnées (examen clinique v50) */
+  ec_chips?: string;
+  /** Résultats échographie / imagerie (onglet bilans) */
+  bio_imagerie?: string;
   lastSaved?: string;
   updatedAt?: string;
 

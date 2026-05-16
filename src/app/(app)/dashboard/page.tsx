@@ -10,6 +10,9 @@ import {
   patientAgeYears,
 } from "@/lib/patient-utils";
 import { EpidemiologyPanel } from "@/components/dashboard/epidemiology-panel";
+import { PageHeader, QuickLink } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function DashboardPage() {
   const patientsMap = useHawaeStore((s) => {
@@ -37,78 +40,49 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <header className="border-b border-[var(--border)] pb-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-3xl">
-          Tableau de bord
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[var(--muted)]">
-          Vue d&apos;ensemble pour le profil cabinet sélectionné — chiffres et
-          raccourcis vers les espaces les plus utilisés.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <Link
-            href="/dossier"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[var(--teal)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-95 sm:min-h-0"
-          >
-            Mes dossiers
-          </Link>
-          <Link
-            href="/salle-attente"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--ink)] shadow-sm transition-colors hover:bg-[var(--teal-pale)]/40 sm:min-h-0"
-          >
-            Salle d&apos;attente
-          </Link>
-          <Link
-            href="/agenda"
-            className="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--ink)] shadow-sm transition-colors hover:bg-[var(--teal-pale)]/40 sm:min-h-0"
-          >
-            Agenda
-          </Link>
-        </div>
-      </header>
+      <PageHeader
+        title="Tableau de bord"
+        description="Vue d'ensemble pour le profil cabinet sélectionné — chiffres et raccourcis vers les espaces les plus utilisés."
+        actions={
+          <>
+            <QuickLink href="/dossier" primary>
+              Mes dossiers
+            </QuickLink>
+            <QuickLink href="/salle-attente">Salle d&apos;attente</QuickLink>
+            <QuickLink href="/agenda">Agenda</QuickLink>
+          </>
+        }
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)] sm:col-span-1">
-          <div className="text-3xl font-bold text-[var(--teal)]">
-            {stats.total}
-          </div>
-          <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Dossiers enregistrés
-          </div>
-        </div>
+        <StatCard value={stats.total} label="Dossiers enregistrés" />
         {(Object.keys(stats.bySpec) as string[]).map((k) => (
-          <div
+          <StatCard
             key={k}
-            className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]"
-          >
-            <div className="text-2xl font-bold text-[var(--ink)]">
-              {stats.bySpec[k]}
-            </div>
-            <div className="mt-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              {k === "—" ? "Sans spécialité" : SPECIALTY_LABELS[k as Specialty] ?? k}
-            </div>
-          </div>
+            value={stats.bySpec[k]}
+            label={k === "—" ? "Sans spécialité" : SPECIALTY_LABELS[k as Specialty] ?? k}
+            accent="ink"
+          />
         ))}
       </div>
 
-      <section>
+      <section className="hawae-panel p-5 sm:p-6">
         <h2 className="mb-4 font-display text-lg font-bold text-[var(--ink)]">
           Dossiers récents
         </h2>
-        <ul className="space-y-2">
-          {stats.recent.length === 0 ? (
-            <li className="rounded-2xl border border-dashed border-[var(--border)] bg-white/90 px-4 py-10 text-center text-sm text-[var(--muted)]">
-              Aucune activité récente. Ouvrez{" "}
-              <Link
-                href="/dossier"
-                className="font-semibold text-[var(--teal)] underline underline-offset-2"
-              >
-                Mes dossiers
-              </Link>{" "}
-              pour créer ou modifier une fiche.
-            </li>
-          ) : (
-            stats.recent.map((p) => {
+        {stats.recent.length === 0 ? (
+          <EmptyState
+            title="Aucune activité récente"
+            description="Créez ou modifiez une fiche patiente pour la voir ici."
+            action={
+              <QuickLink href="/dossier" primary>
+                Ouvrir les dossiers
+              </QuickLink>
+            }
+          />
+        ) : (
+          <ul className="space-y-2">
+            {stats.recent.map((p) => {
               const age = patientAgeYears(p.ddn);
               return (
                 <li key={p.id}>
@@ -128,9 +102,9 @@ export default function DashboardPage() {
                   </Link>
                 </li>
               );
-            })
-          )}
-        </ul>
+            })}
+          </ul>
+        )}
       </section>
 
       <EpidemiologyPanel />

@@ -3,18 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode, SVGProps } from "react";
+import type { NavItem } from "@/components/layout/nav-types";
+import { ToolsNavGroups } from "@/components/layout/tools-nav-groups";
+import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { useMemo, useState, useEffect } from "react";
 import { useHawaeStore } from "@/stores/hawae-store";
 import { UserSwitcher } from "@/components/users/user-switcher";
 import { LogoutControl } from "@/components/auth/logout-control";
-
-type NavItem = {
-  href: string;
-  label: string;
-  sub?: string;
-  icon: (props: SVGProps<SVGSVGElement>) => ReactNode;
-  soon?: boolean;
-};
 
 function IconWaiting(props: SVGProps<SVGSVGElement>) {
   return (
@@ -71,60 +66,6 @@ function IconDashboard(props: SVGProps<SVGSVGElement>) {
       <rect x="13" y="3" width="8" height="6" rx="2" />
       <rect x="13" y="11" width="8" height="10" rx="2" />
       <rect x="3" y="15" width="8" height="6" rx="2" />
-    </svg>
-  );
-}
-
-function IconCalendar(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      {...props}
-    >
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M8 3v4M16 3v4M3 10h18" />
-    </svg>
-  );
-}
-
-function IconBell(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      {...props}
-    >
-      <path d="M6 8a6 6 0 1 1 12 0c0 6 2 7 2 7H4s2-1 2-7Z" />
-      <path d="M10 20a2 2 0 0 0 4 0" />
-    </svg>
-  );
-}
-
-function IconSettings(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      {...props}
-    >
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1A2 2 0 1 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.8.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
     </svg>
   );
 }
@@ -190,26 +131,6 @@ function IconSparkles(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function IconStethoscope(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      {...props}
-    >
-      <path d="M6 3v6a4 4 0 0 0 8 0V3" />
-      <path d="M10 13v3a4 4 0 0 0 8 0v-2" />
-      <circle cx="18" cy="11" r="2" />
-    </svg>
-  );
-}
-
-
 const PRIMARY_NAV: NavItem[] = [
   {
     href: "/salle-attente",
@@ -234,75 +155,6 @@ const PRIMARY_NAV: NavItem[] = [
     label: "Hawae Assist",
     sub: "16 scores cliniques",
     icon: IconSparkles,
-  },
-];
-
-const TOOLS_NAV: NavItem[] = [
-  {
-    href: "/agenda",
-    label: "Agenda & RDV",
-    sub: "Planning semaine",
-    icon: IconCalendar,
-  },
-  {
-    href: "/rappels",
-    label: "Rappels",
-    sub: "RDV à confirmer",
-    icon: IconBell,
-  },
-  {
-    href: "/scores",
-    label: "Scores cliniques",
-    sub: "Bishop, Manning, FIGO…",
-    icon: IconStethoscope,
-  },
-  {
-    href: "/partogramme",
-    label: "Partogramme",
-    sub: "Travail & dilatation",
-    icon: IconCalendar,
-  },
-  {
-    href: "/certificats",
-    label: "Certificats",
-    sub: "PDF médicaux",
-    icon: IconFolder,
-  },
-  {
-    href: "/pma",
-    label: "PMA / FIV",
-    sub: "Cycles & POSEIDON",
-    icon: IconSparkles,
-  },
-  {
-    href: "/courbes",
-    label: "Courbes croissance",
-    sub: "Salomon / Hadlock",
-    icon: IconDashboard,
-  },
-  {
-    href: "/protocoles",
-    label: "Protocoles",
-    sub: "Fiches procédurales",
-    icon: IconShield,
-  },
-  {
-    href: "/documents",
-    label: "Documents",
-    sub: "Galerie & backup JSON",
-    icon: IconFolder,
-  },
-  {
-    href: "/bridge",
-    label: "Bridge écho",
-    sub: "DICOM SR & OCR",
-    icon: IconHospital,
-  },
-  {
-    href: "/settings",
-    label: "Paramètres",
-    sub: "Profil & préférences",
-    icon: IconSettings,
   },
 ];
 
@@ -469,14 +321,18 @@ export function AppChrome({
               </span>
             </span>
           </Link>
-          {TOOLS_NAV.map((item) => (
-            <SidebarItem
-              key={item.href}
-              item={item}
-              active={isActive(item.href)}
-              onClick={closeMobile}
-            />
-          ))}
+          <ToolsNavGroups
+            isActive={isActive}
+            onNavigate={closeMobile}
+            renderItem={({ item, active, onClick }) => (
+              <SidebarItem
+                key={item.href}
+                item={item}
+                active={active}
+                onClick={onClick}
+              />
+            )}
+          />
 
           {doctor.role === "clinic_admin" || doctor.role === "app_admin" ? (
             <>
@@ -617,6 +473,8 @@ export function AppChrome({
           {children}
         </main>
         </div>
+
+        <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} />
       </div>
     </div>
   );

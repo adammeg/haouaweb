@@ -97,7 +97,7 @@ export function LoginForm({ from, errorKey }: { from?: string; errorKey?: string
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--cream)] px-3 py-2.5 text-sm outline-none ring-[var(--teal)] focus:ring-2"
+            className="hawae-input"
           />
         </div>
         <div>
@@ -115,13 +115,13 @@ export function LoginForm({ from, errorKey }: { from?: string; errorKey?: string
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border)] bg-[var(--cream)] px-3 py-2.5 text-sm outline-none ring-[var(--teal)] focus:ring-2"
+            className="hawae-input"
           />
         </div>
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-[var(--teal)] py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-95 disabled:opacity-60"
+          className="hawae-btn hawae-btn-primary w-full py-3 disabled:opacity-60"
         >
           {loading ? "Connexion…" : "Se connecter"}
         </button>

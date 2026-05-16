@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { DossierWorkspace } from "@/components/dossier/dossier-workspace";
+import "@/styles/dossier.css";
 
 export default function DossierPage() {
   return (

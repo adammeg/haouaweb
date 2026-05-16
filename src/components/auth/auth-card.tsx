@@ -31,7 +31,7 @@ export function AuthCard({
         </div>
       </div>
 
-      <div className="w-full max-w-[min(28rem,calc(100vw-2rem))] rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[0_20px_50px_rgba(10,92,92,0.08)] sm:p-8">
+      <div className="hawae-panel w-full max-w-[min(28rem,calc(100vw-2rem))] p-6 sm:p-8">
         <h1 className="font-display text-xl font-bold text-[var(--ink)]">{title}</h1>
         {subtitle ? (
           <p className="mt-1.5 text-sm text-[var(--muted)]">{subtitle}</p>

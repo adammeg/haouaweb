@@ -170,6 +170,24 @@ export function buildDossierContextForIa(d: PatientSnapshot | null): string {
     add("Consistance", d.ec_cons),
     add("Hauteur présentation", d.ec_hpres),
     add("Conclusion examen", d.ec_conclusion),
+    d.ec_chips
+      ? `Sémiologie examen (puces): ${(() => {
+          try {
+            const arr = JSON.parse(d.ec_chips) as string[];
+            return Array.isArray(arr) ? arr.join(", ") : d.ec_chips;
+          } catch {
+            return d.ec_chips;
+          }
+        })()}`
+      : null,
+    add("Imagerie / écho", d.bio_imagerie),
+    add("Hb", d.bio_hb),
+    add("Plaquettes", d.bio_plq),
+    add("AMH", d.bio_amh),
+    add("βhCG", d.bio_bhcg),
+    add("Glycémie jeûn", d.bio_gly),
+    add("HGPO T1", d.bio_hgpo1),
+    add("HGPO T2", d.bio_hgpo2),
   ].filter((x): x is string => x != null && x.length > 0);
 
   let assistBlock = "";

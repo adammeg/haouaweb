@@ -22,8 +22,7 @@ export function Field({
   );
 }
 
-const inputCls =
-  "w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2.5 text-sm shadow-inner outline-none focus:ring-2 focus:ring-[var(--teal)]/25";
+const inputCls = "hawae-input";
 
 export function TextInput({
   value,
