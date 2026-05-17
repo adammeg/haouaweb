@@ -33,10 +33,14 @@ import {
   SectionDivider,
   useAnaPatch,
 } from "@/components/dossier/anamnese-shared";
+import { ObstCalendrierPanel } from "@/components/dossier/obst-calendrier-panel";
+import { ObstPartogramPanel } from "@/components/dossier/obst-partogram-panel";
 
 const OBST_TABS = [
   { id: "motif", label: "💬 Motif" },
   { id: "grossesse", label: "🤰 Grossesse" },
+  { id: "calendrier", label: "📅 Calendrier" },
+  { id: "partogramme", label: "📈 Partogramme" },
   { id: "t1", label: "🔬 T1 / FMF" },
   { id: "echo", label: "📡 Écho & BPP" },
   { id: "morpho", label: "🫀 Morpho T2" },
@@ -92,6 +96,22 @@ export function ObstAnamnese({
           </div>
         </AnaCard>
       )}
+
+      {sub === "calendrier" && (
+        <ObstCalendrierPanel
+          draft={draft}
+          onDdrChange={(ddr) => {
+            const calc = calcTermeFromDdr(ddr);
+            if (calc) {
+              onField({ o_ddr: ddr, o_terme: calc.terme, o_dpa: calc.dpa });
+            } else {
+              onField({ o_ddr: ddr });
+            }
+          }}
+        />
+      )}
+
+      {sub === "partogramme" && <ObstPartogramPanel draft={draft} />}
 
       {sub === "grossesse" && (
         <AnaCard title="🤰 Grossesse actuelle" ar="الحمل الحالي">

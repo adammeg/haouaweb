@@ -86,6 +86,7 @@ export interface IvfProfile {
   protocol: string;
   startDate: string;
   poseidonGroup?: string;
+  bolognaPor?: boolean;
   days: IvfCycleDay[];
   updatedAt: string;
 }

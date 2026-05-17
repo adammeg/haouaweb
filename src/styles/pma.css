@@ -1,0 +1,594 @@
+/* PMA / FIV — porté depuis hawaemd_v50.html */
+.pma-wrap {
+  max-width: 1100px;
+}
+
+.pma-header-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, var(--teal-deep), var(--teal-mid));
+  border-radius: 16px;
+  color: white;
+  margin-bottom: 16px;
+}
+
+.pma-header-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.pma-engine-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.pma-header-sub {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+.pma-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pma-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.pma-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pma-btn.primary {
+  background: white;
+  color: var(--teal-deep);
+}
+
+.pma-btn.secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.pma-btn.gold {
+  background: var(--gold);
+  color: var(--teal-deep);
+}
+
+.pma-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pma-subnav-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1.5px solid var(--border);
+  background: white;
+  color: var(--ink-mid);
+  cursor: pointer;
+}
+
+.pma-subnav-btn.active {
+  background: var(--teal);
+  color: white;
+  border-color: var(--teal);
+}
+
+.pma-section {
+  display: none;
+}
+
+.pma-section.active {
+  display: block;
+}
+
+.pma-card {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-xs);
+}
+
+.pma-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.pma-card-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.pma-card-sub {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pma-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pma-form-grid.triple {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+@media (max-width: 700px) {
+  .pma-form-grid,
+  .pma-form-grid.triple {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pma-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pma-field label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.pma-field input,
+.pma-field select,
+.pma-field textarea {
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  font-size: 0.8rem;
+  outline: none;
+  background: #fafafa;
+}
+
+.pma-field input:focus,
+.pma-field select:focus,
+.pma-field textarea:focus {
+  border-color: var(--teal);
+  background: white;
+}
+
+.pma-field-hint {
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.pma-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 800px) {
+  .pma-summary-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pma-summary-item {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+
+.pma-summary-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.pma-summary-val {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--teal);
+  font-family: var(--font-display);
+}
+
+.pma-summary-sub {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.pma-analysis-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .pma-analysis-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pma-poseidon-card {
+  background: linear-gradient(145deg, var(--teal-deep), var(--teal-mid));
+  border-radius: 16px;
+  padding: 22px;
+  color: white;
+  box-shadow: var(--shadow-m);
+}
+
+.pma-poseidon-group {
+  font-size: 3.25rem;
+  font-weight: 900;
+  font-family: var(--font-display);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.pma-poseidon-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  opacity: 0.9;
+  margin-bottom: 12px;
+}
+
+.pma-poseidon-desc {
+  font-size: 0.7rem;
+  opacity: 0.75;
+  line-height: 1.6;
+}
+
+.pma-bologna-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  margin-top: 12px;
+}
+
+.pma-bologna-badge.pos {
+  background: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.pma-bologna-badge.neg {
+  background: rgba(22, 163, 74, 0.2);
+  color: #86efac;
+  border: 1px solid rgba(22, 163, 74, 0.3);
+}
+
+.pma-response-card {
+  background: white;
+  border-radius: 14px;
+  padding: 18px;
+  border: 1.5px solid var(--border);
+  margin-top: 12px;
+}
+
+.pma-response-type {
+  font-size: 1rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.pma-prognosis-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: #e5e7eb;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.pma-prognosis-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--teal), var(--accent));
+}
+
+.pma-explanation-card {
+  background: var(--teal-pale);
+  border-radius: 12px;
+  padding: 14px;
+  border-left: 4px solid var(--teal);
+}
+
+.pma-explanation-text {
+  font-size: 0.75rem;
+  color: var(--ink-mid);
+  line-height: 1.7;
+}
+
+.pma-hawae-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--teal);
+  margin-bottom: 5px;
+}
+
+.pma-disclaimer {
+  background: #fef3c7;
+  border-radius: 10px;
+  padding: 10px 14px;
+  border-left: 3px solid var(--gold);
+  font-size: 0.7rem;
+  color: #92400e;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+.pma-protocol-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 700px) {
+  .pma-protocol-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pma-protocol-card {
+  border-radius: 12px;
+  padding: 16px;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  background: white;
+}
+
+.pma-protocol-card:hover {
+  border-color: var(--teal);
+  box-shadow: var(--shadow-s);
+}
+
+.pma-protocol-card.recommended {
+  border-color: var(--teal);
+  background: var(--teal-pale);
+}
+
+.pma-protocol-card.selected {
+  border-color: var(--gold);
+  background: #fefce8;
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.2);
+}
+
+.pma-protocol-card.selected::after {
+  content: "✓ Choix médecin";
+  position: absolute;
+  top: -10px;
+  right: 14px;
+  background: var(--gold);
+  color: var(--teal-deep);
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.pma-protocol-name {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.pma-protocol-type {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.pma-protocol-detail {
+  font-size: 0.7rem;
+  color: var(--ink-mid);
+  line-height: 1.6;
+}
+
+.pma-protocol-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.pma-protocol-tag {
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: var(--cream-dark);
+  color: var(--ink-mid);
+}
+
+.pma-dose-box {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1.5px solid var(--border);
+}
+
+.pma-dose-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-s);
+}
+
+.pma-dose-row:last-child {
+  border-bottom: none;
+}
+
+.pma-dose-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-mid);
+}
+
+.pma-dose-val {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--teal);
+}
+
+.pma-ohss-badge {
+  display: inline-flex;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.pma-ohss-badge.low {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.pma-ohss-badge.medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pma-ohss-badge.high {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.pma-ohss-badge.critical {
+  background: #1e0533;
+  color: #f0abfc;
+}
+
+.pma-cal-day {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: white;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.pma-cal-day.key {
+  border-left: 4px solid var(--teal);
+}
+
+.pma-cal-day.trigger {
+  border-left: 4px solid #f97316;
+  background: #fff7ed;
+}
+
+.pma-cal-day.ponction {
+  border-left: 4px solid var(--gold);
+  background: #fefce8;
+}
+
+.pma-cal-day.monitoring {
+  border-left: 4px solid #7c3aed;
+  background: #f5f3ff;
+}
+
+.pma-cal-day.injection {
+  border-left: 4px solid var(--teal-light);
+}
+
+.pma-cal-day-num {
+  min-width: 52px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--teal);
+}
+
+.pma-cal-day-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.pma-cal-day-detail {
+  font-size: 0.7rem;
+  color: var(--ink-mid);
+  line-height: 1.5;
+}
+
+.pma-rec-banner {
+  background: linear-gradient(135deg, var(--teal), var(--teal-light));
+  color: white;
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-align: center;
+  padding: 3px 0;
+  letter-spacing: 0.06em;
+  border-radius: 6px 6px 0 0;
+  margin: -16px -16px 12px;
+}
+
+.pma-chosen-box {
+  background: #dcfce7;
+  border-radius: 12px;
+  padding: 14px;
+  border-left: 4px solid #16a34a;
+  margin-top: 14px;
+}
+
+.pma-empty {
+  text-align: center;
+  padding: 32px;
+}
+
+.pma-empty-icon {
+  font-size: 2.25rem;
+  margin-bottom: 12px;
+}
