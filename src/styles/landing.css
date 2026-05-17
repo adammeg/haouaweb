@@ -40,9 +40,14 @@
       transparent 55%
     ),
     radial-gradient(
-      ellipse 65% 45% at 0% 80%,
-      color-mix(in srgb, var(--brand-blush) 55%, transparent),
-      transparent 50%
+      ellipse 70% 50% at 5% 75%,
+      color-mix(in srgb, var(--brand-pink) 28%, transparent),
+      transparent 52%
+    ),
+    radial-gradient(
+      ellipse 55% 40% at 20% 15%,
+      color-mix(in srgb, var(--brand-blush) 60%, transparent),
+      transparent 48%
     ),
     radial-gradient(
       ellipse 70% 50% at 95% 20%,
@@ -238,7 +243,13 @@
 
 .landing-hero h1 em {
   font-style: normal;
-  background: linear-gradient(120deg, var(--teal) 0%, var(--teal-light) 55%, var(--gold) 100%);
+  background: linear-gradient(
+    120deg,
+    var(--teal) 0%,
+    var(--pink) 45%,
+    var(--pink-light) 70%,
+    var(--gold) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -539,7 +550,8 @@
   background: rgba(201, 168, 76, 0.15);
 }
 .landing-feature-icon.blush {
-  background: var(--blush-pale);
+  background: var(--pink-pale);
+  color: var(--pink-deep);
 }
 
 .landing-feature h3 {

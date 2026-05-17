@@ -14,7 +14,9 @@ function NavIcon({
   return (
     <span
       className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
-        active ? "bg-[var(--teal)] text-white shadow-sm" : "text-[var(--muted)]"
+        active
+          ? "bg-[var(--pink)] text-white shadow-[var(--shadow-pink)]"
+          : "text-[var(--muted)]"
       }`}
     >
       {children}

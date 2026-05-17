@@ -10,9 +10,14 @@
   --brand-teal-deep: #0a5c5c;
   --brand-teal-light: #1a9a9a;
 
-  /* — Féminité subtile — */
+  /* — Féminité & gynécologie (rose symbolique) — */
   --brand-blush: #f4d6da;
   --brand-blush-pale: #faf1f3;
+  --brand-pink: #d96b8a;
+  --brand-pink-deep: #b84d6b;
+  --brand-pink-light: #f0a8bc;
+  --brand-pink-pale: #fce8ee;
+  --brand-pink-mist: #fff5f8;
 
   /* — Accent haut de gamme — */
   --brand-gold: #c9a84c;
@@ -38,6 +43,11 @@
   --blush: var(--brand-blush);
   --blush-mid: #e8b0ba;
   --blush-pale: var(--brand-blush-pale);
+  --pink: var(--brand-pink);
+  --pink-deep: var(--brand-pink-deep);
+  --pink-light: var(--brand-pink-light);
+  --pink-pale: var(--brand-pink-pale);
+  --pink-mist: var(--brand-pink-mist);
   --cream: var(--brand-cream);
   --cream-dark: #eee9e2;
 
@@ -48,14 +58,28 @@
   --gradient-sidebar: linear-gradient(
     180deg,
     var(--teal-deep-nav) 0%,
-    var(--teal-mid-nav) 42%,
-    var(--teal-end-nav) 100%
+    var(--teal-mid-nav) 38%,
+    #0a4a52 72%,
+    color-mix(in srgb, var(--brand-pink-deep) 35%, var(--teal-end-nav)) 100%
   );
   --gradient-gold: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
   --gradient-brand-hero: linear-gradient(
     135deg,
     var(--brand-teal-deep) 0%,
-    var(--brand-teal-light) 100%
+    var(--brand-teal-light) 55%,
+    var(--brand-pink) 100%
+  );
+  --gradient-gyn: linear-gradient(
+    135deg,
+    var(--brand-pink-deep) 0%,
+    var(--brand-pink) 45%,
+    var(--brand-pink-light) 100%
+  );
+  --gradient-care: linear-gradient(
+    145deg,
+    var(--brand-teal-deep) 0%,
+    var(--brand-pink) 50%,
+    var(--brand-pink-light) 100%
   );
 
   --background: var(--brand-cream);
@@ -69,8 +93,11 @@
   --ink-mid: #3d5c5c;
   --muted: #7a9a9a;
   --muted-light: #adc4c4;
-  --border: #d4e8e8;
-  --border-s: rgba(10, 92, 92, 0.12);
+  --border: #e8d8dc;
+  --border-teal: #d4e8e8;
+  --border-pink: rgba(217, 107, 138, 0.22);
+  --border-s: rgba(10, 92, 92, 0.1);
+  --shadow-pink: 0 4px 20px rgba(217, 107, 138, 0.15);
 
   /* Statuts */
   --red: #dc2626;
@@ -119,13 +146,18 @@ body {
       transparent 52%
     ),
     radial-gradient(
-      ellipse 70% 55% at 0% 100%,
-      rgba(244, 214, 218, 0.45),
-      transparent 48%
+      ellipse 75% 60% at 0% 95%,
+      rgba(217, 107, 138, 0.14),
+      transparent 50%
     ),
     radial-gradient(
-      ellipse 50% 40% at 85% 90%,
-      rgba(201, 168, 76, 0.07),
+      ellipse 65% 50% at 15% 20%,
+      rgba(244, 214, 218, 0.55),
+      transparent 45%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 90% 85%,
+      rgba(201, 168, 76, 0.06),
       transparent 50%
     );
   background-attachment: fixed;
@@ -153,6 +185,18 @@ body {
   margin-bottom: 1.75rem;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.hawae-page-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: 4rem;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--gradient-gyn);
 }
 
 .hawae-page-header h1 {
@@ -222,13 +266,13 @@ body {
 }
 
 .hawae-input:hover:not(:disabled) {
-  border-color: var(--teal-light);
+  border-color: var(--pink-light);
 }
 
 .hawae-input:focus {
   outline: none;
-  border-color: var(--teal);
-  box-shadow: 0 0 0 3px rgba(10, 92, 92, 0.12);
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(217, 107, 138, 0.18);
 }
 
 .hawae-input::placeholder {
@@ -299,19 +343,20 @@ textarea.hawae-input {
 }
 
 .hawae-tab:hover {
-  background: var(--teal-pale);
-  color: var(--teal);
+  background: var(--pink-pale);
+  color: var(--pink-deep);
+  border-color: var(--border-pink);
 }
 
 .hawae-tab-active {
-  background: var(--teal);
+  background: var(--gradient-gyn);
   color: #fff;
-  border-color: var(--teal);
-  box-shadow: 0 2px 8px rgba(10, 92, 92, 0.2);
+  border-color: var(--pink-deep);
+  box-shadow: var(--shadow-pink);
 }
 
 ::selection {
-  background: rgba(10, 92, 92, 0.15);
+  background: rgba(217, 107, 138, 0.22);
   color: var(--ink);
 }
 
@@ -456,6 +501,27 @@ textarea.hawae-input {
   background: var(--gold-surface);
   color: var(--gold-dark);
   border: 1px solid rgba(201, 168, 76, 0.25);
+}
+
+.hawae-chip-pink {
+  background: var(--pink-pale);
+  color: var(--pink-deep);
+  border: 1px solid var(--border-pink);
+}
+
+.hawae-surface-pink {
+  background: linear-gradient(
+    180deg,
+    var(--pink-mist) 0%,
+    var(--surface) 100%
+  );
+  border: 1px solid var(--border-pink);
+}
+
+.hawae-accent-line {
+  height: 3px;
+  border-radius: 999px;
+  background: var(--gradient-care);
 }
 
 /* Bandeau marque (landing, auth, headers premium) */

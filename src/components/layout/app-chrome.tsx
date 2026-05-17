@@ -175,13 +175,13 @@ function SidebarItem({
       onClick={onClick}
       className={`group relative flex items-center gap-3 rounded-lg border-l-[3px] px-3 py-2.5 transition-all ${
         active
-          ? "border-[var(--gold)] bg-white/[0.13] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+          ? "border-[var(--pink-light)] bg-white/[0.13] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
           : "border-transparent hover:border-white/20 hover:bg-white/[0.08]"
       }`}
     >
       <span
         className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-[1.04] ${
-          active ? "bg-[rgba(201,168,76,0.22)]" : "bg-white/[0.07]"
+          active ? "bg-[rgba(217,107,138,0.28)]" : "bg-white/[0.07]"
         }`}
       >
         <Icon className="h-4 w-4 text-white/95" />

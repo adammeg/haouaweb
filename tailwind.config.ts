@@ -20,6 +20,13 @@ export default {
             DEFAULT: "var(--brand-blush)",
             pale: "var(--brand-blush-pale)",
           },
+          pink: {
+            DEFAULT: "var(--brand-pink)",
+            deep: "var(--brand-pink-deep)",
+            light: "var(--brand-pink-light)",
+            pale: "var(--brand-pink-pale)",
+            mist: "var(--brand-pink-mist)",
+          },
           gold: "var(--brand-gold)",
           cream: "var(--brand-cream)",
         },
@@ -33,6 +40,13 @@ export default {
         blush: {
           DEFAULT: "var(--blush)",
           pale: "var(--blush-pale)",
+        },
+        pink: {
+          DEFAULT: "var(--pink)",
+          deep: "var(--pink-deep)",
+          light: "var(--pink-light)",
+          pale: "var(--pink-pale)",
+          mist: "var(--pink-mist)",
         },
         gold: {
           DEFAULT: "var(--gold)",
