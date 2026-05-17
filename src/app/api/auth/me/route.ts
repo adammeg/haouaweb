@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
+import { getSessionFromRequest } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const session = await getSession();
+export async function GET(req: Request) {
+  const session = await getSessionFromRequest(req);
   if (!session) {
     return NextResponse.json({ doctor: null }, { status: 401 });
   }

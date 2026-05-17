@@ -4,24 +4,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { nanoid } from "nanoid";
 import "@/styles/pma.css";
 import { useHawaeStore } from "@/stores/hawae-store";
-import { useModulesStore, useModulesWorkspace } from "@/stores/modules-store";
 import { EMPTY_PATIENTS_MAP } from "@/lib/empty-stable";
 import { getPatientDisplayName } from "@/lib/patient-utils";
-import { analyzeIVF, selectProtocol } from "@/lib/pma/ivf-engine";
 import { ivfProfileFromPatient } from "@/lib/pma/ivf-profile-mapper";
-import {
-  loadIvfAnalysis,
-  loadIvfProfile,
-  saveIvfAnalysis,
-  saveIvfProfile,
-  clearIvfPatientData,
-} from "@/lib/pma/ivf-storage";
 import {
   EMPTY_IVF_PROFILE,
   type IvfAnalysis,
   type IvfPatientProfile,
 } from "@/lib/pma/ivf-types";
 import type { IvfProfile, IvfCycleDay } from "@/types/modules";
+import { usePmaApi } from "@/components/pma/use-pma-api";
 import { PmaProfileForm } from "@/components/pma/pma-profile-form";
 import { PmaAnalysisPanel } from "@/components/pma/pma-analysis-panel";
 import { PmaProtocolGrid } from "@/components/pma/pma-protocol-grid";
@@ -51,9 +43,7 @@ function calendarToCycleDays(
 }
 
 export function PmaClient() {
-  const ws = useModulesWorkspace();
-  const saveIvfProfileStore = useModulesStore((s) => s.saveIvfProfile);
-  const deleteIvfProfileStore = useModulesStore((s) => s.deleteIvfProfile);
+  const pmaApi = usePmaApi();
   const patientsMap = useHawaeStore((s) => {
     const id = s.currentUserId;
     if (!id) return EMPTY_PATIENTS_MAP;
@@ -68,6 +58,7 @@ export function PmaClient() {
   const [startDate, setStartDate] = useState(
     () => new Date().toISOString().slice(0, 10),
   );
+  const [cycles, setCycles] = useState<IvfProfile[]>([]);
 
   const patient = patientId ? patientsMap[patientId] : null;
   const patientName = patient ? getPatientDisplayName(patient) : "";
@@ -79,31 +70,42 @@ export function PmaClient() {
     ) => {
       setProfile((prev) => {
         const next = { ...prev, [key]: value };
-        if (patientId) saveIvfProfile(patientId, next);
+        if (patientId) pmaApi.scheduleSaveProfile(patientId, next);
         return next;
       });
     },
-    [patientId],
+    [patientId, pmaApi],
   );
 
   useEffect(() => {
-    if (!patientId || !patient) {
+    pmaApi.listCycles().then(setCycles).catch(() => setCycles([]));
+  }, [pmaApi]);
+
+  useEffect(() => {
+    if (!patientId) {
       setProfile(EMPTY_IVF_PROFILE);
       setAnalysis(null);
       return;
     }
-    const stored = loadIvfProfile(patientId);
-    const fromDossier = ivfProfileFromPatient(patient);
-    setProfile(stored ? { ...fromDossier, ...stored } : fromDossier);
-    setAnalysis(loadIvfAnalysis(patientId));
-  }, [patientId, patient]);
+    let cancelled = false;
+    pmaApi.loadBundle(patientId, patient).then((bundle) => {
+      if (!cancelled) {
+        setProfile(bundle.profile);
+        setAnalysis(bundle.analysis);
+        setCycles(bundle.cycles);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, patient, pmaApi]);
 
   const selectedProto = useMemo(() => {
     if (!analysis?.selectedProtocolId) return undefined;
     return analysis.protocols.find((p) => p.id === analysis.selectedProtocolId);
   }, [analysis]);
 
-  function runAnalysis() {
+  async function runAnalysis() {
     if (!patientId) {
       alert("Choisissez une patiente.");
       return;
@@ -114,34 +116,42 @@ export function PmaClient() {
     }
     setAnalyzing(true);
     setSection("analyse");
-    window.setTimeout(() => {
-      const result = analyzeIVF(profile, patientId);
+    try {
+      const result = await pmaApi.analyze(patientId, profile);
       setAnalysis(result);
-      saveIvfAnalysis(patientId, result);
-      saveIvfProfile(patientId, profile);
+    } catch {
+      alert("Erreur lors de l'analyse. Vérifiez la connexion.");
+    } finally {
       setAnalyzing(false);
-    }, 400);
+    }
   }
 
-  function handleSelectProtocol(id: string) {
-    if (!analysis) return;
-    const next = selectProtocol(analysis, id, profile);
-    setAnalysis(next);
-    if (patientId) saveIvfAnalysis(patientId, next);
-    setSection("calendrier");
+  async function handleSelectProtocol(id: string) {
+    if (!patientId || !analysis) return;
+    try {
+      const next = await pmaApi.selectProtocol(patientId, id);
+      setAnalysis(next);
+      setSection("calendrier");
+    } catch {
+      alert("Impossible de mettre à jour le protocole.");
+    }
   }
 
-  function handleReset() {
+  async function handleReset() {
     if (!patientId) return;
     if (!confirm("Réinitialiser le profil et l'analyse PMA pour cette patiente ?"))
       return;
-    clearIvfPatientData(patientId);
-    if (patient) setProfile(ivfProfileFromPatient(patient));
-    else setProfile(EMPTY_IVF_PROFILE);
-    setAnalysis(null);
+    try {
+      await pmaApi.reset(patientId);
+      if (patient) setProfile(ivfProfileFromPatient(patient));
+      else setProfile(EMPTY_IVF_PROFILE);
+      setAnalysis(null);
+    } catch {
+      alert("Erreur lors de la réinitialisation.");
+    }
   }
 
-  function saveCycle() {
+  async function saveCycle() {
     if (!patientId || !patient || !analysis || !selectedProto) {
       alert("Analysez et sélectionnez un protocole avant d'enregistrer le cycle.");
       return;
@@ -157,7 +167,25 @@ export function PmaClient() {
       days: calendarToCycleDays(analysis),
       updatedAt: new Date().toISOString(),
     };
-    saveIvfProfileStore(pr);
+    try {
+      await pmaApi.saveCycle(patientId, pr);
+      const list = await pmaApi.listCycles();
+      setCycles(list);
+    } catch {
+      alert("Erreur lors de l'enregistrement du cycle.");
+    }
+  }
+
+  async function handleDeleteCycle(cycleId: string, cyclePatientId?: string) {
+    const pid = cyclePatientId ?? patientId;
+    if (!pid) return;
+    try {
+      await pmaApi.deleteCycle(pid, cycleId);
+      const list = await pmaApi.listCycles();
+      setCycles(list);
+    } catch {
+      alert("Erreur lors de la suppression.");
+    }
   }
 
   return (
@@ -322,7 +350,7 @@ export function PmaClient() {
       <section className="mt-8">
         <h2 className="mb-3 font-bold">Cycles enregistrés</h2>
         <ul className="space-y-2">
-          {ws.ivfProfiles.map((pr) => (
+          {cycles.map((pr) => (
             <li
               key={pr.id}
               className="rounded-xl border bg-white px-4 py-3 text-sm"
@@ -334,7 +362,7 @@ export function PmaClient() {
               <button
                 type="button"
                 className="ml-3 text-xs text-red-600"
-                onClick={() => deleteIvfProfileStore(pr.id)}
+                onClick={() => handleDeleteCycle(pr.id, pr.patientId)}
               >
                 Supprimer
               </button>

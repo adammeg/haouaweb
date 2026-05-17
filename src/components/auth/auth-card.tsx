@@ -15,9 +15,7 @@ export function AuthCard({
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[var(--cream)] px-4 py-10 sm:py-14">
       <div className="mb-6 flex items-center gap-3 sm:mb-8">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#C9A84C] to-[#E8D28A] text-2xl shadow-md shadow-[rgba(201,168,76,0.35)]">
-          ✦
-        </div>
+        <div className="hawae-brand-mark h-12 w-12 text-2xl">✦</div>
         <div>
           <Link
             href="/"

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
+import { getSessionFromRequest } from "@/lib/auth/session";
 import { rateLimitMemory } from "@/lib/rate-limit-memory";
 import { isDoctorActive } from "@/lib/auth/require-active";
 import {
@@ -65,7 +65,7 @@ function parseChatErrorDetail(raw: string): string {
 }
 
 export async function POST(req: Request) {
-  const session = await getSession();
+  const session = await getSessionFromRequest(req);
   if (!session) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }

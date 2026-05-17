@@ -175,7 +175,7 @@ function SidebarItem({
       onClick={onClick}
       className={`group relative flex items-center gap-3 rounded-lg border-l-[3px] px-3 py-2.5 transition-all ${
         active
-          ? "border-[#C9A84C] bg-white/[0.13] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+          ? "border-[var(--gold)] bg-white/[0.13] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
           : "border-transparent hover:border-white/20 hover:bg-white/[0.08]"
       }`}
     >
@@ -197,7 +197,7 @@ function SidebarItem({
         ) : null}
       </span>
       {item.soon ? (
-        <span className="shrink-0 rounded-full bg-[#C9A84C] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#083F3F]">
+        <span className="shrink-0 rounded-full bg-[var(--gold)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--teal-deep-nav)]">
           Soon
         </span>
       ) : null}
@@ -264,14 +264,15 @@ export function AppChrome({
       ) : null}
 
       <aside
-        className={`fixed bottom-0 left-0 top-0 z-[200] flex w-[var(--sidebar-w)] flex-col bg-gradient-to-b from-[#083F3F] via-[#0B6868] to-[#0D7272] shadow-[4px_0_24px_rgba(10,92,92,0.22)] transition-transform sm:translate-x-0 ${
+        className={`fixed bottom-0 left-0 top-0 z-[200] flex w-[var(--sidebar-w)] flex-col shadow-[4px_0_24px_rgba(10,92,92,0.22)] transition-transform sm:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
+        style={{ background: "var(--gradient-sidebar)" }}
         aria-label="Navigation principale"
       >
         <div className="flex shrink-0 items-center gap-3 border-b border-white/10 px-[18px] py-[18px]">
-          <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[11px] bg-gradient-to-br from-[#C9A84C] to-[#E8D28A] shadow-[0_2px_14px_rgba(201,168,76,0.45)]">
-            <IconSparkles className="h-[22px] w-[22px] text-[#5A3E0E]" />
+          <div className="hawae-brand-mark h-[42px] w-[42px] shrink-0">
+            <IconSparkles className="h-[22px] w-[22px]" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -279,7 +280,7 @@ export function AppChrome({
                 HawaeMD
               </h1>
             </div>
-            <span className="block truncate text-[9px] font-medium uppercase tracking-[1.5px] text-[#E8D28A]/90">
+            <span className="hawae-brand-tagline block truncate">
               Intelligence clinique
             </span>
           </div>

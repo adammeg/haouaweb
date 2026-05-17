@@ -3,32 +3,63 @@
 @tailwind utilities;
 
 /* ══════════════════════════════════════════════════════════════════
-   HawaeMD — Design tokens portés depuis hawaemd_v48.html
-   (palette, ombres, rayons, typos). Les tokens restent exposés sous
-   forme de custom properties pour être consommés par Tailwind via
-   var(--x) ou par des helper classes.
+   HawaeMD — Identité visuelle PRO (palette officielle)
    ══════════════════════════════════════════════════════════════════ */
 :root {
-  /* Palette Teal */
-  --teal: #0a5c5c;
-  --teal-deep: #083f3f;
-  --teal-mid: #0d7272;
-  --teal-light: #1a9a9a;
-  --teal-pale: #e8f5f5;
+  /* — Signature médicale premium — */
+  --brand-teal-deep: #0a5c5c;
+  --brand-teal-light: #1a9a9a;
+
+  /* — Féminité subtile — */
+  --brand-blush: #f4d6da;
+  --brand-blush-pale: #faf1f3;
+
+  /* — Accent haut de gamme — */
+  --brand-gold: #c9a84c;
+
+  /* — Fond — */
+  --brand-cream: #f7f5f0;
+
+  /* Alias applicatifs (rétrocompatibilité) */
+  --teal: var(--brand-teal-deep);
+  --teal-deep: #074f4f;
+  --teal-mid: #0b6868;
+  --teal-light: var(--brand-teal-light);
+  --teal-pale: #e8f4f4;
   --teal-glass: rgba(10, 92, 92, 0.09);
 
-  /* Accents */
-  --accent: #1a9a9a;
-  --gold: #c9a84c;
+  --accent: var(--brand-teal-light);
+  --gold: var(--brand-gold);
   --gold-light: #e8d28a;
+  --gold-dark: #8a6b1b;
   --gold-glow: rgba(201, 168, 76, 0.35);
+  --gold-surface: #fbf3df;
 
-  /* Blush / Cream */
-  --blush: #f4d6da;
+  --blush: var(--brand-blush);
   --blush-mid: #e8b0ba;
-  --blush-pale: #faf1f3;
-  --cream: #f7f5f0;
+  --blush-pale: var(--brand-blush-pale);
+  --cream: var(--brand-cream);
   --cream-dark: #eee9e2;
+
+  /* Navigation & dégradés marque */
+  --teal-deep-nav: #074f4f;
+  --teal-mid-nav: var(--brand-teal-deep);
+  --teal-end-nav: #0b6868;
+  --gradient-sidebar: linear-gradient(
+    180deg,
+    var(--teal-deep-nav) 0%,
+    var(--teal-mid-nav) 42%,
+    var(--teal-end-nav) 100%
+  );
+  --gradient-gold: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+  --gradient-brand-hero: linear-gradient(
+    135deg,
+    var(--brand-teal-deep) 0%,
+    var(--brand-teal-light) 100%
+  );
+
+  --background: var(--brand-cream);
+  --foreground: #1a2e2e;
 
   /* Surfaces & texte */
   --surface: #ffffff;
@@ -82,8 +113,21 @@ body {
   color: var(--ink);
   background-color: var(--cream);
   background-image:
-    radial-gradient(ellipse 120% 80% at 100% -20%, rgba(26, 154, 154, 0.07), transparent 50%),
-    radial-gradient(ellipse 80% 60% at 0% 100%, rgba(201, 168, 76, 0.06), transparent 45%);
+    radial-gradient(
+      ellipse 100% 70% at 100% -15%,
+      rgba(26, 154, 154, 0.08),
+      transparent 52%
+    ),
+    radial-gradient(
+      ellipse 70% 55% at 0% 100%,
+      rgba(244, 214, 218, 0.45),
+      transparent 48%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 85% 90%,
+      rgba(201, 168, 76, 0.07),
+      transparent 50%
+    );
   background-attachment: fixed;
   font-size: 15px;
   line-height: 1.6;
@@ -358,6 +402,19 @@ textarea.hawae-input {
 }
 .hawae-btn-primary:hover {
   background: var(--teal-mid);
+  box-shadow: 0 4px 14px rgba(10, 92, 92, 0.18);
+}
+
+.hawae-btn-gold {
+  background: var(--gradient-gold);
+  color: var(--teal-deep-nav);
+  font-weight: 700;
+  box-shadow: 0 2px 12px var(--gold-glow);
+  border: 1px solid rgba(201, 168, 76, 0.35);
+}
+.hawae-btn-gold:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 4px 18px var(--gold-glow);
 }
 
 .hawae-btn-ghost {
@@ -396,8 +453,28 @@ textarea.hawae-input {
 }
 
 .hawae-chip-gold {
-  background: #fbf3df;
-  color: #8a6b1b;
+  background: var(--gold-surface);
+  color: var(--gold-dark);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+}
+
+/* Bandeau marque (landing, auth, headers premium) */
+.hawae-brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: var(--gradient-gold);
+  box-shadow: 0 2px 14px var(--gold-glow);
+  color: var(--gold-dark);
+}
+
+.hawae-brand-tagline {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: color-mix(in srgb, var(--gold-light) 90%, white);
 }
 
 .hawae-chip-muted {

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description:
     "Plateforme de dossiers patientes, consultations, scores cliniques et assistant Hawae IA pour la gynécologie, l'obstétrique et la fertilité.",
   manifest: "/manifest.webmanifest",
-  themeColor: "#0a5c5c",
+  themeColor: "#0A5C5C",
   appleWebApp: { capable: true, title: "HawaeMD" },
 };
 

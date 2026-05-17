@@ -58,6 +58,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
+      /** JWT pour apps mobiles (Authorization: Bearer). */
+      accessToken: token,
+      expiresIn: 60 * 60 * 24 * 7,
       doctor: { id: doctor.id, email: doctor.email, name: doctor.name },
     });
   } catch (e) {

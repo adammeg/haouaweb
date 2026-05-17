@@ -61,6 +61,28 @@ export async function verifySessionToken(token: string): Promise<SessionDoctor> 
   return { sub, email, name, clinicId: parsedClinicId, role: parsedRole };
 }
 
+function bearerToken(req: Request): string | null {
+  const auth = req.headers.get("authorization");
+  if (!auth?.toLowerCase().startsWith("bearer ")) return null;
+  const token = auth.slice(7).trim();
+  return token.length > 0 ? token : null;
+}
+
+/** Web (cookie) ou mobile (Authorization: Bearer). */
+export async function getSessionFromRequest(
+  req: Request,
+): Promise<SessionDoctor | null> {
+  const bearer = bearerToken(req);
+  if (bearer) {
+    try {
+      return await verifySessionToken(bearer);
+    } catch {
+      return null;
+    }
+  }
+  return getSession();
+}
+
 export async function getSession(): Promise<SessionDoctor | null> {
   try {
     const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;

@@ -4,8 +4,8 @@
   "description": "Intelligence clinique obstétrique, gynécologique et PMA",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#f7f4ef",
-  "theme_color": "#0a5c5c",
+  "background_color": "#F7F5F0",
+  "theme_color": "#0A5C5C",
   "lang": "fr",
   "icons": [
     {

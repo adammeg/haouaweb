@@ -34,9 +34,26 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 90% 60% at 10% -10%, rgba(26, 154, 154, 0.22), transparent 55%),
-    radial-gradient(ellipse 70% 50% at 95% 20%, rgba(201, 168, 76, 0.14), transparent 50%),
-    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(10, 92, 92, 0.08), transparent 60%);
+    radial-gradient(
+      ellipse 90% 60% at 10% -10%,
+      color-mix(in srgb, var(--brand-teal-light) 22%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 65% 45% at 0% 80%,
+      color-mix(in srgb, var(--brand-blush) 55%, transparent),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 70% 50% at 95% 20%,
+      color-mix(in srgb, var(--brand-gold) 14%, transparent),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 50% 100%,
+      color-mix(in srgb, var(--brand-teal-deep) 8%, transparent),
+      transparent 60%
+    );
 }
 
 .landing-bg-grid {
@@ -80,7 +97,7 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: linear-gradient(145deg, var(--teal-deep) 0%, var(--teal-light) 100%);
+  background: var(--gradient-brand-hero);
   box-shadow:
     0 4px 14px rgba(10, 92, 92, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
