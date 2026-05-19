@@ -141,7 +141,7 @@ export function AdminDashboard({ adminName }: { adminName: string }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="font-display text-lg font-bold text-[var(--ink)]">
-                Dataset IA (dossiers anonymisés)
+                Dataset IA (dossiers complets)
               </h2>
               <p className="mt-1 text-sm text-[var(--muted)]">
                 {trainingStats.totalSamples} échantillons ·{" "}

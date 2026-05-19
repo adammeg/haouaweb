@@ -44,6 +44,18 @@ async function ensureIndexes(db: Db): Promise<void> {
     db.collection("clinics").createIndex({ id: 1 }, { unique: true }),
     db.collection("clinics").createIndex({ slug: 1 }, { unique: true }),
     db.collection("workspaces").createIndex({ doctorId: 1 }, { unique: true }),
+    db
+      .collection("doctor_clinical_bundles")
+      .createIndex({ doctorId: 1 }, { unique: true }),
+    db.collection("doctor_modules").createIndex({ doctorId: 1 }, { unique: true }),
+    db
+      .collection("ivf_records")
+      .createIndex({ doctorId: 1, patientId: 1 }, { unique: true }),
+    db
+      .collection("ai_training_full_records")
+      .createIndex({ doctorId: 1, patientId: 1 }, { unique: true }),
+    db.collection("ai_training_full_records").createIndex({ ingestedAt: -1 }),
+    db.collection("doctor_settings").createIndex({ doctorId: 1 }, { unique: true }),
   ]);
 }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { isDoctorActive } from "@/lib/auth/require-active";
-import { getTrainingDatasetStats } from "@/lib/db/training-repository";
+import { getFullTrainingDatasetStats } from "@/lib/db/full-training-repository";
 import { dbError } from "@/lib/api/error-response";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function GET() {
   }
 
   try {
-    const stats = await getTrainingDatasetStats();
+    const stats = await getFullTrainingDatasetStats();
     return NextResponse.json({ stats });
   } catch (e) {
     return dbError("admin.training.stats.GET", e);

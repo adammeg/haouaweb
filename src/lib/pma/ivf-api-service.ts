@@ -10,6 +10,7 @@ import { ivfProfileFromPatient } from "@/lib/pma/ivf-profile-mapper";
 import type { IvfAnalysis, IvfPatientProfile } from "@/lib/pma/ivf-types";
 import type { PatientSnapshot } from "@/types/domain";
 import type { IvfProfile } from "@/types/modules";
+import { ingestPatientById } from "@/lib/training/ingest-full";
 
 function findPatient(
   workspace: Awaited<ReturnType<typeof getWorkspaceByDoctorId>>,
@@ -47,6 +48,9 @@ export async function saveIvfProfile(
   profile: IvfPatientProfile,
 ) {
   const updatedAt = await upsertIvfRecord(doctorId, patientId, { profile });
+  void ingestPatientById(doctorId, patientId).catch((err) =>
+    console.error("[training] ivf profile ingest", err),
+  );
   return { updatedAt };
 }
 
@@ -63,6 +67,9 @@ export async function runIvfAnalysis(
     profile,
     analysis,
   });
+  void ingestPatientById(doctorId, patientId).catch((err) =>
+    console.error("[training] ivf analyze ingest", err),
+  );
   return { analysis, updatedAt };
 }
 
@@ -75,6 +82,9 @@ export async function runIvfProtocolSelect(
   if (!record?.analysis) throw new Error("analysis_required");
   const analysis = selectProtocol(record.analysis, protocolId, record.profile);
   const updatedAt = await upsertIvfRecord(doctorId, patientId, { analysis });
+  void ingestPatientById(doctorId, patientId).catch((err) =>
+    console.error("[training] ivf protocol ingest", err),
+  );
   return { analysis, updatedAt };
 }
 

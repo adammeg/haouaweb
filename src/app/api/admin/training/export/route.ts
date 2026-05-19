@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { isDoctorActive } from "@/lib/auth/require-active";
-import { exportTrainingSamplesForMl } from "@/lib/db/training-repository";
+import { exportFullTrainingRecords } from "@/lib/db/full-training-repository";
 import { dbError } from "@/lib/api/error-response";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ export async function GET(req: Request) {
   const format = url.searchParams.get("format") ?? "ndjson";
 
   try {
-    const samples = await exportTrainingSamplesForMl(limit);
+    const samples = await exportFullTrainingRecords(limit);
 
     if (format === "json") {
       return NextResponse.json({ samples, count: samples.length });

@@ -64,6 +64,31 @@ export async function deleteIvfRecord(
   await db.collection(COL).deleteOne({ doctorId, patientId });
 }
 
+/** Tous les enregistrements FIV du médecin, indexés par patientId. */
+export async function listIvfRecordsByDoctor(
+  doctorId: string,
+): Promise<Map<string, IvfPatientRecord>> {
+  const db = await getDb();
+  const cursor = db.collection(COL).find({ doctorId });
+  const map = new Map<string, IvfPatientRecord>();
+  for await (const doc of cursor) {
+    const patientId = typeof doc.patientId === "string" ? doc.patientId : "";
+    if (!patientId) continue;
+    map.set(patientId, {
+      doctorId,
+      patientId,
+      profile: doc.profile as IvfPatientProfile,
+      analysis: (doc.analysis as IvfAnalysis | null) ?? null,
+      cycles: Array.isArray(doc.cycles) ? (doc.cycles as IvfProfile[]) : [],
+      updatedAt:
+        doc.updatedAt instanceof Date
+          ? doc.updatedAt
+          : new Date(doc.updatedAt),
+    });
+  }
+  return map;
+}
+
 export async function listIvfCyclesForDoctor(
   doctorId: string,
 ): Promise<IvfProfile[]> {

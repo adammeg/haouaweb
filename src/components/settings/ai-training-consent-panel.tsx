@@ -96,10 +96,10 @@ export function AiTrainingConsentPanel() {
             Contribution au modèle Hawae
           </h2>
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-[var(--muted)]">
-            En activant cette option, vous autorisez l&apos;envoi de dossiers
-            patientes <strong>dé-identifiés</strong> (sans nom, téléphone, CIN
-            ni date de naissance) vers notre base d&apos;entraînement pour
-            améliorer les recommandations cliniques. Vous pouvez désactiver à
+            En activant cette option, vous autorisez la copie des dossiers
+            patientes <strong>complets</strong> (identité, anamnèse, bilans,
+            historique Hawae, FIV, partogrammes, certificats, etc.) vers MongoDB
+            pour l&apos;entraînement du modèle Hawae. Vous pouvez désactiver à
             tout moment.
           </p>
         </div>
@@ -118,16 +118,15 @@ export function AiTrainingConsentPanel() {
       <ul className="mt-4 space-y-2 text-sm text-[var(--ink-mid)]">
         <li className="flex items-start gap-2">
           <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--teal)]" />
-          Données structurées : âge (tranche), spécialité, biologie, échographie,
-          obstétrique, infertilité.
+          Dossier complet + historique de consultations + réponses Hawae.
         </li>
         <li className="flex items-start gap-2">
           <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--teal)]" />
-          Identifiant opaque par dossier — non réversible vers l&apos;identité.
+          Données PMA/FIV, partogrammes, certificats et documents liés.
         </li>
         <li className="flex items-start gap-2">
           <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--gold)]" />
-          Synchronisation automatique à chaque sauvegarde du workspace.
+          Synchronisation automatique à chaque sauvegarde (dossier, modules, agenda).
         </li>
       </ul>
 

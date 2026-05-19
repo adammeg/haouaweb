@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useHawaeStore } from "@/stores/hawae-store";
+import { ClinicalDataSync } from "@/components/providers/clinical-data-sync";
 import { WorkspaceSync } from "@/components/providers/workspace-sync";
 
 /**
@@ -44,6 +45,7 @@ export function StoreHydration({
     <>
       {children}
       <WorkspaceSync />
+      <ClinicalDataSync />
     </>
   );
 }

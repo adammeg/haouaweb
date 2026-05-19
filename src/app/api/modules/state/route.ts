@@ -7,6 +7,7 @@ import {
   upsertModules,
 } from "@/lib/db/modules-repository";
 import type { ModulesWorkspace } from "@/types/modules";
+import { ingestAllFullTrainingData } from "@/lib/training/ingest-full";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,9 @@ export async function PUT(req: Request) {
     const updatedAt = await upsertModules(
       auth.doctor.sub,
       raw.workspaceByUser as Record<string, ModulesWorkspace>,
+    );
+    void ingestAllFullTrainingData(auth.doctor.sub).catch((err) =>
+      console.error("[training] modules ingest failed", err),
     );
     return withCors(NextResponse.json({ ok: true, updatedAt }), req);
   } catch (e) {
