@@ -74,8 +74,6 @@ export function HawaePanel({ draft }: { draft: PatientSnapshot | null }) {
 
   const dataKey = draft ? stableClinicalDataKey(draft) : "";
   const previewContext = draft ? buildDossierContextForIa(draft) : "";
-  const iaCount = draft?.hawaeIaHistory?.length ?? 0;
-
   const [diagnosticText, setDiagnosticText] = useState("");
   const [diagLoading, setDiagLoading] = useState(false);
   const [diagErr, setDiagErr] = useState<string | null>(null);
@@ -237,22 +235,6 @@ export function HawaePanel({ draft }: { draft: PatientSnapshot | null }) {
 
   return (
     <div className="space-y-6">
-      <p className="text-xs leading-relaxed text-[var(--muted)]">
-        Les analyses et réponses sont{" "}
-        <strong className="text-[var(--ink)]">enregistrées sur le dossier patient</strong> (local +
-        synchro compte) et réinjectées dans les prochains échanges avec le modèle, avec l’ordonnance
-        et les données cliniques. Configurez{" "}
-        <code className="rounded bg-[var(--cream)] px-1">OPENROUTER_API_KEY</code> ou{" "}
-        <code className="rounded bg-[var(--cream)] px-1">OPENAI_API_KEY</code>. Sortie informative :
-        décision médicale sous votre responsabilité.
-      </p>
-      {iaCount > 0 && (
-        <p className="text-xs text-[var(--teal)]">
-          {iaCount} échange{iaCount > 1 ? "s" : ""} Hawae déjà enregistré{iaCount > 1 ? "s" : ""} sur ce
-          dossier (rechargés dans le contexte IA).
-        </p>
-      )}
-
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-sm font-bold text-[var(--teal)]">

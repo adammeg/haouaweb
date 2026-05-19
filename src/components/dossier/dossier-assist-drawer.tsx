@@ -72,13 +72,13 @@ export function DossierAssistDrawer({
       <div
         id="assist-drawer"
         role="dialog"
-        aria-label="Hawae Assist"
+        aria-label="Hawae — assistante clinique"
         className={open ? "open" : ""}
       >
         <div className="adr-head">
           <div>
-            <div className="text-sm font-bold">Hawae Assist</div>
-            <div className="text-[11px] opacity-80">Analyse clinique contextuelle</div>
+            <div className="text-sm font-bold">Hawae</div>
+            <div className="text-[11px] opacity-80">Notre assistante clinique</div>
           </div>
           <button
             type="button"

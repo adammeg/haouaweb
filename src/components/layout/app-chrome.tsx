@@ -10,6 +10,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useHawaeStore } from "@/stores/hawae-store";
 import { UserSwitcher } from "@/components/users/user-switcher";
 import { LogoutControl } from "@/components/auth/logout-control";
+import { HawaeLogo } from "@/components/brand/hawae-logo";
 
 function IconWaiting(props: SVGProps<SVGSVGElement>) {
   return (
@@ -141,7 +142,7 @@ const PRIMARY_NAV: NavItem[] = [
   {
     href: "/dossier",
     label: "Dossier patiente",
-    sub: "Anamnèse & Hawae IA",
+    sub: "Anamnèse & Hawae",
     icon: IconFolder,
   },
   {
@@ -152,8 +153,8 @@ const PRIMARY_NAV: NavItem[] = [
   },
   {
     href: "/assist",
-    label: "Hawae Assist",
-    sub: "16 scores cliniques",
+    label: "Hawae",
+    sub: "Assistante clinique · 16 scores",
     icon: IconSparkles,
   },
 ];
@@ -175,13 +176,13 @@ function SidebarItem({
       onClick={onClick}
       className={`group relative flex items-center gap-3 rounded-lg border-l-[3px] px-3 py-2.5 transition-all ${
         active
-          ? "border-[var(--pink-light)] bg-white/[0.13] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+          ? "border-[var(--blush)] bg-white/[0.13] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
           : "border-transparent hover:border-white/20 hover:bg-white/[0.08]"
       }`}
     >
       <span
         className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-[1.04] ${
-          active ? "bg-[rgba(217,107,138,0.28)]" : "bg-white/[0.07]"
+          active ? "bg-[rgba(193,122,122,0.32)]" : "bg-white/[0.07]"
         }`}
       >
         <Icon className="h-4 w-4 text-white/95" />
@@ -225,7 +226,7 @@ export function AppChrome({
     if (pathname.startsWith("/dashboard")) return "Tableau de bord";
     if (pathname.startsWith("/agenda")) return "Agenda & RDV";
     if (pathname.startsWith("/rappels")) return "Rappels";
-    if (pathname.startsWith("/assist")) return "Hawae Assist";
+    if (pathname.startsWith("/assist")) return "Hawae";
     if (pathname.startsWith("/scores")) return "Scores cliniques";
     if (pathname.startsWith("/settings")) return "Paramètres";
     if (pathname.startsWith("/clinic")) return "Clinique";
@@ -271,9 +272,11 @@ export function AppChrome({
         aria-label="Navigation principale"
       >
         <div className="flex shrink-0 items-center gap-3 border-b border-white/10 px-[18px] py-[18px]">
-          <div className="hawae-brand-mark h-[42px] w-[42px] shrink-0">
-            <IconSparkles className="h-[22px] w-[22px]" />
-          </div>
+          <HawaeLogo
+            size={42}
+            rounded="lg"
+            className="shadow-md ring-1 ring-white/25"
+          />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="font-display text-[17px] font-extrabold leading-tight text-white">

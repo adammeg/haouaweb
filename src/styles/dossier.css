@@ -99,12 +99,14 @@
 }
 
 .dl-card {
-  background: white;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
   padding: 18px 20px;
-  border: 1.5px solid var(--border);
+  border: 1.5px solid var(--glass-border);
   cursor: pointer;
-  transition: all 0.18s;
+  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -115,8 +117,8 @@
 }
 
 .dl-card:hover {
-  border-color: var(--teal);
-  box-shadow: 0 6px 24px rgba(10, 92, 92, 0.1);
+  border-color: var(--blush);
+  box-shadow: 0 6px 24px rgba(0, 112, 112, 0.1), 0 2px 8px rgba(193, 122, 122, 0.12);
   transform: translateY(-2px);
 }
 
@@ -162,21 +164,21 @@
 }
 
 .dl-card-spec.gyn {
-  background: var(--pink-pale);
-  color: var(--pink-deep);
-  border: 1px solid var(--border-pink);
+  background: var(--blush-pale);
+  color: var(--blush);
+  border: 1px solid var(--border-blush);
 }
 
 .dl-card-spec.obst {
-  background: color-mix(in srgb, var(--pink-pale) 70%, #dbeafe);
-  color: #9d3d5c;
-  border: 1px solid var(--border-pink);
+  background: color-mix(in srgb, var(--blush-pale) 75%, #e6f3f3);
+  color: var(--pink-deep);
+  border: 1px solid var(--border-blush);
 }
 
 .dl-card-spec.inf {
-  background: color-mix(in srgb, var(--pink-pale) 50%, var(--gold-surface));
-  color: var(--pink-deep);
-  border: 1px solid var(--border-pink);
+  background: color-mix(in srgb, var(--blush-pale) 55%, var(--gold-surface));
+  color: var(--blush);
+  border: 1px solid var(--border-blush);
 }
 
 .dl-empty {
@@ -708,12 +710,19 @@
 }
 
 .dossier-card {
-  background: var(--surface);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-s);
   margin-bottom: 18px;
   overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+
+.dossier-card:hover {
+  border-color: var(--border-blush);
 }
 
 .dossier-card-header {
@@ -849,7 +858,9 @@
   right: 0;
   bottom: 0;
   width: min(420px, 100vw);
-  background: white;
+  background: var(--glass-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   z-index: 410;
   transform: translateX(100%);
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
@@ -868,7 +879,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, var(--teal-deep), var(--teal));
+  background: linear-gradient(135deg, var(--teal-deep), var(--teal) 55%, var(--blush));
   color: white;
 }
 
@@ -1022,6 +1033,12 @@
 }
 
 /* ══ Anamnèse v50 ══ */
+.anamnese-tab {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
 .spec-chooser {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1122,45 +1139,87 @@
   color: white;
 }
 
+/* Sections spécialité (gyn / obst / fertilité) */
+.ana-spec-block {
+  border-left: 3px solid var(--color-blush);
+  padding-left: 8px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
 .ana-sub-tabs {
   display: flex;
-  gap: 0;
-  background: var(--pink-mist);
-  border-radius: 10px;
-  padding: 4px;
-  margin-bottom: 18px;
-  border: 1px solid var(--border-pink);
   flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  background: var(--blush-pale);
+  border-radius: 12px;
+  padding: 8px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border-blush);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 7+ onglets (obstétrique) : défilement horizontal sans chevauchement */
+.ana-sub-tabs--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--blush) transparent;
+  padding-bottom: 10px;
+}
+
+.ana-sub-tabs--scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ana-sub-tabs--scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--blush) 55%, var(--teal-pale));
+  border-radius: 999px;
 }
 
 .ana-sub-tab {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 10px;
+  flex: 0 0 auto;
+  min-width: max-content;
+  padding: 8px 14px;
   font-size: 12px;
   font-weight: 500;
   color: var(--muted);
   cursor: pointer;
-  border-radius: 7px;
+  border-radius: 8px;
   text-align: center;
-  transition: all 0.15s;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
   border: none;
   background: transparent;
   font-family: inherit;
   white-space: nowrap;
+  line-height: 1.25;
+}
+
+.ana-sub-tabs--scroll .ana-sub-tab {
+  flex-shrink: 0;
 }
 
 .ana-sub-tab:hover {
-  color: var(--pink-deep);
-  background: var(--pink-pale);
+  color: var(--blush);
+  background: var(--blush-pale);
 }
 
 .ana-sub-tab.active {
   background: white;
-  color: var(--pink-deep);
+  color: var(--blush);
   font-weight: 700;
   box-shadow: var(--shadow-pink);
-  border: 1px solid var(--border-pink);
+  border: 1px solid var(--border-blush);
 }
 
 .section-divider {
@@ -1283,9 +1342,9 @@
   width: 100%;
   padding: 18px 24px;
   margin-top: 10px;
-  background: linear-gradient(135deg, #073b3b, #0d6e6e);
+  background: linear-gradient(135deg, var(--teal-deep), var(--teal) 55%, var(--blush));
   color: white;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 14px;
   font-family: inherit;
   cursor: pointer;
@@ -1293,13 +1352,13 @@
   align-items: center;
   gap: 16px;
   text-align: left;
-  transition: all 0.2s;
-  box-shadow: 0 4px 16px rgba(13, 110, 110, 0.2);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 112, 112, 0.22);
 }
 
 .ia-launch-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgba(13, 110, 110, 0.3);
+  box-shadow: 0 10px 28px rgba(193, 122, 122, 0.28);
 }
 
 .ia-launch-btn .ilb-icon {

@@ -8,6 +8,7 @@ import {
   type WorkspacePersisted,
 } from "@/lib/db/workspace-repository";
 import { dbError } from "@/lib/api/error-response";
+import { ingestWorkspaceForTraining } from "@/lib/training/sync-from-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,9 @@ export async function PUT(req: Request) {
       );
     }
     const updatedAt = await upsertWorkspace(session.sub, workspace);
+    void ingestWorkspaceForTraining(session.sub, workspace, updatedAt).catch(
+      (err) => console.error("[training] workspace ingest failed", err),
+    );
     return withCors(NextResponse.json({ ok: true, updatedAt }), req);
   } catch (e) {
     return withCors(dbError("workspace.state.PUT", e), req);

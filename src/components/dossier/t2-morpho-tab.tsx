@@ -344,11 +344,11 @@ export function T2MorphoTab({
           {pdfBusy ? "Génération…" : "Générer compte-rendu PDF"}
         </button>
       </div>
-      <Field label="Conclusion IA"><TextArea value={draft.t2_ia_conclusion} onChange={(v) => p("t2_ia_conclusion", v)} rows={6} /></Field>
+      <Field label="Conclusion Hawae"><TextArea value={draft.t2_ia_conclusion} onChange={(v) => p("t2_ia_conclusion", v)} rows={6} /></Field>
       <div className="flex flex-wrap gap-3 mt-3">
         <button type="button" disabled={ocrOpen} onClick={() => setOcrOpen(true)} className="rounded-xl border border-[var(--teal)] px-4 py-2 text-sm font-semibold text-[var(--teal)]">OCR camera</button>
-        <button type="button" disabled={iaBusy} onClick={() => void onIaOnly()} className="rounded-xl border px-4 py-2 text-sm font-semibold">{iaBusy ? "IA…" : "Rediger CR"}</button>
-        <button type="button" disabled={pdfBusy || iaBusy} onClick={() => void onPdf(true)} className="rounded-xl bg-[#0d7a7a] px-4 py-2 text-sm font-bold text-white">IA + PDF</button>
+        <button type="button" disabled={iaBusy} onClick={() => void onIaOnly()} className="rounded-xl border px-4 py-2 text-sm font-semibold">{iaBusy ? "Hawae…" : "Rédiger CR"}</button>
+        <button type="button" disabled={pdfBusy || iaBusy} onClick={() => void onPdf(true)} className="rounded-xl bg-[var(--teal)] px-4 py-2 text-sm font-bold text-white">Hawae + PDF</button>
       </div>
       <OcrCameraModal open={ocrOpen} onClose={() => setOcrOpen(false)} onApply={(patch) => onField(patch)} />
     </div>

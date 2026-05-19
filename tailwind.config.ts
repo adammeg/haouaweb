@@ -38,8 +38,9 @@ export default {
           pale: "var(--teal-pale)",
         },
         blush: {
-          DEFAULT: "var(--blush)",
+          DEFAULT: "var(--color-blush)",
           pale: "var(--blush-pale)",
+          mid: "var(--blush-mid)",
         },
         pink: {
           DEFAULT: "var(--pink)",

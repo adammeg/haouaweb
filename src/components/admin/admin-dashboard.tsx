@@ -20,20 +20,38 @@ export function AdminDashboard({ adminName }: { adminName: string }) {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [trainingStats, setTrainingStats] = useState<{
+    totalSamples: number;
+    totalDoctors: number;
+    lastIngestedAt: string | null;
+  } | null>(null);
 
   async function load() {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch("/api/admin/overview");
-      const data = (await res.json()) as {
+      const [overviewRes, trainingRes] = await Promise.all([
+        fetch("/api/admin/overview"),
+        fetch("/api/admin/training/stats"),
+      ]);
+      const data = (await overviewRes.json()) as {
         clinics?: ClinicRow[];
         doctors?: DoctorRow[];
         error?: string;
       };
-      if (!res.ok) throw new Error(data.error || res.statusText);
+      if (!overviewRes.ok) throw new Error(data.error || overviewRes.statusText);
       setClinics(data.clinics ?? []);
       setDoctors(data.doctors ?? []);
+      if (trainingRes.ok) {
+        const t = (await trainingRes.json()) as {
+          stats?: {
+            totalSamples: number;
+            totalDoctors: number;
+            lastIngestedAt: string | null;
+          };
+        };
+        if (t.stats) setTrainingStats(t.stats);
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Erreur");
     } finally {
@@ -117,6 +135,31 @@ export function AdminDashboard({ adminName }: { adminName: string }) {
           <div className="text-xs font-semibold text-[var(--muted)]">Désactivés</div>
         </div>
       </div>
+
+      {trainingStats ? (
+        <section className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-lg font-bold text-[var(--ink)]">
+                Dataset IA (dossiers anonymisés)
+              </h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                {trainingStats.totalSamples} échantillons ·{" "}
+                {trainingStats.totalDoctors} médecins contributeurs
+                {trainingStats.lastIngestedAt
+                  ? ` · dernier ingest ${new Date(trainingStats.lastIngestedAt).toLocaleString("fr-FR")}`
+                  : ""}
+              </p>
+            </div>
+            <a
+              href="/api/admin/training/export?format=ndjson&limit=10000"
+              className="rounded-xl bg-[var(--teal)] px-4 py-2 text-sm font-semibold text-white hover:opacity-95"
+            >
+              Exporter NDJSON
+            </a>
+          </div>
+        </section>
+      ) : null}
 
       {err ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">

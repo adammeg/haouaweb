@@ -281,6 +281,17 @@ export function DossierFormView({
         </main>
       </div>
 
+      <button
+        type="button"
+        className="hawae-fab"
+        onClick={() => setAssistOpen(true)}
+        aria-label="Ouvrir Hawae, notre assistante clinique"
+        title="Hawae — assistante clinique"
+      >
+        <span aria-hidden>✦</span>
+        Hawae
+      </button>
+
       <DossierAssistDrawer
         open={assistOpen}
         onClose={() => setAssistOpen(false)}

@@ -3,53 +3,61 @@
 @tailwind utilities;
 
 /* ══════════════════════════════════════════════════════════════════
-   HawaeMD — Identité visuelle PRO (palette officielle)
+   HawaeMD — Charte graphique officielle
+   Teal #007070 · Gold #B8963E · Blush #C17A7A · Crème #FAFAFA · Ink #1A1A2E
    ══════════════════════════════════════════════════════════════════ */
 :root {
-  /* — Signature médicale premium — */
-  --brand-teal-deep: #0a5c5c;
-  --brand-teal-light: #1a9a9a;
+  /* Tokens officiels */
+  --color-teal: #007070;
+  --color-gold: #b8963e;
+  --color-blush: #c17a7a;
+  --color-cream: #fafafa;
+  --color-ink: #1a1a2e;
 
-  /* — Féminité & gynécologie (rose symbolique) — */
-  --brand-blush: #f4d6da;
-  --brand-blush-pale: #faf1f3;
-  --brand-pink: #d96b8a;
-  --brand-pink-deep: #b84d6b;
-  --brand-pink-light: #f0a8bc;
-  --brand-pink-pale: #fce8ee;
-  --brand-pink-mist: #fff5f8;
+  /* — Signature médicale premium — */
+  --brand-teal-deep: var(--color-teal);
+  --brand-teal-light: #0a8a8a;
+
+  /* — Féminité & gynécologie (Blush Rose accent) — */
+  --brand-blush: var(--color-blush);
+  --brand-blush-pale: #f5e8e8;
+  --brand-pink: var(--color-blush);
+  --brand-pink-deep: #a56262;
+  --brand-pink-light: #d99a9a;
+  --brand-pink-pale: #f8eded;
+  --brand-pink-mist: #fdf8f8;
 
   /* — Accent haut de gamme — */
-  --brand-gold: #c9a84c;
+  --brand-gold: var(--color-gold);
 
   /* — Fond — */
-  --brand-cream: #f7f5f0;
+  --brand-cream: var(--color-cream);
 
   /* Alias applicatifs (rétrocompatibilité) */
-  --teal: var(--brand-teal-deep);
-  --teal-deep: #074f4f;
-  --teal-mid: #0b6868;
-  --teal-light: var(--brand-teal-light);
-  --teal-pale: #e8f4f4;
-  --teal-glass: rgba(10, 92, 92, 0.09);
+  --teal: var(--color-teal);
+  --teal-deep: #005858;
+  --teal-mid: #008585;
+  --teal-light: #0a8a8a;
+  --teal-pale: #e6f3f3;
+  --teal-glass: rgba(0, 112, 112, 0.09);
 
-  --accent: var(--brand-teal-light);
-  --gold: var(--brand-gold);
-  --gold-light: #e8d28a;
-  --gold-dark: #8a6b1b;
-  --gold-glow: rgba(201, 168, 76, 0.35);
-  --gold-surface: #fbf3df;
+  --accent: var(--teal-light);
+  --gold: var(--color-gold);
+  --gold-light: #d4b86a;
+  --gold-dark: #7a6328;
+  --gold-glow: rgba(184, 150, 62, 0.35);
+  --gold-surface: #f8f2e4;
 
-  --blush: var(--brand-blush);
-  --blush-mid: #e8b0ba;
+  --blush: var(--color-blush);
+  --blush-mid: #d99a9a;
   --blush-pale: var(--brand-blush-pale);
-  --pink: var(--brand-pink);
+  --pink: var(--color-blush);
   --pink-deep: var(--brand-pink-deep);
   --pink-light: var(--brand-pink-light);
   --pink-pale: var(--brand-pink-pale);
   --pink-mist: var(--brand-pink-mist);
-  --cream: var(--brand-cream);
-  --cream-dark: #eee9e2;
+  --cream: var(--color-cream);
+  --cream-dark: #f0ece8;
 
   /* Navigation & dégradés marque */
   --teal-deep-nav: #074f4f;
@@ -60,44 +68,47 @@
     var(--teal-deep-nav) 0%,
     var(--teal-mid-nav) 38%,
     #0a4a52 72%,
-    color-mix(in srgb, var(--brand-pink-deep) 35%, var(--teal-end-nav)) 100%
+    color-mix(in srgb, var(--color-blush) 35%, var(--teal-end-nav)) 100%
   );
   --gradient-gold: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
   --gradient-brand-hero: linear-gradient(
     135deg,
-    var(--brand-teal-deep) 0%,
-    var(--brand-teal-light) 55%,
-    var(--brand-pink) 100%
+    var(--color-teal) 0%,
+    var(--teal-light) 55%,
+    var(--color-blush) 100%
   );
   --gradient-gyn: linear-gradient(
     135deg,
-    var(--brand-pink-deep) 0%,
-    var(--brand-pink) 45%,
-    var(--brand-pink-light) 100%
+    var(--color-blush) 0%,
+    var(--blush-mid) 45%,
+    var(--blush-pale) 100%
   );
   --gradient-care: linear-gradient(
     145deg,
-    var(--brand-teal-deep) 0%,
-    var(--brand-pink) 50%,
-    var(--brand-pink-light) 100%
+    var(--color-teal) 0%,
+    var(--color-blush) 50%,
+    var(--blush-mid) 100%
   );
 
-  --background: var(--brand-cream);
-  --foreground: #1a2e2e;
+  --background: var(--color-cream);
+  --foreground: var(--color-ink);
 
   /* Surfaces & texte */
   --surface: #ffffff;
-  --surface-raised: #fdfcfa;
-  --card: #ffffff;
-  --ink: #1a2e2e;
-  --ink-mid: #3d5c5c;
-  --muted: #7a9a9a;
-  --muted-light: #adc4c4;
-  --border: #e8d8dc;
-  --border-teal: #d4e8e8;
-  --border-pink: rgba(217, 107, 138, 0.22);
-  --border-s: rgba(10, 92, 92, 0.1);
-  --shadow-pink: 0 4px 20px rgba(217, 107, 138, 0.15);
+  --surface-raised: #ffffff;
+  --card: rgba(255, 255, 255, 0.72);
+  --ink: var(--color-ink);
+  --ink-mid: #3d3d52;
+  --muted: #6b6b80;
+  --muted-light: #a8a8b8;
+  --border: #e8e4e4;
+  --border-teal: #cce8e8;
+  --border-pink: rgba(193, 122, 122, 0.28);
+  --border-blush: rgba(193, 122, 122, 0.35);
+  --border-s: rgba(0, 112, 112, 0.1);
+  --shadow-pink: 0 4px 20px rgba(193, 122, 122, 0.18);
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.45);
 
   /* Statuts */
   --red: #dc2626;
@@ -105,11 +116,11 @@
   --orange: #d97706;
 
   /* Ombres */
-  --shadow-xs: 0 1px 2px rgba(10, 92, 92, 0.06);
-  --shadow-s: 0 2px 8px rgba(10, 92, 92, 0.08), 0 1px 3px rgba(10, 92, 92, 0.04);
-  --shadow-m: 0 6px 24px rgba(10, 92, 92, 0.12), 0 2px 8px rgba(10, 92, 92, 0.06);
-  --shadow-l: 0 16px 48px rgba(10, 92, 92, 0.16),
-    0 6px 16px rgba(10, 92, 92, 0.08);
+  --shadow-xs: 0 1px 2px rgba(0, 112, 112, 0.06);
+  --shadow-s: 0 2px 8px rgba(0, 112, 112, 0.08), 0 1px 3px rgba(0, 112, 112, 0.04);
+  --shadow-m: 0 6px 24px rgba(0, 112, 112, 0.12), 0 2px 8px rgba(0, 112, 112, 0.06);
+  --shadow-l: 0 16px 48px rgba(0, 112, 112, 0.16),
+    0 6px 16px rgba(0, 112, 112, 0.08);
   --shadow: var(--shadow-s);
 
   /* Rayons */
@@ -147,17 +158,17 @@ body {
     ),
     radial-gradient(
       ellipse 75% 60% at 0% 95%,
-      rgba(217, 107, 138, 0.14),
+      rgba(193, 122, 122, 0.12),
       transparent 50%
     ),
     radial-gradient(
       ellipse 65% 50% at 15% 20%,
-      rgba(244, 214, 218, 0.55),
+      rgba(245, 232, 232, 0.65),
       transparent 45%
     ),
     radial-gradient(
       ellipse 50% 40% at 90% 85%,
-      rgba(201, 168, 76, 0.06),
+      rgba(184, 150, 62, 0.07),
       transparent 50%
     );
   background-attachment: fixed;
@@ -221,11 +232,16 @@ body {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 1.25rem 1.35rem;
   box-shadow: var(--shadow-xs);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .hawae-stat:hover {
@@ -271,8 +287,8 @@ body {
 
 .hawae-input:focus {
   outline: none;
-  border-color: var(--pink);
-  box-shadow: 0 0 0 3px rgba(217, 107, 138, 0.18);
+  border-color: var(--blush);
+  box-shadow: 0 0 0 3px rgba(193, 122, 122, 0.2);
 }
 
 .hawae-input::placeholder {
@@ -284,13 +300,17 @@ textarea.hawae-input {
   resize: vertical;
 }
 
-/* Panneau glass léger */
+/* Panneau glassmorphism (cards) */
 .hawae-panel {
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   box-shadow: var(--shadow-s);
+  transition:
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
 }
 
 /* État vide */
@@ -356,7 +376,7 @@ textarea.hawae-input {
 }
 
 ::selection {
-  background: rgba(217, 107, 138, 0.22);
+  background: rgba(193, 122, 122, 0.22);
   color: var(--ink);
 }
 
@@ -382,16 +402,20 @@ textarea.hawae-input {
    system v48 pour éviter la duplication dans les composants Tailwind.
    ══════════════════════════════════════════════════════════════════ */
 .hawae-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-s);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   transition:
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
+    box-shadow 0.3s ease,
+    transform 0.3s ease,
+    border-color 0.3s ease;
 }
 .hawae-card:hover {
   box-shadow: var(--shadow-m);
+  border-color: var(--border-blush);
 }
 
 .hawae-card-header {
@@ -469,9 +493,85 @@ textarea.hawae-input {
   box-shadow: var(--shadow-xs);
 }
 .hawae-btn-ghost:hover {
-  background: var(--teal-pale);
-  color: var(--teal);
-  border-color: var(--teal-pale);
+  background: var(--blush-pale);
+  color: var(--blush);
+  border-color: var(--border-blush);
+}
+
+/* Bouton secondaire outline (accent Blush) */
+.hawae-btn-outline-blush {
+  background: transparent;
+  color: var(--blush);
+  border: 1.5px solid var(--blush);
+  box-shadow: none;
+}
+.hawae-btn-outline-blush:hover {
+  background: var(--blush-pale);
+  color: var(--pink-deep);
+  border-color: var(--pink-deep);
+}
+
+/* Bouton flottant Hawae (bottom-right) */
+.hawae-fab {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  bottom: calc(
+    max(1.25rem, env(safe-area-inset-bottom, 0px)) + var(--bottom-nav-h, 0px)
+  );
+  z-index: 350;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, var(--teal) 0%, var(--teal-mid) 55%, var(--blush) 100%);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  box-shadow:
+    0 8px 28px rgba(0, 112, 112, 0.28),
+    0 4px 12px rgba(193, 122, 122, 0.2);
+  cursor: pointer;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    opacity 0.3s ease;
+}
+.hawae-fab:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 32px rgba(0, 112, 112, 0.32),
+    0 6px 16px rgba(193, 122, 122, 0.25);
+}
+.hawae-fab:active {
+  transform: translateY(0);
+}
+@media (min-width: 640px) {
+  .hawae-fab {
+    bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Badges spécialité (grossesse, fertilité, cycles) */
+.hawae-badge-blush {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--blush-pale);
+  color: var(--blush);
+  border: 1px solid var(--border-blush);
+}
+.hawae-badge-blush--active {
+  background: color-mix(in srgb, var(--blush) 18%, white);
+  color: var(--pink-deep);
+  border-color: var(--blush);
 }
 
 .hawae-btn-danger {
@@ -504,9 +604,9 @@ textarea.hawae-input {
 }
 
 .hawae-chip-pink {
-  background: var(--pink-pale);
-  color: var(--pink-deep);
-  border: 1px solid var(--border-pink);
+  background: var(--blush-pale);
+  color: var(--blush);
+  border: 1px solid var(--border-blush);
 }
 
 .hawae-surface-pink {

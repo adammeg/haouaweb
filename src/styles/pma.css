@@ -10,10 +10,11 @@
   justify-content: space-between;
   gap: 16px;
   padding: 20px 24px;
-  background: linear-gradient(135deg, var(--teal-deep), var(--teal-mid));
+  background: linear-gradient(135deg, var(--teal-deep), var(--teal-mid) 50%, var(--blush));
   border-radius: 16px;
   color: white;
   margin-bottom: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .pma-header-title {
@@ -90,13 +91,20 @@
   font-size: 0.75rem;
   font-weight: 700;
   border: 1.5px solid var(--border);
-  background: white;
+  background: var(--glass-bg);
   color: var(--ink-mid);
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pma-subnav-btn:hover {
+  border-color: var(--border-blush);
+  background: var(--blush-pale);
+  color: var(--blush);
 }
 
 .pma-subnav-btn.active {
-  background: var(--teal);
+  background: linear-gradient(135deg, var(--teal), var(--blush));
   color: white;
   border-color: var(--teal);
 }
@@ -110,12 +118,19 @@
 }
 
 .pma-card {
-  background: white;
-  border: 1.5px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid var(--glass-border);
   border-radius: 14px;
   padding: 18px;
   margin-bottom: 14px;
   box-shadow: var(--shadow-xs);
+  transition: border-color 0.3s ease;
+}
+
+.pma-card:hover {
+  border-color: var(--border-blush);
 }
 
 .pma-card-header {

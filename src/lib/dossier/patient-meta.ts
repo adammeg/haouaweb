@@ -34,7 +34,7 @@ export function patientInitials(p: PatientSnapshot): string {
 }
 
 export const SPEC_AVATAR_COLORS: Record<string, string> = {
-  gyn: "#0d6e6e",
-  obst: "#1a5c8c",
-  inf: "#8b6914",
+  gyn: "#007070",
+  obst: "#c17a7a",
+  inf: "#b8963e",
 };

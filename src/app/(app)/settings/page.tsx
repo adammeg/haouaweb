@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
+import { AiTrainingConsentPanel } from "@/components/settings/ai-training-consent-panel";
 
 export const metadata = {
   title: "Paramètres — HawaeMD",
@@ -75,7 +76,7 @@ export default async function SettingsPage() {
             {[
               { v: "var(--teal)", label: "Teal" },
               { v: "var(--gold)", label: "Or" },
-              { v: "var(--blush)", label: "Blush" },
+              { v: "var(--color-blush)", label: "Blush" },
               { v: "var(--cream)", label: "Crème" },
             ].map((c) => (
               <div key={c.label} className="text-center">
@@ -152,6 +153,8 @@ export default async function SettingsPage() {
             </Link>
           </div>
         </section>
+
+        <AiTrainingConsentPanel />
       </div>
     </div>
   );

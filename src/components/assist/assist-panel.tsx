@@ -69,7 +69,7 @@ function ScoreCard({ s }: { s: ScoreOutput }) {
 
 export function AssistPanel({
   result,
-  emptyMessage = "Cliquez sur Analyser pour lancer Hawae Assist (16 scores cliniques).",
+  emptyMessage = "Cliquez sur Analyser pour lancer Hawae (16 scores cliniques).",
 }: {
   result: AssistRunResult | null;
   emptyMessage?: string;
@@ -182,7 +182,7 @@ export function AssistPanel({
       )}
 
       <p className="text-center text-[10px] text-[var(--muted)]">
-        Hawae Assist Engine v2.2 — Aide à la décision uniquement
+        Hawae v2.2 — Aide à la décision uniquement
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import "@/styles/landing.css";
+import { HawaeLogo } from "@/components/brand/hawae-logo";
 
 const FEATURES = [
   {
@@ -11,8 +12,8 @@ const FEATURES = [
   {
     icon: "🌬️",
     tone: "gold",
-    title: "Hawae Assist",
-    text: "Analyse IA, scores validés (FMF, PE, POSEIDON…) et aide à la décision contextuelle.",
+    title: "Hawae",
+    text: "Notre assistante clinique, scores validés (FMF, PE, POSEIDON…) et aide à la décision contextuelle.",
   },
   {
     icon: "📊",
@@ -28,33 +29,6 @@ const FEATURES = [
   },
 ] as const;
 
-function HawaeLogoMark() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <defs>
-        <linearGradient id="hwg" x1="0" y1="0" x2="24" y2="24">
-          <stop offset="0%" stopColor="#E8D28A" />
-          <stop offset="100%" stopColor="#ffffff" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M9 8.5C9 7.1 10.1 6 11.5 6S14 7.1 14 8.5c0 .8-.4 1.6-1 2.1"
-        stroke="url(#hwg)"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M12 10.5c1 .3 1.8 1 2.2 2"
-        stroke="url(#hwg)"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <circle cx="12" cy="13" r="1.2" fill="#fff" />
-      <path d="M9 16h6" stroke="#4AB5B5" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export function LandingPage() {
   return (
     <div className="landing">
@@ -65,9 +39,12 @@ export function LandingPage() {
       <div className="landing-inner">
         <header className="landing-header">
           <Link href="/" className="landing-logo">
-            <div className="landing-logo-mark">
-              <HawaeLogoMark />
-            </div>
+            <HawaeLogo
+              size={44}
+              rounded="xl"
+              className="landing-logo-mark shadow-[0_4px_14px_rgba(0,112,112,0.2)]"
+              priority
+            />
             <div className="landing-logo-text">
               HawaeMD
               <span>Intelligence clinique</span>
@@ -117,8 +94,8 @@ export function LandingPage() {
                 <span>Spécialités dossier</span>
               </div>
               <div className="landing-trust-item">
-                <strong>IA</strong>
-                <span>Hawae intégré</span>
+                <strong>Hawae</strong>
+                <span>Assistante intégrée</span>
               </div>
             </div>
           </div>
@@ -190,7 +167,7 @@ export function LandingPage() {
                 <span aria-hidden>👩‍⚕️</span> Praticien
               </h2>
               <p>
-                Compte médecin : dossiers, consultations, ordonnances, Hawae IA
+                Compte médecin : dossiers, consultations, ordonnances, Hawae
                 et outils cliniques. Inscription réservée aux professionnels
                 autorisés.
               </p>

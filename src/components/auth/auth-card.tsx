@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { HawaeLogo } from "@/components/brand/hawae-logo";
 
 export function AuthCard({
   title,
@@ -15,7 +16,7 @@ export function AuthCard({
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-[var(--cream)] px-4 py-10 sm:py-14">
       <div className="mb-6 flex items-center gap-3 sm:mb-8">
-        <div className="hawae-brand-mark h-12 w-12 text-2xl">✦</div>
+        <HawaeLogo size={48} rounded="xl" className="shadow-[var(--shadow-s)]" priority />
         <div>
           <Link
             href="/"

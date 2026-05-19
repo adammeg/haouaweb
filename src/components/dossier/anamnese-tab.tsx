@@ -109,11 +109,11 @@ export function AnamneseTab({
           className="ia-launch-btn"
           onClick={() => onNavigateTab?.("hawae")}
         >
-          <span className="ilb-icon">🤖</span>
+          <span className="ilb-icon">✦</span>
           <div className="ilb-body">
-            <div className="ilb-title">Lancer l&apos;analyse IA</div>
+            <div className="ilb-title">Consulter Hawae</div>
             <div className="ilb-sub">
-              Diagnostic différentiel · Bilan recommandé · Points de vigilance
+              Notre assistante clinique · Diagnostic · Bilan · Vigilance
             </div>
           </div>
           <span className="ilb-arrow">→</span>

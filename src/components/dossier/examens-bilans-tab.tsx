@@ -48,7 +48,7 @@ export function ExamensBilansTab({
         <div className="dossier-card-header">
           <h3>🔬 Bilan biologique complet</h3>
           <span className="rounded-full bg-[var(--teal-pale)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--muted)]">
-            Intégré automatiquement dans l&apos;analyse IA
+            Intégré automatiquement dans l&apos;analyse Hawae
           </span>
         </div>
         <div className="dossier-card-body">

@@ -4,21 +4,21 @@
   "description": "Intelligence clinique obstétrique, gynécologique et PMA",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#F7F5F0",
-  "theme_color": "#0A5C5C",
+  "background_color": "#FAFAFA",
+  "theme_color": "#007070",
   "lang": "fr",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/logo.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/logo.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "maskable"
     }
   ]
 }

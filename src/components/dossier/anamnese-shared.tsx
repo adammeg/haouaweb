@@ -46,12 +46,21 @@ export function AnaSubTabs({
   active: string;
   onChange: (id: string) => void;
 }) {
+  const scrollable = tabs.length > 6;
+
   return (
-    <div className="ana-sub-tabs">
+    <div
+      className={`ana-sub-tabs${scrollable ? " ana-sub-tabs--scroll" : ""}`}
+      role="tablist"
+      aria-label="Sections de l'anamnèse"
+    >
       {tabs.map((t) => (
         <button
           key={t.id}
           type="button"
+          role="tab"
+          aria-selected={active === t.id}
+          title={t.label}
           className={`ana-sub-tab ${active === t.id ? "active" : ""}`}
           onClick={() => onChange(t.id)}
         >

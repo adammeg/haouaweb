@@ -62,7 +62,7 @@ export function AssistClient() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-3xl">
-            Hawae Assist
+            Hawae
           </h1>
           <p className="mt-1.5 text-sm text-[var(--muted)]">
             Moteur clinique · 16 scores validés · FMF · FGR · ROMA · POSEIDON · VTE
@@ -128,7 +128,7 @@ export function AssistClient() {
             emptyMessage={
               patient
                 ? "Aucune analyse enregistrée — cliquez sur Analyser."
-                : "Sélectionnez une patiente pour lancer Hawae Assist."
+                : "Sélectionnez une patiente pour lancer notre assistante clinique Hawae."
             }
           />
         </div>

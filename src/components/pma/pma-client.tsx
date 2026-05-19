@@ -24,7 +24,7 @@ const SECTIONS = [
   { id: "reserve", label: "🔬 Réserve" },
   { id: "hormones", label: "🧪 Hormones" },
   { id: "historique", label: "📂 Historique FIV" },
-  { id: "analyse", label: "🤖 Analyse Hawae" },
+  { id: "analyse", label: "✦ Analyse Hawae" },
   { id: "protocole", label: "💊 Protocole" },
   { id: "calendrier", label: "📅 Calendrier" },
 ] as const;
