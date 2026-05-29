@@ -97,7 +97,6 @@ export const TOOL_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
       { href: "/scores", label: "Scores cliniques", sub: "Bishop, Manning…", icon: IconStethoscope },
       { href: "/partogramme", label: "Partogramme", sub: "Travail & dilatation", icon: IconCalendar },
       { href: "/certificats", label: "Certificats", sub: "PDF médicaux", icon: IconFolder },
-      { href: "/pma", label: "PMA / FIV", sub: "Cycles & POSEIDON", icon: IconSparkles },
       { href: "/courbes", label: "Courbes croissance", sub: "Salomon / Hadlock", icon: IconDashboard },
       { href: "/protocoles", label: "Protocoles", sub: "Fiches procédurales", icon: IconShield },
       { href: "/bridge", label: "Bridge écho", sub: "DICOM SR & OCR", icon: IconHospital },

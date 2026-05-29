@@ -31,9 +31,14 @@ const SECTIONS = [
 
 type SectionId = (typeof SECTIONS)[number]["id"];
 
-function calendarToCycleDays(
-  analysis: IvfAnalysis,
-): IvfCycleDay[] {
+type PmaClientProps = {
+  /** Dossier patiente liée (mode intégré infertilité / AMP). */
+  patientId?: string;
+  /** Masque le sélecteur patient et adapte l'en-tête au dossier ouvert. */
+  embedded?: boolean;
+};
+
+function calendarToCycleDays(analysis: IvfAnalysis): IvfCycleDay[] {
   return analysis.calendar.map((d, i) => ({
     day: i + 1,
     label: d.day,
@@ -42,7 +47,7 @@ function calendarToCycleDays(
   }));
 }
 
-export function PmaClient() {
+export function PmaClient({ patientId: boundPatientId, embedded = false }: PmaClientProps) {
   const pmaApi = usePmaApi();
   const patientsMap = useHawaeStore((s) => {
     const id = s.currentUserId;
@@ -50,7 +55,7 @@ export function PmaClient() {
     return s.patientsByUser[id] ?? EMPTY_PATIENTS_MAP;
   });
 
-  const [patientId, setPatientId] = useState("");
+  const [patientId, setPatientId] = useState(boundPatientId ?? "");
   const [section, setSection] = useState<SectionId>("profil");
   const [profile, setProfile] = useState<IvfPatientProfile>(EMPTY_IVF_PROFILE);
   const [analysis, setAnalysis] = useState<IvfAnalysis | null>(null);
@@ -60,8 +65,17 @@ export function PmaClient() {
   );
   const [cycles, setCycles] = useState<IvfProfile[]>([]);
 
+  useEffect(() => {
+    if (boundPatientId) setPatientId(boundPatientId);
+  }, [boundPatientId]);
+
   const patient = patientId ? patientsMap[patientId] : null;
   const patientName = patient ? getPatientDisplayName(patient) : "";
+
+  const visibleCycles = useMemo(() => {
+    if (!embedded || !patientId) return cycles;
+    return cycles.filter((c) => c.patientId === patientId);
+  }, [cycles, embedded, patientId]);
 
   const patchProfile = useCallback(
     <K extends keyof IvfPatientProfile>(
@@ -78,8 +92,9 @@ export function PmaClient() {
   );
 
   useEffect(() => {
+    if (embedded) return;
     pmaApi.listCycles().then(setCycles).catch(() => setCycles([]));
-  }, [pmaApi]);
+  }, [pmaApi, embedded]);
 
   useEffect(() => {
     if (!patientId) {
@@ -107,7 +122,7 @@ export function PmaClient() {
 
   async function runAnalysis() {
     if (!patientId) {
-      alert("Choisissez une patiente.");
+      alert(embedded ? "Enregistrez la fiche patiente avant l'analyse PMA." : "Choisissez une patiente.");
       return;
     }
     if (profile.age == null) {
@@ -169,7 +184,9 @@ export function PmaClient() {
     };
     try {
       await pmaApi.saveCycle(patientId, pr);
-      const list = await pmaApi.listCycles();
+      const list = embedded
+        ? (await pmaApi.loadBundle(patientId, patient)).cycles
+        : await pmaApi.listCycles();
       setCycles(list);
     } catch {
       alert("Erreur lors de l'enregistrement du cycle.");
@@ -181,23 +198,45 @@ export function PmaClient() {
     if (!pid) return;
     try {
       await pmaApi.deleteCycle(pid, cycleId);
-      const list = await pmaApi.listCycles();
-      setCycles(list);
+      if (embedded && patient) {
+        const bundle = await pmaApi.loadBundle(pid, patient);
+        setCycles(bundle.cycles);
+      } else {
+        const list = await pmaApi.listCycles();
+        setCycles(list);
+      }
     } catch {
       alert("Erreur lors de la suppression.");
     }
   }
 
+  if (embedded && !patientId) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--cream)] p-8 text-center text-sm text-[var(--muted)]">
+        Enregistrez la fiche patiente (nom, prénom) pour activer le module PMA / FIV.
+      </div>
+    );
+  }
+
   return (
-    <div className="pma-wrap space-y-4">
+    <div className={`pma-wrap space-y-4${embedded ? " pma-wrap--embedded" : ""}`}>
       <div className="pma-header-card">
         <div>
-          <h1 className="pma-header-title">
-            🧬 IVF / PMA Engine{" "}
-            <span className="pma-engine-tag">Clinical Engine v50</span>
-          </h1>
+          {embedded ? (
+            <h2 className="pma-header-title">
+              🧬 PMA / FIV — {patientName || "Patiente"}
+            </h2>
+          ) : (
+            <h1 className="pma-header-title">
+              🧬 IVF / PMA Engine{" "}
+              <span className="pma-engine-tag">Clinical Engine</span>
+            </h1>
+          )}
           <p className="pma-header-sub">
-            {patientName || "Sélectionnez une patiente — données synchronisées avec le dossier infertilité"}
+            {embedded
+              ? "Profil, analyse POSEIDON, protocole et calendrier — synchronisé avec le dossier infertilité"
+              : patientName ||
+                "Sélectionnez une patiente — données synchronisées avec le dossier infertilité"}
           </p>
         </div>
         <div className="pma-header-actions">
@@ -220,30 +259,30 @@ export function PmaClient() {
         </div>
       </div>
 
-      <label className="block max-w-md text-sm">
-        <span className="mb-1 block font-semibold">Patiente</span>
-        <select
-          className="w-full rounded-xl border px-3 py-2"
-          value={patientId}
-          onChange={(e) => setPatientId(e.target.value)}
-        >
-          <option value="">— Choisir —</option>
-          {Object.values(patientsMap).map((p) => (
-            <option key={p.id} value={p.id}>
-              {getPatientDisplayName(p)}
-            </option>
-          ))}
-        </select>
-      </label>
+      {!embedded ? (
+        <label className="block max-w-md text-sm">
+          <span className="mb-1 block font-semibold">Patiente</span>
+          <select
+            className="w-full rounded-xl border px-3 py-2"
+            value={patientId}
+            onChange={(e) => setPatientId(e.target.value)}
+          >
+            <option value="">— Choisir —</option>
+            {Object.values(patientsMap).map((p) => (
+              <option key={p.id} value={p.id}>
+                {getPatientDisplayName(p)}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
-      <nav className="pma-subnav">
+      <nav className="pma-subnav" aria-label="Sections PMA">
         {SECTIONS.map((s) => (
           <button
             key={s.id}
             type="button"
-            className={
-              "pma-subnav-btn" + (section === s.id ? " active" : "")
-            }
+            className={"pma-subnav-btn" + (section === s.id ? " active" : "")}
             onClick={() => setSection(s.id)}
           >
             {s.label}
@@ -252,15 +291,11 @@ export function PmaClient() {
       </nav>
 
       {["profil", "reserve", "hormones", "historique"].includes(section) ? (
-        <PmaProfileForm
-          section={section}
-          profile={profile}
-          onPatch={patchProfile}
-        />
+        <PmaProfileForm section={section} profile={profile} onPatch={patchProfile} />
       ) : null}
 
       {section === "analyse" ? (
-        <div className={"pma-section active"}>
+        <div className="pma-section active">
           {analyzing ? (
             <div className="pma-card pma-empty">
               <p>Analyse clinique en cours…</p>
@@ -274,11 +309,7 @@ export function PmaClient() {
               <p className="mt-2 text-sm text-[var(--muted)]">
                 Renseignez le profil (âge, AMH, CFA) puis cliquez sur Analyser.
               </p>
-              <button
-                type="button"
-                className="pma-btn primary mt-4"
-                onClick={runAnalysis}
-              >
+              <button type="button" className="pma-btn primary mt-4" onClick={runAnalysis}>
                 🤖 Lancer l&apos;analyse Hawae
               </button>
             </div>
@@ -298,11 +329,7 @@ export function PmaClient() {
             <div className="pma-card pma-empty">
               <div className="pma-empty-icon">💊</div>
               <p className="font-bold">Protocoles non générés</p>
-              <button
-                type="button"
-                className="pma-btn primary mt-4"
-                onClick={runAnalysis}
-              >
+              <button type="button" className="pma-btn primary mt-4" onClick={runAnalysis}>
                 🤖 Analyser pour générer les protocoles
               </button>
             </div>
@@ -313,10 +340,7 @@ export function PmaClient() {
       {section === "calendrier" ? (
         <div className="pma-section active space-y-4">
           {analysis ? (
-            <PmaCalendarPanel
-              analysis={analysis}
-              selectedProto={selectedProto}
-            />
+            <PmaCalendarPanel analysis={analysis} selectedProto={selectedProto} />
           ) : (
             <div className="pma-card pma-empty">
               <p className="text-sm text-[var(--muted)]">
@@ -348,27 +372,34 @@ export function PmaClient() {
       ) : null}
 
       <section className="mt-8">
-        <h2 className="mb-3 font-bold">Cycles enregistrés</h2>
-        <ul className="space-y-2">
-          {cycles.map((pr) => (
-            <li
-              key={pr.id}
-              className="rounded-xl border bg-white px-4 py-3 text-sm"
-            >
-              <strong>{pr.patientName}</strong> — {pr.protocol} · début{" "}
-              {pr.startDate}
-              {pr.poseidonGroup ? " · POSEIDON " + pr.poseidonGroup : ""}
-              {pr.bolognaPor ? " · Bologne POR" : ""}
-              <button
-                type="button"
-                className="ml-3 text-xs text-red-600"
-                onClick={() => handleDeleteCycle(pr.id, pr.patientId)}
+        <h2 className="mb-3 font-bold">
+          {embedded ? "Cycles de cette patiente" : "Cycles enregistrés"}
+        </h2>
+        {visibleCycles.length === 0 ? (
+          <p className="text-sm text-[var(--muted)]">Aucun cycle enregistré.</p>
+        ) : (
+          <ul className="space-y-2">
+            {visibleCycles.map((pr) => (
+              <li
+                key={pr.id}
+                className="rounded-xl border bg-white px-4 py-3 text-sm"
               >
-                Supprimer
-              </button>
-            </li>
-          ))}
-        </ul>
+                {!embedded ? <strong>{pr.patientName}</strong> : null}
+                {!embedded ? " — " : null}
+                {pr.protocol} · début {pr.startDate}
+                {pr.poseidonGroup ? " · POSEIDON " + pr.poseidonGroup : ""}
+                {pr.bolognaPor ? " · Bologne POR" : ""}
+                <button
+                  type="button"
+                  className="ml-3 text-xs text-red-600"
+                  onClick={() => handleDeleteCycle(pr.id, pr.patientId)}
+                >
+                  Supprimer
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

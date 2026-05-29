@@ -8,3 +8,7 @@ export * from "./hpp";
 export * from "./rasrm";
 export * from "./menopause";
 export * from "./figo";
+export * from "./sein";
+export * from "./rciu";
+export * from "./roma";
+export * from "./adnex";

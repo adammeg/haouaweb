@@ -64,6 +64,9 @@ export interface HawaeState {
   openPatient: (id: string) => void;
   closePatient: () => void;
   createNewPatient: () => string;
+  createPatientFromForm: (
+    fields: Partial<PatientSnapshot> & { nom: string; prenom: string },
+  ) => string;
   deletePatient: (id: string) => void;
 
   patchDraft: (patch: Partial<PatientSnapshot>) => void;
@@ -195,11 +198,20 @@ export const useHawaeStore = create<HawaeState>()(
       closePatient: () => set({ currentPatientId: null, draft: null }),
 
       createNewPatient: () => {
+        return get().createPatientFromForm({ nom: "", prenom: "" });
+      },
+
+      createPatientFromForm: (fields) => {
         const uid = get().currentUserId;
         if (!uid) return "";
         const id = newPatientId();
         const patients = { ...(get().patientsByUser[uid] ?? {}) };
-        const snap = emptyDraft(id);
+        const snap: PatientSnapshot = {
+          ...emptyDraft(id),
+          ...fields,
+          id,
+          updatedAt: new Date().toISOString(),
+        };
         patients[id] = snap;
         set({
           patientsByUser: {
@@ -207,7 +219,7 @@ export const useHawaeStore = create<HawaeState>()(
             [uid]: patients,
           },
           currentPatientId: id,
-          draft: snap,
+          draft: { ...snap },
         });
         return id;
       },

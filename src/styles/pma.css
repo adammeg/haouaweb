@@ -607,3 +607,17 @@
   font-size: 2.25rem;
   margin-bottom: 12px;
 }
+
+/* Intégré dans l'anamnèse Infertilité / AMP */
+.pma-wrap--embedded {
+  max-width: none;
+}
+
+.pma-wrap--embedded .pma-header-card {
+  margin-bottom: 12px;
+  padding: 16px 20px;
+}
+
+.pma-wrap--embedded .pma-header-title {
+  font-size: 1.125rem;
+}

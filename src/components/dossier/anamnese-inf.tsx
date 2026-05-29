@@ -27,6 +27,7 @@ import {
   SectionDivider,
   useAnaPatch,
 } from "@/components/dossier/anamnese-shared";
+import { PmaClient } from "@/components/pma/pma-client";
 
 const INF_TABS = [
   { id: "motif", label: "💬 Motif" },
@@ -34,6 +35,7 @@ const INF_TABS = [
   { id: "bilan", label: "🔬 Bilan réalisé" },
   { id: "homme", label: "👨 Facteur ♂" },
   { id: "atcd", label: "📜 ATCD" },
+  { id: "pma", label: "🧬 PMA / FIV" },
 ];
 
 export function InfAnamnese({
@@ -261,6 +263,10 @@ export function InfAnamnese({
             </Field>
           </div>
         </AnaCard>
+      )}
+
+      {sub === "pma" && (
+        <PmaClient patientId={draft.id} embedded />
       )}
 
       {sub === "atcd" && (

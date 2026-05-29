@@ -35,6 +35,7 @@ import {
 } from "@/components/dossier/anamnese-shared";
 import { ObstCalendrierPanel } from "@/components/dossier/obst-calendrier-panel";
 import { ObstPartogramPanel } from "@/components/dossier/obst-partogram-panel";
+import { T2MorphoTab } from "@/components/dossier/t2-morpho-tab";
 
 const OBST_TABS = [
   { id: "motif", label: "💬 Motif" },
@@ -53,11 +54,9 @@ const OBST_TABS = [
 export function ObstAnamnese({
   draft,
   onField,
-  onGoT2,
 }: {
   draft: PatientSnapshot;
   onField: (p: FieldPatch) => void;
-  onGoT2?: () => void;
 }) {
   const [sub, setSub] = useState("motif");
   const patch = useAnaPatch(onField);
@@ -326,17 +325,7 @@ export function ObstAnamnese({
         </AnaCard>
       )}
 
-      {sub === "morpho" && (
-        <AnaCard title="🫀 Échographie Morphologique T2">
-          <p className="ana-hint mb-4">
-            Compte-rendu morphologique complet (51 champs, percentiles Salomon, PDF) —
-            onglet dédié Écho T2.
-          </p>
-          <button type="button" className="ana-cta-t2" onClick={onGoT2}>
-            Ouvrir l&apos;onglet Écho T2 →
-          </button>
-        </AnaCard>
-      )}
+      {sub === "morpho" && <T2MorphoTab draft={draft} onField={onField} />}
 
       {sub === "serol" && (
         <AnaCard title="🧪 Sérologies & Biologie" ar="التحاليل البيولوجية">

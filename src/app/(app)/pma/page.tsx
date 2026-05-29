@@ -1,5 +1,6 @@
-import { PmaClient } from "@/components/pma/pma-client";
+import { redirect } from "next/navigation";
 
+/** Ancienne route outils — PMA est dans le dossier (spécialité Infertilité / AMP). */
 export default function PmaPage() {
-  return <PmaClient />;
+  redirect("/dossier");
 }

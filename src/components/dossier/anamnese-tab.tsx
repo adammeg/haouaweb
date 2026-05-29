@@ -94,13 +94,7 @@ export function AnamneseTab({
       </AnaCard>
 
       {spec === "gyn" && <GynAnamnese draft={draft} onField={onField} />}
-      {spec === "obst" && (
-        <ObstAnamnese
-          draft={draft}
-          onField={onField}
-          onGoT2={() => onNavigateTab?.("t2")}
-        />
-      )}
+      {spec === "obst" && <ObstAnamnese draft={draft} onField={onField} />}
       {spec === "inf" && <InfAnamnese draft={draft} onField={onField} />}
 
       {spec && (

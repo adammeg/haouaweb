@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useHawaeStore } from "@/stores/hawae-store";
+import { useModulesStore, useModulesWorkspace } from "@/stores/modules-store";
+import { EMPTY_PATIENTS_MAP } from "@/lib/empty-stable";
+import { addPatientToWaitingQueue } from "@/lib/waiting-room/register-arrival";
+import { todayIso } from "@/lib/waiting-room/utils";
 import type { ConsultationEntry, PatientSnapshot } from "@/types/domain";
 import { computeCompleteness } from "@/lib/patient-utils";
 import {
@@ -16,8 +22,8 @@ import { OcrCameraModal } from "@/components/echo/ocr-camera-modal";
 import { HawaePanel } from "@/components/ia/hawae-panel";
 import { ExamenCliniqueTab } from "@/components/dossier/examen-clinique-tab";
 import { ExamensBilansTab } from "@/components/dossier/examens-bilans-tab";
-import { T2MorphoTab } from "@/components/dossier/t2-morpho-tab";
 import { AnamneseTab } from "@/components/dossier/anamnese-tab";
+import { PmaClient } from "@/components/pma/pma-client";
 import {
   DossierHistoriqueTab,
   DossierScoresTab,
@@ -27,7 +33,7 @@ export type DossierTabId =
   | "anamnese"
   | "examen"
   | "bilans"
-  | "t2"
+  | "pma"
   | "scores"
   | "hawae"
   | "checklist"
@@ -74,18 +80,34 @@ export function DossierFormView({
   onDeleteConsultation,
   saveStatus,
 }: Props) {
+  const router = useRouter();
   const [assistOpen, setAssistOpen] = useState(false);
   const [ocrOpen, setOcrOpen] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [bridgeOnline, setBridgeOnline] = useState(false);
+  const [wrToast, setWrToast] = useState<string | null>(null);
+
+  const patientsMap = useHawaeStore((s) => {
+    const id = s.currentUserId;
+    if (!id) return EMPTY_PATIENTS_MAP;
+    return s.patientsByUser[id] ?? EMPTY_PATIENTS_MAP;
+  });
+  const saveDraft = useHawaeStore((s) => s.saveDraft);
+  const ws = useModulesWorkspace();
+  const addWaiting = useModulesStore((s) => s.addWaiting);
+
+  const queueToday = useMemo(
+    () => ws.waitingQueue.filter((e) => e.date === todayIso()),
+    [ws.waitingQueue],
+  );
 
   const completeness = computeCompleteness(draft);
 
   const tabs = useMemo(() => {
     const list = [...BASE_TABS];
-    if (draft.specialite === "obst") {
+    if (draft.specialite === "inf") {
       const i = list.findIndex((t) => t.id === "bilans");
-      list.splice(i + 1, 0, { id: "t2", label: "🔬 Écho T2" });
+      list.splice(i + 1, 0, { id: "pma", label: "🧬 PMA / FIV" });
     }
     return list;
   }, [draft.specialite]);
@@ -115,8 +137,33 @@ export function DossierFormView({
     void generateDossierCompletPdf(draft).finally(() => setPdfBusy(false));
   }, [draft]);
 
+  const sendToWaiting = useCallback(() => {
+    saveDraft();
+    const result = addPatientToWaitingQueue(
+      draft.id,
+      patientsMap,
+      queueToday,
+      addWaiting,
+    );
+    if (!result.ok) {
+      setWrToast(result.error);
+      setTimeout(() => setWrToast(null), 3000);
+      if (result.error.includes("Déjà")) {
+        router.push("/salle-attente");
+      }
+      return;
+    }
+    router.push("/salle-attente");
+  }, [saveDraft, draft.id, patientsMap, queueToday, addWaiting, router]);
+
   return (
     <>
+      {wrToast ? (
+        <div className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-900 shadow-lg">
+          {wrToast}
+        </div>
+      ) : null}
+
       <button type="button" className="dossier-back-btn" onClick={onClose}>
         ← Retour à la liste
       </button>
@@ -129,6 +176,19 @@ export function DossierFormView({
               <div className="subtitle">{buildPatientSubtitle(draft)}</div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-header"
+                title="Envoyer en salle d'attente"
+                style={{
+                  background: "#fef9e7",
+                  color: "#92400e",
+                  borderColor: "#fde68a",
+                }}
+                onClick={sendToWaiting}
+              >
+                🚪 Attente
+              </button>
               <button
                 type="button"
                 className="btn-header"
@@ -237,8 +297,8 @@ export function DossierFormView({
               <ExamenCliniqueTab draft={draft} onField={onField} />
             )}
             {tab === "bilans" && <ExamensBilansTab draft={draft} onField={onField} />}
-            {tab === "t2" && draft.specialite === "obst" && (
-              <T2MorphoTab draft={draft} onField={onField} />
+            {tab === "pma" && draft.specialite === "inf" && (
+              <PmaClient patientId={draft.id} embedded />
             )}
             {tab === "scores" && <DossierScoresTab />}
             {tab === "hawae" && <HawaePanel draft={draft} />}

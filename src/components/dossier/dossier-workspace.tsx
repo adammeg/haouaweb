@@ -15,6 +15,7 @@ import {
   type DossierTabId,
 } from "@/components/dossier/dossier-form-view";
 import { DossierListView } from "@/components/dossier/dossier-list-view";
+import { NewPatientModal } from "@/components/patient/new-patient-modal";
 
 export function DossierWorkspace() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export function DossierWorkspace() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
     "idle",
   );
+  const [newPatientModal, setNewPatientModal] = useState(false);
 
   const patientsMap = useHawaeStore((s) => {
     const id = s.currentUserId;
@@ -50,26 +52,42 @@ export function DossierWorkspace() {
   const deleteConsultation = useHawaeStore((s) => s.deleteConsultation);
   const setSidebarSpecFilter = useHawaeStore((s) => s.setSidebarSpecFilter);
 
-  const handledQueryRef = useRef<string>("");
+  const handledQueryRef = useRef<string | null>(null);
+
+  const startNewPatient = useCallback(() => {
+    createNewPatient();
+    setTab("anamnese");
+  }, [createNewPatient]);
 
   useEffect(() => {
     const wantNew = searchParams.get("new") === "1";
     const patientId = searchParams.get("patient");
-    const queryKey = `${wantNew ? "new=1" : ""}|${patientId ?? ""}`;
-    if (handledQueryRef.current === queryKey) return;
+    const queryToken = searchParams.toString();
+
+    if (!wantNew && !patientId) {
+      handledQueryRef.current = null;
+      return;
+    }
+
+    if (handledQueryRef.current === queryToken) return;
+    handledQueryRef.current = queryToken;
+
     if (wantNew) {
-      handledQueryRef.current = queryKey;
-      createNewPatient();
-      setTab("anamnese");
+      startNewPatient();
       router.replace("/dossier", { scroll: false });
       return;
     }
     if (patientId && patientsMap[patientId]) {
-      handledQueryRef.current = queryKey;
       openPatient(patientId);
       router.replace("/dossier", { scroll: false });
     }
-  }, [searchParams, patientsMap, openPatient, createNewPatient, router]);
+  }, [searchParams, patientsMap, openPatient, startNewPatient, router]);
+
+  useEffect(() => {
+    if (tab === "pma" && draft?.specialite !== "inf") {
+      setTab("anamnese");
+    }
+  }, [draft?.specialite, tab]);
 
   useEffect(() => {
     if (!draft?.id || !currentPatientId) return;
@@ -123,7 +141,7 @@ export function DossierWorkspace() {
           specFilter={sidebarSpecFilter}
           onSpecFilter={setSidebarSpecFilter}
           onOpen={openPatient}
-          onNew={() => router.push("/dossier?new=1")}
+          onNew={() => setNewPatientModal(true)}
           hasAny={patientEntries.length > 0}
         />
       ) : draft && currentPatientId ? (
@@ -144,6 +162,11 @@ export function DossierWorkspace() {
           saveStatus={saveStatus}
         />
       ) : null}
+
+      <NewPatientModal
+        open={newPatientModal}
+        onClose={() => setNewPatientModal(false)}
+      />
 
       <OrdonnanceModal
         open={ordoOpen}

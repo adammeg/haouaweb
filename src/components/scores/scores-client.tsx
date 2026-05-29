@@ -10,6 +10,10 @@ import { HPPScore } from "./hpp-score";
 import { RASRMScore } from "./rasrm-score";
 import { GreeneScore, KuppermanScore } from "./menopause-scores";
 import { FigoScore } from "./figo-score";
+import { BreastCancerScore } from "./breast-cancer-score";
+import { RCIUScore } from "./rciu-score";
+import { ROMAScore } from "./roma-score";
+import { ADNEXScore } from "./adnex-score";
 
 type Group = "obst" | "gyn" | "menop" | "figo";
 
@@ -27,12 +31,16 @@ const TABS: Tab[] = [
   { id: "manning", label: "👶 Manning", group: "obst", render: () => <ManningScore /> },
   { id: "apgar", label: "⭐ Apgar", group: "obst", render: () => <ApgarScore /> },
   { id: "hpp", label: "🩸 Risque HPP", group: "obst", render: () => <HPPScore /> },
+  { id: "rciu", label: "📈 Croissance fœtale", group: "obst", render: () => <RCIUScore /> },
   { id: "rasrm", label: "🟣 rASRM", group: "gyn", render: () => <RASRMScore /> },
+  { id: "roma", label: "🔬 ROMA", group: "gyn", render: () => <ROMAScore /> },
+  { id: "adnex", label: "🧪 ADNEX", group: "gyn", render: () => <ADNEXScore /> },
   { id: "greene", label: "🌸 Greene", group: "menop", render: () => <GreeneScore /> },
   { id: "kupperman", label: "💗 Kupperman", group: "menop", render: () => <KuppermanScore /> },
   { id: "figo-col", label: "Col utérin", group: "figo", render: () => <FigoScore type="col" /> },
   { id: "figo-endo", label: "Endomètre", group: "figo", render: () => <FigoScore type="endo" /> },
   { id: "figo-ovaire", label: "Ovaire", group: "figo", render: () => <FigoScore type="ovaire" /> },
+  { id: "sein", label: "🎗️ Cancer du sein", group: "figo", render: () => <BreastCancerScore /> },
 ];
 
 const GROUP_LABELS: Record<Group, string> = {

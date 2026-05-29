@@ -11,6 +11,9 @@ import { useHawaeStore } from "@/stores/hawae-store";
 import { UserSwitcher } from "@/components/users/user-switcher";
 import { LogoutControl } from "@/components/auth/logout-control";
 import { HawaeLogo } from "@/components/brand/hawae-logo";
+import { NewPatientModal } from "@/components/patient/new-patient-modal";
+import { useModulesWorkspace } from "@/stores/modules-store";
+import { todayIso } from "@/lib/waiting-room/utils";
 
 function IconWaiting(props: SVGProps<SVGSVGElement>) {
   return (
@@ -163,10 +166,12 @@ function SidebarItem({
   item,
   active,
   onClick,
+  badge,
 }: {
   item: NavItem;
   active: boolean;
   onClick?: () => void;
+  badge?: number;
 }) {
   const Icon = item.icon;
   return (
@@ -197,6 +202,11 @@ function SidebarItem({
           </span>
         ) : null}
       </span>
+      {badge != null && badge > 0 ? (
+        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-bold text-amber-950">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : null}
       {item.soon ? (
         <span className="shrink-0 rounded-full bg-[var(--gold)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--teal-deep-nav)]">
           Soon
@@ -219,6 +229,16 @@ export function AppChrome({
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [newPatientOpen, setNewPatientOpen] = useState(false);
+  const ws = useModulesWorkspace();
+  const waitingBadge = useMemo(() => {
+    const today = todayIso();
+    return ws.waitingQueue.filter(
+      (e) =>
+        e.date === today &&
+        (e.status === "waiting" || e.status === "in_consult"),
+    ).length;
+  }, [ws.waitingQueue]);
 
   const pageTitle = useMemo(() => {
     if (pathname.startsWith("/dossier")) return "Dossier";
@@ -302,16 +322,24 @@ export function AppChrome({
               item={item}
               active={isActive(item.href)}
               onClick={closeMobile}
+              badge={
+                item.href === "/salle-attente" && waitingBadge > 0
+                  ? waitingBadge
+                  : undefined
+              }
             />
           ))}
 
           <div className="mt-4 px-2.5 pb-1 text-[9px] font-bold uppercase tracking-[1.8px] text-white/30">
             Outils
           </div>
-          <Link
-            href="/dossier?new=1"
-            onClick={closeMobile}
-            className="group flex items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 py-2.5 transition-all hover:border-white/20 hover:bg-white/[0.08]"
+          <button
+            type="button"
+            onClick={() => {
+              setNewPatientOpen(true);
+              closeMobile();
+            }}
+            className="group flex w-full items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 py-2.5 text-left transition-all hover:border-white/20 hover:bg-white/[0.08]"
           >
             <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-[rgba(201,168,76,0.18)] transition-transform group-hover:scale-[1.04]">
               <IconPlus className="h-4 w-4 text-white/95" />
@@ -324,7 +352,7 @@ export function AppChrome({
                 Créer un dossier
               </span>
             </span>
-          </Link>
+          </button>
           <ToolsNavGroups
             isActive={isActive}
             onNavigate={closeMobile}
@@ -455,13 +483,14 @@ export function AppChrome({
                 </span>
               </div>
             </div>
-            <Link
-              href="/dossier?new=1"
+            <button
+              type="button"
+              onClick={() => setNewPatientOpen(true)}
               className="hidden shrink-0 items-center gap-1.5 rounded-xl bg-[var(--teal)] px-3 py-2 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-95 sm:inline-flex"
             >
               <IconPlus className="h-3.5 w-3.5" />
               Nouvelle
-            </Link>
+            </button>
             {doctor.role === "app_admin" ? (
               <Link
                 href="/admin"
@@ -480,6 +509,11 @@ export function AppChrome({
 
         <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} />
       </div>
+
+      <NewPatientModal
+        open={newPatientOpen}
+        onClose={() => setNewPatientOpen(false)}
+      />
     </div>
   );
 }
