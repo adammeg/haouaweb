@@ -17,9 +17,8 @@ import {
 import { generateDossierCompletPdf } from "@/lib/dossier/dossier-pdf";
 import { DossierAlertsBar } from "@/components/dossier/dossier-alerts-bar";
 import { DossierChecklistTab } from "@/components/dossier/dossier-checklist-tab";
-import { DossierAssistDrawer } from "@/components/dossier/dossier-assist-drawer";
 import { OcrCameraModal } from "@/components/echo/ocr-camera-modal";
-import { HawaePanel } from "@/components/ia/hawae-panel";
+import { HawaeUnifiedPanel } from "@/components/ia/hawae-unified-panel";
 import { ExamenCliniqueTab } from "@/components/dossier/examen-clinique-tab";
 import { ExamensBilansTab } from "@/components/dossier/examens-bilans-tab";
 import { AnamneseTab } from "@/components/dossier/anamnese-tab";
@@ -72,7 +71,6 @@ export function DossierFormView({
   tab,
   onTab,
   onField,
-  patchDraft,
   onClose,
   onNewConsultation,
   history,
@@ -81,7 +79,6 @@ export function DossierFormView({
   saveStatus,
 }: Props) {
   const router = useRouter();
-  const [assistOpen, setAssistOpen] = useState(false);
   const [ocrOpen, setOcrOpen] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [bridgeOnline, setBridgeOnline] = useState(false);
@@ -197,22 +194,6 @@ export function DossierFormView({
               >
                 📤 PDF
               </button>
-              <button
-                type="button"
-                className="btn-header btn-assist-inline"
-                onClick={() => setAssistOpen(true)}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path
-                    d="M9 8.5C9 7.1 10.1 6 11.5 6S14 7.1 14 8.5c0 .8-.4 1.6-1 2.1"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                  />
-                  <circle cx="12" cy="13" r="1.2" fill="currentColor" />
-                </svg>
-                <span>Assist</span>
-              </button>
             </div>
           </div>
 
@@ -301,7 +282,7 @@ export function DossierFormView({
               <PmaClient patientId={draft.id} embedded />
             )}
             {tab === "scores" && <DossierScoresTab />}
-            {tab === "hawae" && <HawaePanel draft={draft} />}
+            {tab === "hawae" && <HawaeUnifiedPanel draft={draft} />}
             {tab === "checklist" && <DossierChecklistTab draft={draft} />}
             {tab === "historique" && (
               <DossierHistoriqueTab
@@ -340,24 +321,6 @@ export function DossierFormView({
           </div>
         </main>
       </div>
-
-      <button
-        type="button"
-        className="hawae-fab"
-        onClick={() => setAssistOpen(true)}
-        aria-label="Ouvrir Hawae, notre assistante clinique"
-        title="Hawae — assistante clinique"
-      >
-        <span aria-hidden>✦</span>
-        Hawae
-      </button>
-
-      <DossierAssistDrawer
-        open={assistOpen}
-        onClose={() => setAssistOpen(false)}
-        draft={draft}
-        patchDraft={patchDraft}
-      />
 
       <OcrCameraModal
         open={ocrOpen}
