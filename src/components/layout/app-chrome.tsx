@@ -426,13 +426,7 @@ export function AppChrome({
         </div>
       </aside>
 
-      <div className="min-h-screen bg-[var(--cream)] sm:pl-[var(--sidebar-w)]">
-        <div
-          className="min-h-screen bg-gradient-to-b from-white/55 via-[var(--cream)] to-[var(--cream-dark)]/30"
-          style={{
-            paddingTop: "env(safe-area-inset-top, 0px)",
-          }}
-        >
+      <div className="min-h-screen bg-gradient-to-b from-white/55 via-[var(--cream)] to-[var(--cream-dark)]/30 sm:pl-[var(--sidebar-w)]">
         <div className="sticky top-0 z-[150] border-b border-[var(--border)] bg-white/92 shadow-[0_1px_0_rgba(10,92,92,0.06)] backdrop-blur-md supports-[backdrop-filter]:bg-white/78">
           <div className="mx-auto flex h-[var(--topbar-h)] max-w-[var(--content-max)] items-center gap-3 px-4 sm:px-8">
             <button
@@ -504,13 +498,12 @@ export function AppChrome({
           </div>
         </div>
 
-        <main className="hawae-page mx-auto min-h-[calc(100vh-var(--topbar-h))] max-w-[var(--content-max)] px-4 pb-12 pt-6 sm:px-8 sm:pt-7">
+        <main className="hawae-page mx-auto min-h-[calc(100vh-var(--topbar-h))] max-w-[var(--content-max)] px-4 pt-6 sm:px-8 sm:pt-7">
           {children}
         </main>
-        </div>
-
-        <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} />
       </div>
+
+      <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} />
 
       <NewPatientModal
         open={newPatientOpen}
