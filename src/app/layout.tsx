@@ -34,6 +34,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=JSON.parse(localStorage.getItem('hawae-prefs-v1')||'{}');var r=document.documentElement;if(p.theme==='dark')r.setAttribute('data-theme','dark');if(p.accent){r.style.setProperty('--teal',p.accent);r.style.setProperty('--color-teal',p.accent);r.style.setProperty('--teal-light',p.accent);r.style.setProperty('--accent',p.accent);}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body
         className={`${display.variable} ${body.variable} font-sans antialiased`}
       >

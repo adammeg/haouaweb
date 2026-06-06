@@ -16,13 +16,18 @@ import {
 } from "@/lib/dossier/patient-meta";
 import { generateDossierCompletPdf } from "@/lib/dossier/dossier-pdf";
 import { DossierAlertsBar } from "@/components/dossier/dossier-alerts-bar";
+import { BioCurvesPanel } from "@/components/dossier/bio-curves-panel";
 import { DossierChecklistTab } from "@/components/dossier/dossier-checklist-tab";
 import { OcrCameraModal } from "@/components/echo/ocr-camera-modal";
+import { CrOpModal } from "@/components/dossier/cr-op-modal";
 import { HawaeUnifiedPanel } from "@/components/ia/hawae-unified-panel";
 import { ExamenCliniqueTab } from "@/components/dossier/examen-clinique-tab";
 import { ExamensBilansTab } from "@/components/dossier/examens-bilans-tab";
 import { AnamneseTab } from "@/components/dossier/anamnese-tab";
 import { PmaClient } from "@/components/pma/pma-client";
+import { ProtocolesClient } from "@/components/protocoles/protocoles-client";
+import { RappelsClient } from "@/components/rappels/rappels-client";
+import { PartogramClient } from "@/components/partogram/partogram-client";
 import {
   DossierHistoriqueTab,
   DossierScoresTab,
@@ -38,7 +43,10 @@ export type DossierTabId =
   | "checklist"
   | "historique"
   | "docs"
-  | "certificat";
+  | "certificat"
+  | "protocoles"
+  | "rappels"
+  | "partogramme";
 
 type Props = {
   draft: PatientSnapshot;
@@ -64,6 +72,9 @@ const BASE_TABS: { id: DossierTabId; label: string }[] = [
   { id: "historique", label: "🕐 Historique" },
   { id: "docs", label: "📄 Docs" },
   { id: "certificat", label: "🧾 Certificat" },
+  { id: "protocoles", label: "📚 Protocoles" },
+  { id: "rappels", label: "🔔 Rappels" },
+  { id: "partogramme", label: "📈 Partogramme" },
 ];
 
 export function DossierFormView({
@@ -80,6 +91,7 @@ export function DossierFormView({
 }: Props) {
   const router = useRouter();
   const [ocrOpen, setOcrOpen] = useState(false);
+  const [crOpOpen, setCrOpOpen] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [bridgeOnline, setBridgeOnline] = useState(false);
   const [wrToast, setWrToast] = useState<string | null>(null);
@@ -285,14 +297,17 @@ export function DossierFormView({
             {tab === "hawae" && <HawaeUnifiedPanel draft={draft} />}
             {tab === "checklist" && <DossierChecklistTab draft={draft} />}
             {tab === "historique" && (
-              <DossierHistoriqueTab
-                entries={history}
-                onLoad={(id) => {
-                  onLoadConsultation(id);
-                  onTab("anamnese");
-                }}
-                onDelete={onDeleteConsultation}
-              />
+              <div className="space-y-6">
+                <BioCurvesPanel entries={history} draft={draft} />
+                <DossierHistoriqueTab
+                  entries={history}
+                  onLoad={(id) => {
+                    onLoadConsultation(id);
+                    onTab("anamnese");
+                  }}
+                  onDelete={onDeleteConsultation}
+                />
+              </div>
             )}
             {tab === "docs" && (
               <div className="dossier-card">
@@ -300,9 +315,21 @@ export function DossierFormView({
                   <p className="mb-4 text-sm text-[var(--muted)]">
                     Galerie et sauvegarde JSON des documents du cabinet.
                   </p>
-                  <Link href="/documents" className="btn-header primary inline-flex">
-                    Ouvrir la galerie Documents
-                  </Link>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Link
+                      href="/documents"
+                      className="btn-header primary inline-flex"
+                    >
+                      Ouvrir la galerie Documents
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setCrOpOpen(true)}
+                      className="btn-header inline-flex"
+                    >
+                      🏥 CR opératoire
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -318,6 +345,9 @@ export function DossierFormView({
                 </div>
               </div>
             )}
+            {tab === "protocoles" && <ProtocolesClient />}
+            {tab === "rappels" && <RappelsClient />}
+            {tab === "partogramme" && <PartogramClient />}
           </div>
         </main>
       </div>
@@ -329,6 +359,12 @@ export function DossierFormView({
           onField(patch);
           setOcrOpen(false);
         }}
+      />
+
+      <CrOpModal
+        open={crOpOpen}
+        onClose={() => setCrOpOpen(false)}
+        draft={draft}
       />
     </>
   );

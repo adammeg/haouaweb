@@ -13,6 +13,7 @@ import {
   buildDossierContextForIa,
   stableClinicalDataKey,
 } from "@/lib/ia/build-dossier-context";
+import { buildRagBlock } from "@/lib/rag/rag-engine";
 import { useHawaeStore } from "@/stores/hawae-store";
 
 /* ── Progression déterministe ── */
@@ -218,13 +219,15 @@ export function HawaeUnifiedPanel({
       try {
         const dNow = useHawaeStore.getState().draft;
         const summary = dNow ? buildDossierContextForIa(dNow) : "";
+        const ragBlock = buildRagBlock("diagnostic analyse clinique grossesse pathologie");
+        const enriched = ragBlock ? summary + ragBlock : summary;
         const res = await fetch("/api/ia", {
           method: "POST",
           signal: ac.signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             mode: "diagnostic",
-            dossierSummary: summary,
+            dossierSummary: enriched,
             stream: true,
           }),
         });
@@ -283,6 +286,8 @@ export function HawaeUnifiedPanel({
     try {
       const dNow = useHawaeStore.getState().draft;
       const summary = dNow ? buildDossierContextForIa(dNow) : "";
+      const ragBlock = buildRagBlock(qTrim);
+      const enriched = ragBlock ? summary + ragBlock : summary;
       const res = await fetch("/api/ia", {
         method: "POST",
         signal: ac.signal,
@@ -290,7 +295,7 @@ export function HawaeUnifiedPanel({
         body: JSON.stringify({
           mode: "question",
           question: qTrim,
-          dossierSummary: summary,
+          dossierSummary: enriched,
         }),
       });
       const final = await consumeIaResponse(res);

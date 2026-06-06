@@ -4,8 +4,16 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useHawaeStore } from "@/stores/hawae-store";
-import { useRdvStore } from "@/stores/rdv-store";
+import { AnalyticsSearchPanel } from "@/components/dashboard/analytics-search-panel";
+import {
+  isoDate,
+  RDV_LABELS,
+  RDV_TYPE_ICONS,
+  useRdvStore,
+} from "@/stores/rdv-store";
 import { useRappelsStore } from "@/stores/rappels-store";
+import { useModulesWorkspace } from "@/stores/modules-store";
+import { todayIso } from "@/lib/waiting-room/utils";
 import { EMPTY_HISTORY_MAP, EMPTY_PATIENTS_MAP } from "@/lib/empty-stable";
 import {
   computeDashboardStats,
@@ -77,6 +85,30 @@ export function ClinicalDashboard() {
 
   const rdvList = useRdvStore((s) => s.list);
   const rappelsList = useRappelsStore((s) => s.list);
+  const ws = useModulesWorkspace();
+
+  const todayStr = isoDate(new Date());
+
+  const todayRdv = useMemo(
+    () =>
+      rdvList
+        .filter((r) => r.date === todayStr && r.statut !== "annule")
+        .sort((a, b) => a.heure.localeCompare(b.heure)),
+    [rdvList, todayStr],
+  );
+
+  const waitingCount = useMemo(() => {
+    const t = todayIso();
+    return ws.waitingQueue.filter(
+      (e) =>
+        e.date === t && (e.status === "waiting" || e.status === "in_consult"),
+    ).length;
+  }, [ws.waitingQueue]);
+
+  const urgenceCount = useMemo(
+    () => todayRdv.filter((r) => r.type === "urgence").length,
+    [todayRdv],
+  );
 
   const effectiveSpec: Specialty | "all" =
     pieFilter && pieFilter !== "—"
@@ -135,6 +167,118 @@ export function ClinicalDashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Cabinet overview — vue du jour (port v50 « Dashboard Cabinet ») */}
+      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <div className="rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--teal)] to-[var(--teal-deep,#0a5c5c)] p-5 text-white shadow-sm sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/70">
+                Aujourd&apos;hui
+              </p>
+              <div className="mt-1 font-display text-4xl font-extrabold leading-none">
+                {todayRdv.length}
+              </div>
+              <p className="mt-1 text-sm text-white/80">
+                rendez-vous programmés
+              </p>
+            </div>
+            <Link
+              href="/agenda"
+              className="rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-white/25"
+            >
+              📅 Agenda
+            </Link>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Link
+              href="/salle-attente"
+              className="rounded-xl bg-white/12 p-3 backdrop-blur transition-colors hover:bg-white/20"
+            >
+              <div className="text-2xl font-bold leading-none">
+                {waitingCount}
+              </div>
+              <div className="mt-1 text-[11px] text-white/75">
+                En salle d&apos;attente
+              </div>
+            </Link>
+            <div className="rounded-xl bg-white/12 p-3 backdrop-blur">
+              <div className="text-2xl font-bold leading-none">
+                {urgenceCount}
+              </div>
+              <div className="mt-1 text-[11px] text-white/75">
+                Urgences du jour
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-xs)] sm:p-6">
+          <h2 className="mb-3 font-display text-sm font-bold text-[var(--ink)]">
+            ⚡ Actions rapides
+          </h2>
+          <div className="grid grid-cols-2 gap-2">
+            <Link href="/dossier?new=1" className="dash-quick-action">
+              ➕ Nouvelle patiente
+            </Link>
+            <Link href="/agenda" className="dash-quick-action">
+              📅 Nouveau RDV
+            </Link>
+            <Link href="/assist" className="dash-quick-action">
+              🌬️ Analyse Hawae
+            </Link>
+            <Link href="/dossier" className="dash-quick-action">
+              📋 Dossiers
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* RDV du jour */}
+      <section className="hawae-panel p-5 sm:p-6">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <h2 className="font-display text-lg font-bold text-[var(--ink)]">
+            Rendez-vous d&apos;aujourd&apos;hui
+          </h2>
+          <QuickLink href="/agenda">Ouvrir l&apos;agenda</QuickLink>
+        </div>
+        {todayRdv.length === 0 ? (
+          <EmptyState
+            title="Aucun rendez-vous aujourd'hui"
+            description="Les rendez-vous programmés pour la journée apparaîtront ici."
+          />
+        ) : (
+          <ul className="space-y-2">
+            {todayRdv.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-3 text-sm shadow-[var(--shadow-xs)]"
+              >
+                <span className="w-12 shrink-0 font-bold text-[var(--teal)]">
+                  {r.heure || "—"}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium text-[var(--ink)]">
+                    {r.patient || "Patiente inconnue"}
+                  </span>
+                  <span className="text-xs text-[var(--muted)]">
+                    {RDV_TYPE_ICONS[r.type]} {RDV_LABELS[r.type] ?? r.type}
+                    {r.duree ? ` · ${r.duree} min` : ""}
+                  </span>
+                </span>
+                {r.tel ? (
+                  <a
+                    href={`tel:${r.tel}`}
+                    className="shrink-0 text-xs text-[var(--teal)] hover:underline"
+                  >
+                    📞 {r.tel}
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <div className="dash-filters">
         <div className="dash-filter-group" role="group" aria-label="Période">
           {PERIODS.map((p) => (
@@ -225,6 +369,8 @@ export function ClinicalDashboard() {
         }))}
         rdvByStatut={stats.rdv.byStatut}
       />
+
+      <AnalyticsSearchPanel />
 
       <section className="hawae-panel p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">

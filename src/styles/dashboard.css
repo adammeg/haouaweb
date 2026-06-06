@@ -174,6 +174,29 @@
   background: rgba(193, 122, 122, 0.12);
 }
 
+.dash-quick-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.75rem 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--teal-pale);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--teal);
+  text-align: center;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.dash-quick-action:hover {
+  background: rgba(13, 110, 110, 0.16);
+  transform: translateY(-1px);
+}
+
 .dash-pie-hint {
   margin-top: 0.5rem;
   font-size: 0.6875rem;

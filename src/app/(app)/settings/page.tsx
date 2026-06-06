@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { AiTrainingConsentPanel } from "@/components/settings/ai-training-consent-panel";
+import { PreferencesPanel } from "@/components/settings/preferences-panel";
 
 export const metadata = {
   title: "Paramètres — HawaeMD",
@@ -65,59 +66,7 @@ export default async function SettingsPage() {
           </dl>
         </section>
 
-        <section className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]">
-          <h2 className="font-display text-base font-bold text-[var(--ink)]">
-            Apparence
-          </h2>
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            Thème HawaeMD v48 — couleurs teal, or et crème.
-          </p>
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            {[
-              { v: "var(--teal)", label: "Teal" },
-              { v: "var(--gold)", label: "Or" },
-              { v: "var(--color-blush)", label: "Blush" },
-              { v: "var(--cream)", label: "Crème" },
-            ].map((c) => (
-              <div key={c.label} className="text-center">
-                <div
-                  className="mx-auto h-10 w-10 rounded-xl border border-[var(--border)] shadow-sm"
-                  style={{ background: c.v }}
-                />
-                <span className="mt-1 block text-[10px] font-semibold text-[var(--muted)]">
-                  {c.label}
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-5 text-[11px] text-[var(--muted)]">
-            Les thèmes personnalisés seront disponibles dans une prochaine
-            version.
-          </p>
-        </section>
-
-        <section className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]">
-          <h2 className="font-display text-base font-bold text-[var(--ink)]">
-            Sécurité
-          </h2>
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            Session sécurisée par jeton. Déconnectez-vous depuis le menu latéral.
-          </p>
-          <ul className="mt-4 space-y-2 text-sm text-[var(--ink-mid)]">
-            <li className="flex items-start gap-2">
-              <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--green)]" />
-              Session JWT active
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--green)]" />
-              Données chiffrées en transit (HTTPS)
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-[var(--muted-light)]" />
-              Code PIN local (bientôt)
-            </li>
-          </ul>
-        </section>
+        <PreferencesPanel />
 
         <section className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]">
           <h2 className="font-display text-base font-bold text-[var(--ink)]">

@@ -12,6 +12,7 @@ import { UserSwitcher } from "@/components/users/user-switcher";
 import { LogoutControl } from "@/components/auth/logout-control";
 import { HawaeLogo } from "@/components/brand/hawae-logo";
 import { NewPatientModal } from "@/components/patient/new-patient-modal";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { useModulesWorkspace } from "@/stores/modules-store";
 import { todayIso } from "@/lib/waiting-room/utils";
 
@@ -483,6 +484,7 @@ export function AppChrome({
                 </span>
               </div>
             </div>
+            <NotificationBell />
             <button
               type="button"
               onClick={() => setNewPatientOpen(true)}

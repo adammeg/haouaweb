@@ -137,6 +137,55 @@
   --radius-xl: 22px;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   Thème sombre — appliqué via [data-theme="dark"] sur <html>
+   ══════════════════════════════════════════════════════════════════ */
+:root[data-theme="dark"] {
+  --color-cream: #11161b;
+  --cream: #11161b;
+  --cream-dark: #0b0f13;
+  --background: #11161b;
+  --foreground: #e9edf1;
+
+  --surface: #1a2027;
+  --surface-raised: #1f262e;
+  --card: rgba(31, 38, 46, 0.82);
+  --glass-bg: rgba(26, 32, 39, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  --ink: #e9edf1;
+  --ink-mid: #c2c9d2;
+  --muted: #94a0ad;
+  --muted-light: #6b7682;
+
+  --border: #2b333c;
+  --border-teal: #244a4a;
+  --teal-pale: #14302f;
+  --teal-glass: rgba(0, 150, 150, 0.14);
+  --gold-surface: #2a2418;
+}
+
+:root[data-theme="dark"] body {
+  background-color: var(--cream);
+  background-image:
+    radial-gradient(
+      ellipse 100% 70% at 100% -15%,
+      rgba(26, 154, 154, 0.1),
+      transparent 52%
+    ),
+    radial-gradient(
+      ellipse 75% 60% at 0% 95%,
+      rgba(193, 122, 122, 0.1),
+      transparent 50%
+    );
+}
+
+:root[data-theme="dark"] .bg-white,
+:root[data-theme="dark"] .dossier-card,
+:root[data-theme="dark"] .hawae-panel {
+  background-color: var(--surface-raised) !important;
+}
+
 html {
   scroll-behavior: smooth;
 }
