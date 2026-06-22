@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import type { ConsultationEntry, PatientSnapshot } from "@/types/domain";
 
 /** @deprecated Utiliser ExamenCliniqueTab */
@@ -65,81 +64,6 @@ export function DossierExamenTab({
         />
       </div>
     </div>
-  );
-}
-
-export function DossierScoresTab() {
-  const [dil, setDil] = useState(0);
-  const [eff, setEff] = useState(0);
-  const [cons, setCons] = useState(0);
-  const [pos, setPos] = useState(0);
-  const [haut, setHaut] = useState(0);
-  const bishop = dil + eff + cons + pos + haut;
-  let interp = "";
-  if (bishop >= 9) {
-    interp = "Col très favorable — déclenchement très probable de succès.";
-  } else if (bishop >= 7) {
-    interp = "Col favorable — déclenchement recommandable.";
-  } else if (bishop >= 5) {
-    interp = "Col moyennement favorable — maturation préalable conseillée.";
-  } else {
-    interp = "Col défavorable — maturation indispensable avant déclenchement.";
-  }
-
-  return (
-    <div className="max-w-lg space-y-4">
-      <h3 className="font-display text-sm font-bold text-[var(--ink)]">
-        Score de Bishop (0–13)
-      </h3>
-      <ScoreSelect label="Dilatation" value={dil} onChange={setDil} max={3} />
-      <ScoreSelect label="Effacement" value={eff} onChange={setEff} max={3} />
-      <ScoreSelect
-        label="Consistance"
-        value={cons}
-        onChange={setCons}
-        max={2}
-      />
-      <ScoreSelect label="Position" value={pos} onChange={setPos} max={2} />
-      <ScoreSelect
-        label="Hauteur présentation"
-        value={haut}
-        onChange={setHaut}
-        max={3}
-      />
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--teal-pale)] p-4">
-        <div className="text-2xl font-bold text-[var(--teal)]">{bishop}/13</div>
-        <p className="mt-2 text-sm text-[var(--ink-mid)]">{interp}</p>
-      </div>
-    </div>
-  );
-}
-
-function ScoreSelect({
-  label,
-  value,
-  onChange,
-  max,
-}: {
-  label: string;
-  value: number;
-  onChange: (n: number) => void;
-  max: number;
-}) {
-  return (
-    <label className="flex items-center justify-between gap-4 text-sm">
-      <span className="text-[var(--ink-mid)]">{label}</span>
-      <select
-        className="rounded-lg border border-[var(--border)] px-2 py-1"
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-      >
-        {Array.from({ length: max + 1 }, (_, i) => (
-          <option key={i} value={i}>
-            {i}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 

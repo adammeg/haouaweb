@@ -1,5 +1,5 @@
 /**
- * Base de connaissances RAG HawaeMD — 22 chunks cliniques officiels (port v50).
+ * Base de connaissances RAG HawaeMD — 26 chunks cliniques officiels (port v51).
  * Référentiels FIGO / CNGOF / ESHRE / HAS / RCOG / ISSHP, etc.
  */
 
@@ -271,4 +271,37 @@ export const SEED_KB: RagChunk[] = [
     keywords: ["myome", "fibrome", "PALM-COEIN", "FIGO", "sous-muqueux", "intramural", "sous-séreux", "saignements", "fertilité", "résection", "embolisation"],
     text: "CLASSIFICATION FIGO PALM-COEIN (2011) :\nType 0 : sous-muqueux pédiculé (100% intracavitaire).\nType 1 : sous-muqueux sessile (> 50% intracavitaire).\nType 2 : sous-muqueux (< 50% intracavitaire).\nType 3 : intramural en contact avec endomètre.\nType 4 : intramural pur.\nTypes 5-6-7 : sous-séreux.\nType 8 : autres (cervical, ligamentaire, parasitique).\n\nIMPACT FERTILITÉ :\nTypes 0-2 (sous-muqueux) : réduction taux grossesse 50% → résection hystéroscopique avant FIV.\nTypes 3-4 (intramural) : effet négatif si > 5 cm avec déformation cavitaire.\nTypes 5-7 (sous-séreux) : pas d'effet démontré.\n\nTRAITEMENT MÉDICAL :\nAgonistes GnRH : réduction 30-50% en 3 mois (préopératoire seulement).\nDIU lévonorgestrel : réduit ménorragies si myome < 3 cm.\n\nCHIRURGIE :\nMyomectomie hystéroscopique : types 0-2 (gold standard).\nCoelioscopique : types 3-6. Laparotomie : > 8 cm ou multiples.\nEmbolisation artères utérines : si pas de désir grossesse. Récidive : 30% à 5 ans.",
   },
-]; // fin SEED_KB — 22 chunks
+  {
+    id: "iota-adnex-complet-2016",
+    source: "Timmerman IOTA 2010 + Van Calster UOG 2016",
+    domain: "GYN",
+    topic: "Masse annexielle",
+    title: "IOTA Simple Rules + ADNEX — Caractérisation masse ovarienne",
+    year: 2016,
+    evidence: "A",
+    keywords: ["ADNEX", "IOTA", "kyste", "ovarien", "malignité", "CA-125", "borderline", "bénin", "malin", "papilles", "ascite", "simple rules", "masse annexielle", "uniloculaire", "Doppler", "ombres", "composante solide"],
+    text: "IOTA SIMPLE RULES :\nCritères B (bénins) : uniloculaire, composante solide < 7mm, ombres acoustiques, multiloculaire < 100mm, pas de flux.\nCritères M (malins) : solide irrégulière > 7mm, ascite, ≥4 papilles, multiloculaire-solide ≥ 100mm, flux abondant (score 4).\nRègle : ≥1 B et 0 M = bénin. ≥1 M et 0 B = malin. Mixte = indéterminé → ADNEX.\n\nADNEX (Van Calster 2016) :\n6 paramètres : âge + CA-125 + Ø max + % solide + nb papilles + ombres + ascite + centre.\nSeuils : < 10% = probablement bénin | 10-30% = zone grise | > 30% = probablement malin.\nOrientation oncogynécologie si ADNEX > 10-15% selon centre.\nSous-types malignité : bénin, borderline, stade I, stades II-IV, métastatique.",
+  },
+  {
+    id: "orads-acr-2022",
+    source: "ACR O-RADS 2022",
+    domain: "GYN",
+    topic: "Masse annexielle",
+    title: "O-RADS US — Classification ACR 2022 masse ovarienne",
+    year: 2022,
+    evidence: "B",
+    keywords: ["ORADS", "O-RADS", "ACR", "kyste", "ovarien", "catégorie", "classification", "risque", "malignité", "suivi", "masse annexielle", "Doppler", "ascite", "solide"],
+    text: "O-RADS US (ACR 2022) :\nCat. 0 : Évaluation incomplète. Cat. 1 : Ovaires normaux (< 1%).\nCat. 2 : Presque certainement bénin (< 1%) — kystes simples, corps jaune, endométriome typique.\nCat. 3 : Faible risque (1-5%) — multiloculaire lisse < 10 cm, uniloculaire avec paroi.\nCat. 4 : Risque intermédiaire (5-50%) — composante solide ± flux modéré, cloisons épaisses.\nCat. 5 : Risque élevé (> 50%) — solide avec flux abondant, ascite, irrégularités sévères.\n\nConduite : Cat. 2 = suivi écho | Cat. 3 = suivi + marqueurs | Cat. 4 = IRM + avis | Cat. 5 = RCP oncogynécologique urgente.",
+  },
+  {
+    id: "lus-avac-cngof-2020",
+    source: "Rozenberg 2016 + CNGOF 2020",
+    domain: "OBST",
+    topic: "AVAC",
+    title: "LUS — Épaisseur segment inférieur utérin et risque rupture",
+    year: 2020,
+    evidence: "B",
+    keywords: ["LUS", "SUI", "segment inférieur", "utérus cicatriciel", "AVAC", "TOLAC", "rupture", "déhiscence", "épaisseur", "seuil", "2.5mm", "3.5mm", "myométrie"],
+    text: "LUS (Longueur segment inférieur utérin) mesuré par écho endovaginale à 36-38 SA :\nLUS ≥ 3.5 mm : risque déhiscence < 1% → AVAC autorisé.\nLUS 2.5-3.5 mm : zone grise, décision individualisée + RCP.\nLUS < 2.5 mm : risque élevé ≈ 3-4% → CS programmée à discuter.\nLUS < 1.5 mm : CS programmée fortement recommandée.\n\nLUS combiné au Score Flamm ≥ 5 + Bishop pour décision AVAC optimale.\nTechnique : mesure perpendiculaire à la cicatrice, 3 mesures, retenir la plus petite.",
+  },
+]; // fin SEED_KB — 26 chunks

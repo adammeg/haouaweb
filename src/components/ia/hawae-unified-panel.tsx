@@ -13,7 +13,7 @@ import {
   buildDossierContextForIa,
   stableClinicalDataKey,
 } from "@/lib/ia/build-dossier-context";
-import { buildRagBlock } from "@/lib/rag/rag-engine";
+import { buildRagBlock, getRagChunkCount, retrieveRagChunks } from "@/lib/rag/rag-engine";
 import { useHawaeStore } from "@/stores/hawae-store";
 
 /* ── Progression déterministe ── */
@@ -159,6 +159,8 @@ export function HawaeUnifiedPanel({
 
   /* ── Progression ── */
   const [progress, setProgress] = useState(0);
+  const [ragSources, setRagSources] = useState<string[]>([]);
+  const ragCount = getRagChunkCount();
   const [phase, setPhase] = useState<
     "idle" | "scores" | "context" | "llm" | "done"
   >("idle");
@@ -219,7 +221,10 @@ export function HawaeUnifiedPanel({
       try {
         const dNow = useHawaeStore.getState().draft;
         const summary = dNow ? buildDossierContextForIa(dNow) : "";
-        const ragBlock = buildRagBlock("diagnostic analyse clinique grossesse pathologie");
+        const ragQuery = "diagnostic analyse clinique grossesse pathologie";
+        const hits = retrieveRagChunks(ragQuery, 4);
+        setRagSources(hits.map((c) => c.source));
+        const ragBlock = buildRagBlock(ragQuery);
         const enriched = ragBlock ? summary + ragBlock : summary;
         const res = await fetch("/api/ia", {
           method: "POST",
@@ -287,6 +292,7 @@ export function HawaeUnifiedPanel({
       const dNow = useHawaeStore.getState().draft;
       const summary = dNow ? buildDossierContextForIa(dNow) : "";
       const ragBlock = buildRagBlock(qTrim);
+      setRagSources(retrieveRagChunks(qTrim, 4).map((c) => c.source));
       const enriched = ragBlock ? summary + ragBlock : summary;
       const res = await fetch("/api/ia", {
         method: "POST",
@@ -325,6 +331,29 @@ export function HawaeUnifiedPanel({
 
   return (
     <div className="space-y-6">
+      <div className="text-center">
+        <span
+          id="hawae-rag-badge"
+          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide text-[#d6f0ef] shadow-md"
+          style={{
+            background: "linear-gradient(135deg,#0a5c5c 0%,#1a8c7c 100%)",
+            boxShadow: "0 2px 8px rgba(10,92,92,0.4)",
+          }}
+          title={
+            ragSources.length
+              ? `Sources : ${ragSources.join(", ")}`
+              : "Base de connaissances RAG"
+          }
+        >
+          <span aria-hidden>📚</span>
+          <span id="hawae-rag-count">{ragCount} guidelines</span>
+        </span>
+        {ragSources.length > 0 ? (
+          <p className="mt-2 text-[10px] text-[var(--muted)]">
+            Sources actives : {ragSources.join(" · ")}
+          </p>
+        ) : null}
+      </div>
       {/* Bannière avec barre de progression déterministe */}
       {isWorking ? (
         <div className="rounded-xl border border-[var(--teal)]/40 bg-[var(--teal-pale)]/50 px-5 py-4">
@@ -385,7 +414,7 @@ export function HawaeUnifiedPanel({
       {/* Bloc scores cliniques */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
         <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
-          🧮 Moteur de scores cliniques (16 scores)
+          🧮 Moteur de scores cliniques (19 scores)
         </h3>
         <AssistPanel
           result={scoresResult}

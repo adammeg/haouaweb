@@ -136,11 +136,10 @@ function ensureIndex() {
 
 /**
  * Build a formatted RAG block for injection into the LLM system prompt.
- * Matches v50 _buildRagBlock exactly.
+ * Returns matched chunks for UI badges.
  */
 export function buildRagBlock(query: string): string {
-  ensureIndex();
-  const hits = search(_idx!, _chunks, query, 4);
+  const hits = retrieveRagChunks(query, 4);
   if (!hits.length) return "";
 
   let block =
@@ -162,6 +161,17 @@ export function buildRagBlock(query: string): string {
     "Si un point n'est pas couvert par ces extraits, complète depuis ta mémoire d'entraînement en le signalant.\n";
 
   return block;
+}
+
+/** Chunks retrieved for a query (shared by block builder + UI). */
+export function retrieveRagChunks(query: string, topK = 4): RagChunk[] {
+  ensureIndex();
+  return search(_idx!, _chunks, query, topK);
+}
+
+export function getRagChunkCount(): number {
+  ensureIndex();
+  return _chunks.length;
 }
 
 /**

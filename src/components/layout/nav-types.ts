@@ -5,5 +5,6 @@ export type NavItem = {
   label: string;
   sub?: string;
   icon: (props: SVGProps<SVGSVGElement>) => ReactNode;
+  emoji?: string;
   soon?: boolean;
 };

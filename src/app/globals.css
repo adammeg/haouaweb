@@ -1202,3 +1202,31 @@ textarea.hawae-input {
     min-height: 36px;
   }
 }
+
+/* v51 topbar action buttons */
+.btn-header {
+  background: var(--cream);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: var(--radius-s, 10px);
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+.btn-header:hover {
+  background: var(--teal-pale);
+  border-color: var(--teal-light);
+  color: var(--teal);
+}
+.topbar-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}

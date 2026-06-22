@@ -8,6 +8,8 @@ import {
   useModulesWorkspace,
 } from "@/stores/modules-store";
 import type { CertificateDraft, CertificateType } from "@/types/modules";
+import type { PatientSnapshot } from "@/types/domain";
+import { dossierDisplayName } from "@/lib/dossier/patient-meta";
 import {
   createHiddenPrintRoot,
   exportElementToPdf,
@@ -20,13 +22,21 @@ const TYPES: CertificateType[] = [
   "accouchement_prevu",
 ];
 
-export function CertificatsClient() {
+export function CertificatsClient({
+  embedded = false,
+  draft,
+}: {
+  embedded?: boolean;
+  draft?: PatientSnapshot;
+} = {}) {
   const ws = useModulesWorkspace();
   const saveCertificate = useModulesStore((s) => s.saveCertificate);
   const deleteCertificate = useModulesStore((s) => s.deleteCertificate);
 
   const [type, setType] = useState<CertificateType>("certificat_medical");
-  const [patientName, setPatientName] = useState("");
+  const [patientName, setPatientName] = useState(
+    draft ? dossierDisplayName(draft) : "",
+  );
   const [body, setBody] = useState(
     "Je soussigné(e), certifie avoir examiné la patiente susnommée…",
   );
@@ -69,13 +79,15 @@ export function CertificatsClient() {
   }
 
   return (
-    <div className="space-y-8">
-      <header className="border-b border-[var(--border)] pb-6">
-        <h1 className="font-display text-2xl font-bold">Certificats médicaux</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Modèles et export PDF.
-        </p>
-      </header>
+    <div className={embedded ? "space-y-6" : "space-y-8"}>
+      {!embedded ? (
+        <header className="border-b border-[var(--border)] pb-6">
+          <h1 className="font-display text-2xl font-bold">Certificats médicaux</h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Modèles et export PDF.
+          </p>
+        </header>
+      ) : null}
 
       <div className="grid gap-4 rounded-2xl border bg-white p-6 lg:grid-cols-2">
         <label className="text-sm">

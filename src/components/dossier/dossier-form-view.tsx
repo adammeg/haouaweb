@@ -28,10 +28,10 @@ import { PmaClient } from "@/components/pma/pma-client";
 import { ProtocolesClient } from "@/components/protocoles/protocoles-client";
 import { RappelsClient } from "@/components/rappels/rappels-client";
 import { PartogramClient } from "@/components/partogram/partogram-client";
-import {
-  DossierHistoriqueTab,
-  DossierScoresTab,
-} from "@/components/dossier/dossier-tab-panels";
+import { DocumentsClient } from "@/components/documents/documents-client";
+import { CertificatsClient } from "@/components/certificats/certificats-client";
+import { DossierScoresTab } from "@/components/scores/dossier-scores-tab";
+import { DossierHistoriqueTab } from "@/components/dossier/dossier-tab-panels";
 
 export type DossierTabId =
   | "anamnese"
@@ -113,13 +113,10 @@ export function DossierFormView({
   const completeness = computeCompleteness(draft);
 
   const tabs = useMemo(() => {
-    const list = [...BASE_TABS];
-    if (draft.specialite === "inf") {
-      const i = list.findIndex((t) => t.id === "bilans");
-      list.splice(i + 1, 0, { id: "pma", label: "🧬 PMA / FIV" });
-    }
+    const list = BASE_TABS.filter((t) => t.id !== "pma");
+    list.push({ id: "pma", label: "🧬 PMA / FIV" });
     return list;
-  }, [draft.specialite]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -290,9 +287,7 @@ export function DossierFormView({
               <ExamenCliniqueTab draft={draft} onField={onField} />
             )}
             {tab === "bilans" && <ExamensBilansTab draft={draft} onField={onField} />}
-            {tab === "pma" && draft.specialite === "inf" && (
-              <PmaClient patientId={draft.id} embedded />
-            )}
+            {tab === "pma" && <PmaClient patientId={draft.id} embedded />}
             {tab === "scores" && <DossierScoresTab />}
             {tab === "hawae" && <HawaeUnifiedPanel draft={draft} />}
             {tab === "checklist" && <DossierChecklistTab draft={draft} />}
@@ -310,40 +305,10 @@ export function DossierFormView({
               </div>
             )}
             {tab === "docs" && (
-              <div className="dossier-card">
-                <div className="dossier-card-body text-center">
-                  <p className="mb-4 text-sm text-[var(--muted)]">
-                    Galerie et sauvegarde JSON des documents du cabinet.
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    <Link
-                      href="/documents"
-                      className="btn-header primary inline-flex"
-                    >
-                      Ouvrir la galerie Documents
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setCrOpOpen(true)}
-                      className="btn-header inline-flex"
-                    >
-                      🏥 CR opératoire
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <DocumentsClient embedded patientId={draft.id} />
             )}
             {tab === "certificat" && (
-              <div className="dossier-card">
-                <div className="dossier-card-body text-center">
-                  <p className="mb-4 text-sm text-[var(--muted)]">
-                    Certificats médicaux et courriers — modèles prêts à l&apos;emploi.
-                  </p>
-                  <Link href="/certificats" className="btn-header primary inline-flex">
-                    Ouvrir Certificats
-                  </Link>
-                </div>
-              </div>
+              <CertificatsClient embedded draft={draft} />
             )}
             {tab === "protocoles" && <ProtocolesClient />}
             {tab === "rappels" && <RappelsClient />}

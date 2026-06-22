@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode, SVGProps } from "react";
 import type { NavItem } from "@/components/layout/nav-types";
 import { ToolsNavGroups } from "@/components/layout/tools-nav-groups";
@@ -12,6 +12,7 @@ import { UserSwitcher } from "@/components/users/user-switcher";
 import { LogoutControl } from "@/components/auth/logout-control";
 import { HawaeLogo } from "@/components/brand/hawae-logo";
 import { NewPatientModal } from "@/components/patient/new-patient-modal";
+import { BackupModal } from "@/components/backup/backup-modal";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { useModulesWorkspace } from "@/stores/modules-store";
 import { todayIso } from "@/lib/waiting-room/utils";
@@ -75,22 +76,6 @@ function IconDashboard(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function IconPlus(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      aria-hidden
-      {...props}
-    >
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
 function IconHospital(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -128,38 +113,24 @@ function IconShield(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function IconSparkles(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden {...props}>
-      <path d="M12 2.5 13.7 8 19 9.7 13.7 11.5 12 17l-1.7-5.5L5 9.7 10.3 8 12 2.5Zm6.5 11 .9 2.6L22 17l-2.6.9-.9 2.6-.9-2.6L15 17l2.6-.9.9-2.6Z" />
-    </svg>
-  );
-}
-
 const PRIMARY_NAV: NavItem[] = [
   {
     href: "/salle-attente",
     label: "Salle d'attente",
-    sub: "Patients du jour",
     icon: IconWaiting,
+    emoji: "🚪",
   },
   {
     href: "/dossier",
     label: "Dossier patiente",
-    sub: "Anamnèse & Hawae",
     icon: IconFolder,
+    emoji: "📋",
   },
   {
     href: "/dashboard",
-    label: "Tableau de bord",
-    sub: "Statistiques cabinet",
+    label: "Dashboard",
     icon: IconDashboard,
-  },
-  {
-    href: "/assist",
-    label: "Hawae",
-    sub: "Assistante clinique · 16 scores",
-    icon: IconSparkles,
+    emoji: "📊",
   },
 ];
 
@@ -187,11 +158,17 @@ function SidebarItem({
       }`}
     >
       <span
-        className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-[1.04] ${
+        className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg text-base transition-transform group-hover:scale-[1.04] ${
           active ? "bg-[rgba(193,122,122,0.32)]" : "bg-white/[0.07]"
         }`}
       >
-        <Icon className="h-4 w-4 text-white/95" />
+        {item.emoji ? (
+          <span aria-hidden className="leading-none">
+            {item.emoji}
+          </span>
+        ) : (
+          <Icon className="h-4 w-4 text-white/95" />
+        )}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[12.5px] font-semibold leading-tight text-white/90">
@@ -229,8 +206,12 @@ export function AppChrome({
   };
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [newPatientOpen, setNewPatientOpen] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
+  const saveDraft = useHawaeStore((s) => s.saveDraft);
+  const draft = useHawaeStore((s) => s.draft);
   const ws = useModulesWorkspace();
   const waitingBadge = useMemo(() => {
     const today = todayIso();
@@ -242,9 +223,9 @@ export function AppChrome({
   }, [ws.waitingQueue]);
 
   const pageTitle = useMemo(() => {
-    if (pathname.startsWith("/dossier")) return "Dossier";
+    if (pathname.startsWith("/dossier")) return "Dossier patiente";
     if (pathname.startsWith("/salle-attente")) return "Salle d'attente";
-    if (pathname.startsWith("/dashboard")) return "Tableau de bord";
+    if (pathname.startsWith("/dashboard")) return "Dashboard";
     if (pathname.startsWith("/agenda")) return "Agenda & RDV";
     if (pathname.startsWith("/rappels")) return "Rappels";
     if (pathname.startsWith("/assist")) return "Hawae";
@@ -315,7 +296,7 @@ export function AppChrome({
           aria-label="Sections principales"
         >
           <div className="px-2.5 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[1.8px] text-white/30">
-            Consultation
+            Espaces
           </div>
           {PRIMARY_NAV.map((item) => (
             <SidebarItem
@@ -342,15 +323,46 @@ export function AppChrome({
             }}
             className="group flex w-full items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 py-2.5 text-left transition-all hover:border-white/20 hover:bg-white/[0.08]"
           >
-            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-[rgba(201,168,76,0.18)] transition-transform group-hover:scale-[1.04]">
-              <IconPlus className="h-4 w-4 text-white/95" />
+            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-white/[0.07] text-base">
+              ➕
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[12.5px] font-semibold leading-tight text-white/90">
                 Nouvelle patiente
               </span>
-              <span className="block truncate text-[10px] text-white/45">
-                Créer un dossier
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              router.push("/agenda");
+              closeMobile();
+            }}
+            className="group flex w-full items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 py-2.5 text-left transition-all hover:border-white/20 hover:bg-white/[0.08]"
+          >
+            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-white/[0.07] text-base">
+              📅
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[12.5px] font-semibold leading-tight text-white/90">
+                Nouveau RDV
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setBackupOpen(true);
+              closeMobile();
+            }}
+            className="group flex w-full items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 py-2.5 text-left transition-all hover:border-white/20 hover:bg-white/[0.08]"
+          >
+            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-white/[0.07] text-base">
+              💾
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[12.5px] font-semibold leading-tight text-white/90">
+                Backup
               </span>
             </span>
           </button>
@@ -448,53 +460,65 @@ export function AppChrome({
               </svg>
             </button>
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="truncate font-display text-base font-extrabold tracking-tight text-[var(--ink)] sm:text-[17px]">
-                  {pageTitle}
-                </span>
-                <span
-                  className={`hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide sm:inline-block ${
-                    doctor.role === "app_admin"
-                      ? "bg-slate-200/90 text-slate-800"
-                      : doctor.role === "clinic_admin"
-                        ? "bg-amber-100 text-amber-900"
-                        : "bg-[var(--teal-pale)] text-[var(--teal)]"
-                  }`}
-                >
-                  {doctor.role === "clinic_admin"
-                    ? "Clinique"
-                    : doctor.role === "app_admin"
-                      ? "Admin"
-                      : "Médecin"}
-                </span>
-              </div>
-              <div className="truncate text-[11px] text-[var(--muted)]">
-                <span className="hidden sm:inline">{doctor.name} · </span>
-                <span
-                  title={doctor.email}
-                  className="max-w-[200px] sm:max-w-none"
-                >
-                  {doctor.email}
-                </span>
-              </div>
+              <span className="truncate font-display text-base font-extrabold tracking-tight text-[var(--ink)] sm:text-[17px]">
+                {pageTitle}
+              </span>
             </div>
-            <NotificationBell />
-            <button
-              type="button"
-              onClick={() => setNewPatientOpen(true)}
-              className="hidden shrink-0 items-center gap-1.5 rounded-xl bg-[var(--teal)] px-3 py-2 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-95 sm:inline-flex"
-            >
-              <IconPlus className="h-3.5 w-3.5" />
-              Nouvelle
-            </button>
-            {doctor.role === "app_admin" ? (
-              <Link
-                href="/admin"
-                className="hidden shrink-0 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--ink)] shadow-sm transition-colors hover:bg-[var(--teal-pale)]/50 sm:inline-flex"
+            <div className="topbar-actions flex shrink-0 items-center gap-1.5 sm:gap-2">
+              <UserSwitcher
+                triggerClassName="hidden items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-2 py-1.5 text-left hover:bg-[var(--cream)] sm:inline-flex"
+                avatar={
+                  <div
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
+                    style={{ background: currentUser?.color ?? "#1a9a9a" }}
+                  >
+                    {currentUser?.initials ?? "?"}
+                  </div>
+                }
+                nameLine={
+                  <span className="max-w-[100px] truncate text-xs font-semibold text-[var(--ink)]">
+                    {currentUser?.name ?? "Utilisateur"}
+                  </span>
+                }
+              />
+              <NotificationBell />
+              <button
+                type="button"
+                onClick={() => saveDraft()}
+                className="btn-header hidden sm:inline-flex"
+                title="Sauvegarder le dossier en cours"
               >
-                Console admin
+                💾 Sauvegarder
+              </button>
+              <Link
+                href="/agenda"
+                className="btn-header hidden sm:inline-flex"
+                style={{
+                  background: "var(--teal-pale)",
+                  color: "var(--teal)",
+                  borderColor: "var(--teal)",
+                }}
+                title="Prendre un RDV"
+              >
+                📅 RDV
               </Link>
-            ) : null}
+              <button
+                type="button"
+                onClick={() => {
+                  if (draft?.id) saveDraft();
+                  router.push("/salle-attente");
+                }}
+                className="btn-header hidden sm:inline-flex"
+                title="Envoyer en salle d'attente"
+                style={{
+                  background: "#fef9e7",
+                  color: "#92400e",
+                  borderColor: "#fde68a",
+                }}
+              >
+                🚪 Attente
+              </button>
+            </div>
           </div>
         </div>
 
@@ -509,6 +533,7 @@ export function AppChrome({
         open={newPatientOpen}
         onClose={() => setNewPatientOpen(false)}
       />
+      <BackupModal open={backupOpen} onClose={() => setBackupOpen(false)} />
     </div>
   );
 }
