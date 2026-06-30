@@ -9,7 +9,7 @@ import { EMPTY_PATIENTS_MAP } from "@/lib/empty-stable";
 import { addPatientToWaitingQueue } from "@/lib/waiting-room/register-arrival";
 import { todayIso } from "@/lib/waiting-room/utils";
 import type { ConsultationEntry, PatientSnapshot } from "@/types/domain";
-import { computeCompleteness } from "@/lib/patient-utils";
+import { computeCompleteness, patientAgeYears } from "@/lib/patient-utils";
 import {
   buildPatientSubtitle,
   dossierDisplayName,
@@ -27,7 +27,7 @@ import { AnamneseTab } from "@/components/dossier/anamnese-tab";
 import { PmaClient } from "@/components/pma/pma-client";
 import { ProtocolesClient } from "@/components/protocoles/protocoles-client";
 import { RappelsClient } from "@/components/rappels/rappels-client";
-import { PartogramClient } from "@/components/partogram/partogram-client";
+import { PartogramPanel } from "@/components/partogram/partogram-panel";
 import { DocumentsClient } from "@/components/documents/documents-client";
 import { CertificatsClient } from "@/components/certificats/certificats-client";
 import { DossierScoresTab } from "@/components/scores/dossier-scores-tab";
@@ -312,7 +312,16 @@ export function DossierFormView({
             )}
             {tab === "protocoles" && <ProtocolesClient />}
             {tab === "rappels" && <RappelsClient />}
-            {tab === "partogramme" && <PartogramClient />}
+            {tab === "partogramme" && (
+              <PartogramPanel
+                embedded
+                patientId={draft.id}
+                initialName={dossierDisplayName(draft)}
+                initialTerme={draft.o_terme ?? ""}
+                initialAge={patientAgeYears(draft.ddn)?.toString() ?? ""}
+                initialParite={draft.o_par ?? "0"}
+              />
+            )}
           </div>
         </main>
       </div>

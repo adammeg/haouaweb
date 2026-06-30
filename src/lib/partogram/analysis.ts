@@ -1,7 +1,10 @@
 import type { PartogramSession } from "@/types/modules";
+import {
+  PARTO_ACTION_OFFSET_H,
+  PARTO_ALERT_OFFSET_H,
+} from "./constants";
 
-export const PARTO_ALERT_HOURS = 2;
-export const PARTO_ACTION_HOURS = 4;
+export { PARTO_ALERT_OFFSET_H, PARTO_ACTION_OFFSET_H };
 
 export type PartogramAnalysis = {
   durationStr: string;
@@ -81,8 +84,8 @@ export function analyzePartogram(session: PartogramSession): PartogramAnalysis {
   const elapsed =
     (new Date(last.recordedAt).getTime() - new Date(first.recordedAt).getTime()) /
     3600000;
-  const expAlerte = initDil + Math.max(0, elapsed - PARTO_ALERT_HOURS);
-  const expAction = initDil + Math.max(0, elapsed - PARTO_ACTION_HOURS);
+  const expAlerte = initDil + Math.max(0, elapsed - PARTO_ALERT_OFFSET_H);
+  const expAction = initDil + Math.max(0, elapsed - PARTO_ACTION_OFFSET_H);
 
   let decision = "Travail en progression normale.";
   let decisionColor = "#16a34a";
@@ -90,7 +93,7 @@ export function analyzePartogram(session: PartogramSession): PartogramAnalysis {
     last.dilatationCm != null &&
     last.dilatationCm < expAction &&
     last.dilatationCm < 10 &&
-    elapsed > PARTO_ACTION_HOURS
+    elapsed > PARTO_ACTION_OFFSET_H
   ) {
     decision = "LIGNE ACTION — Decision chirurgicale a envisager";
     decisionColor = "#dc2626";
@@ -98,7 +101,7 @@ export function analyzePartogram(session: PartogramSession): PartogramAnalysis {
     last.dilatationCm != null &&
     last.dilatationCm < expAlerte &&
     last.dilatationCm < 10 &&
-    elapsed > PARTO_ALERT_HOURS
+    elapsed > PARTO_ALERT_OFFSET_H
   ) {
     decision = "LIGNE ALERTE — Surveillance rapprochee";
     decisionColor = "#d97706";

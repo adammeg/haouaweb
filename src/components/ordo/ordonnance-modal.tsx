@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { nanoid } from "nanoid";
 import { ORDO_SUGGESTIONS, ORDO_TEMPLATES } from "@/data/ordo-catalog";
+import { MedicamentSearchInput } from "@/components/ordo/medicament-search-input";
 import type { OrdoLine, PatientSnapshot, Specialty } from "@/types/domain";
 import { getPatientDisplayName, patientAgeYears } from "@/lib/patient-utils";
 
@@ -42,7 +43,7 @@ export function OrdonnanceModal({
   }) => void;
 }) {
   const spec = (patient?.specialite as Specialty) || "gyn";
-  const [filter, setFilter] = useState("");
+  const [sidebarQuery, setSidebarQuery] = useState("");
   const [lines, setLines] = useState<OrdoLine[]>(() => [
     lineFromSuggestion({
       dci: "",
@@ -85,8 +86,7 @@ export function OrdonnanceModal({
     onClose();
   }
 
-  const meds = useMemo(() => {
-    const q = filter.toLowerCase();
+  const quickMeds = useMemo(() => {
     const pool = [
       ...(ORDO_SUGGESTIONS[spec] ?? []),
       ...ORDO_SUGGESTIONS.default,
@@ -97,12 +97,10 @@ export function OrdonnanceModal({
       const k = m.dci.toLowerCase();
       if (seen.has(k)) continue;
       seen.add(k);
-      if (!q || k.includes(q) || (m.cat?.toLowerCase().includes(q) ?? false)) {
-        out.push(m);
-      }
+      out.push(m);
     }
     return out;
-  }, [filter, spec]);
+  }, [spec]);
 
   const header = useMemo(() => {
     if (!patient) return "—";
@@ -197,14 +195,28 @@ export function OrdonnanceModal({
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-5 lg:flex-row">
           <div className="flex min-h-[200px] flex-1 flex-col rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4 lg:max-w-sm">
-            <input
-              className="mb-3 w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm"
-              placeholder="Filtrer médicaments…"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-[var(--muted)]">
+              Recherche VEI — 3244 médicaments
+            </p>
+            <MedicamentSearchInput
+              value={sidebarQuery}
+              onChange={setSidebarQuery}
+              placeholder="Ex. doli → Doliprane…"
+              className="mb-3"
+              onPick={(pick) => {
+                addLine({
+                  dci: pick.dci,
+                  dose: pick.dose,
+                  cat: pick.cat,
+                });
+                setSidebarQuery("");
+              }}
             />
+            <p className="mb-2 text-[10px] text-[var(--muted)]">
+              Raccourcis gynéco / obst
+            </p>
             <div className="flex-1 space-y-2 overflow-y-auto">
-              {meds.map((m) => (
+              {quickMeds.map((m) => (
                 <button
                   key={m.dci}
                   type="button"
@@ -250,11 +262,18 @@ export function OrdonnanceModal({
                   key={l.id}
                   className="grid gap-2 rounded-xl border border-[var(--border)] bg-white p-3 sm:grid-cols-2 lg:grid-cols-12"
                 >
-                  <input
-                    className="lg:col-span-4 rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs"
-                    placeholder="DCI / spécialité"
+                  <MedicamentSearchInput
+                    className="lg:col-span-4"
                     value={l.dci}
-                    onChange={(e) => updateLine(l.id, { dci: e.target.value })}
+                    onChange={(v) => updateLine(l.id, { dci: v })}
+                    onPick={(pick) =>
+                      updateLine(l.id, {
+                        dci: pick.dci,
+                        dose: pick.dose || l.dose,
+                        cat: pick.cat ?? l.cat,
+                      })
+                    }
+                    placeholder="DCI / spécialité — ex. doli"
                   />
                   <input
                     className="lg:col-span-2 rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs"

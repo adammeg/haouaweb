@@ -17,6 +17,7 @@ export interface WaitingEntry {
 }
 
 export interface PartogramPoint {
+  id?: string;
   recordedAt: string;
   hoursFromAdmission: number;
   dilatationCm?: number;
@@ -24,6 +25,8 @@ export interface PartogramPoint {
   fcf?: number;
   la?: string;
   cx?: number;
+  cxDur?: number;
+  cxInt?: 1 | 2 | 3;
   taSys?: number;
   taDia?: number;
   pulse?: number;
@@ -40,6 +43,10 @@ export interface PartogramSession {
   admissionAt: string;
   ddr?: string;
   termeSa?: string;
+  patientAge?: string;
+  parite?: string;
+  praticien?: string;
+  dossierId?: string;
   points: PartogramPoint[];
   events: { at: string; label: string }[];
   updatedAt: string;

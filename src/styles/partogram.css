@@ -1,0 +1,363 @@
+/* Partogramme OMS — HawaeMD */
+
+.parto-root {
+  --parto-teal: #007070;
+  --parto-teal-deep: #0a5c5c;
+  --parto-gold: #c9a84c;
+  --parto-blush: #f4d6da;
+}
+
+.parto-root.embedded .parto-page-header {
+  display: none;
+}
+
+.parto-page-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.parto-page-header h1 {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.parto-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.parto-patient-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-xs);
+}
+
+.parto-patient-card h2 {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1rem;
+  color: var(--parto-teal-deep);
+  margin-bottom: 0.85rem;
+}
+
+.parto-patient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.parto-field label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.parto-field input,
+.parto-field select {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  background: var(--cream);
+}
+
+.parto-dossier-id {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--parto-teal);
+  padding: 0.45rem 0.6rem;
+  background: #f0fafa;
+  border-radius: 8px;
+  border: 1px dashed var(--parto-teal);
+}
+
+.parto-alerts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.parto-alert {
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.parto-alert.red {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1.5px solid #fecaca;
+  animation: parto-pulse 1.2s ease-in-out infinite;
+}
+
+.parto-alert.orange {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1.5px solid #fde68a;
+}
+
+.parto-alert.green {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1.5px solid #bbf7d0;
+}
+
+@keyframes parto-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+.parto-layout {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .parto-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.parto-graph-panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: var(--shadow-xs);
+}
+
+.parto-info-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--parto-blush);
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+
+.parto-info-strip strong {
+  color: var(--parto-teal-deep);
+}
+
+.parto-canvas-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.parto-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.parto-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.parto-leg-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.parto-sim-running {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #ede9fe;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #5b21b6;
+}
+
+.parto-sim-running.active {
+  display: flex;
+}
+
+.parto-sim-dot {
+  width: 8px;
+  height: 8px;
+  background: #7c3aed;
+  border-radius: 50%;
+  animation: parto-pulse 0.8s infinite;
+}
+
+.parto-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: var(--shadow-xs);
+}
+
+.parto-card h3 {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.9rem;
+  color: var(--parto-teal-deep);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--parto-blush);
+}
+
+.parto-entry-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.parto-entry-form .span2 {
+  grid-column: span 2;
+}
+
+.parto-sim-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.parto-table-wrap {
+  overflow-x: auto;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.parto-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.7rem;
+}
+
+.parto-table th {
+  background: var(--parto-teal-deep);
+  color: #fff;
+  padding: 0.45rem 0.35rem;
+  text-align: left;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.parto-table td {
+  padding: 0.4rem 0.35rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.parto-table tr:hover td {
+  background: #f9fafb;
+}
+
+.parto-btn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  background: #fff;
+  color: var(--ink);
+  transition: all 0.12s;
+}
+
+.parto-btn:hover {
+  border-color: var(--parto-teal);
+  color: var(--parto-teal);
+  background: #f0fafa;
+}
+
+.parto-btn.primary {
+  background: var(--parto-teal);
+  color: #fff;
+  border-color: var(--parto-teal-deep);
+}
+
+.parto-btn.primary:hover {
+  opacity: 0.92;
+}
+
+.parto-btn.gold {
+  background: var(--parto-gold);
+  color: #1a1a1a;
+  border-color: #b8963e;
+}
+
+.parto-btn.sim {
+  background: #ede9fe;
+  color: #5b21b6;
+  border-color: #c4b5fd;
+}
+
+.parto-btn.danger {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.parto-summary {
+  width: 100%;
+  min-height: 120px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.7rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+  background: #f9fafb;
+}
+
+.parto-sessions {
+  margin-top: 1rem;
+}
+
+.parto-sessions li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+
+@media print {
+  .parto-no-print {
+    display: none !important;
+  }
+  .parto-layout {
+    grid-template-columns: 1fr;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+}

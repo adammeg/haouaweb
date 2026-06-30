@@ -1,4 +1,7 @@
-/** Courbes de croissance fœtale simplifiées (Hadlock / Salomon, 18–40 SA). */
+/**
+ * Courbes de croissance fœtale — façade de compatibilité.
+ * Les nouvelles tables INTERGROWTH-21st sont dans intergrowth-data.ts.
+ */
 
 import {
   interpSalomon,
@@ -29,9 +32,9 @@ export const CURVE_META: Record<
   SalomonKey,
   { label: string; unit: string; color: string }
 > = {
-  bip: { label: "BIP", unit: "mm", color: "#0a5c5c" },
-  pc: { label: "PC / HC", unit: "mm", color: "#7c3aed" },
-  ca: { label: "CA / AC", unit: "mm", color: "#b45309" },
-  lf: { label: "LF / FL", unit: "mm", color: "#be185d" },
-  pfe: { label: "PFE / EFW", unit: "g", color: "#0369a1" },
+  bip: { label: "BIP", unit: "mm", color: "#007070" },
+  pc: { label: "PC / HC", unit: "mm", color: "#007070" },
+  ca: { label: "PA / AC", unit: "mm", color: "#0a5c5c" },
+  lf: { label: "LF / FL", unit: "mm", color: "#4a9090" },
+  pfe: { label: "PFE / EFW", unit: "g", color: "#c9a84c" },
 };

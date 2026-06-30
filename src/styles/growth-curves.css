@@ -1,0 +1,335 @@
+/* Courbes de croissance fœtale — HawaeMD */
+
+.growth-root {
+  --gc-teal: #007070;
+  --gc-teal-deep: #0a5c5c;
+  --gc-gold: #c9a84c;
+  --gc-blush: #f4d6da;
+}
+
+.growth-root.embedded .growth-page-header {
+  display: none;
+}
+
+.growth-page-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.growth-page-header h1 {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.growth-page-header p {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.growth-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.growth-patient-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-xs);
+}
+
+.growth-patient-card h2 {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1rem;
+  color: var(--gc-teal-deep);
+  margin-bottom: 0.85rem;
+}
+
+.growth-patient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.growth-field label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.growth-field input,
+.growth-field select {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  background: var(--cream);
+}
+
+.growth-dossier-id {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gc-teal);
+}
+
+.growth-entry-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.growth-entry-card h2 {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1rem;
+  color: var(--gc-teal-deep);
+  margin-bottom: 0.85rem;
+}
+
+.growth-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.growth-entry-grid .growth-field-wide {
+  grid-column: span 2;
+}
+
+.growth-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+
+.growth-btn:hover {
+  opacity: 0.9;
+}
+
+.growth-btn-primary {
+  background: var(--gc-teal);
+  color: #fff;
+}
+
+.growth-btn-secondary {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  color: var(--ink);
+}
+
+.growth-btn-gold {
+  background: var(--gc-gold);
+  color: #fff;
+}
+
+.growth-pfe-preview {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gc-teal-deep);
+  padding: 0.4rem 0;
+}
+
+.growth-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.growth-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.growth-table th {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  background: var(--gc-teal-deep);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.growth-table td {
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.growth-table tr:hover td {
+  background: #f8f8f6;
+}
+
+.growth-table .pct-badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.growth-dashboard {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .growth-dashboard {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .growth-dashboard {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.growth-dash-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.growth-dash-card .dash-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+.growth-dash-card .dash-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0.25rem 0;
+}
+
+.growth-dash-card .dash-pct {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.growth-synthesis {
+  background: linear-gradient(135deg, #f0fafa 0%, #fff 100%);
+  border: 1px solid #b8e0e0;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.88rem;
+  color: var(--gc-teal-deep);
+  line-height: 1.5;
+}
+
+.growth-synthesis strong {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+.growth-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .growth-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.growth-chart-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xs);
+}
+
+.growth-chart-card canvas {
+  display: block;
+  width: 100%;
+}
+
+.growth-live-pct {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.growth-live-pct span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: #f3f4f6;
+}
+
+/* Impression A4 portrait */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .growth-root,
+  .growth-root * {
+    visibility: visible;
+  }
+
+  .growth-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #fff;
+  }
+
+  .growth-no-print {
+    display: none !important;
+  }
+
+  .growth-charts-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .growth-chart-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .growth-page-header {
+    border: none;
+    padding-bottom: 0.5rem;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+}
