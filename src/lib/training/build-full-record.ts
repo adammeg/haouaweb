@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import type { ConsultationEntry, PatientSnapshot } from "@/types/domain";
 import type { DoctorClinicalBundle } from "@/types/clinical-bundle";
 import type { ModulesWorkspace } from "@/types/modules";
+import { EMPTY_MODULES } from "@/types/modules";
 import type { IvfPatientRecord } from "@/lib/db/ivf-repository";
 import type { FullPatientTrainingRecord } from "@/types/training";
 
@@ -123,13 +124,5 @@ export function mergeModulesForUser(
         : fromLegacy.ivfProfiles,
     };
   }
-  return fromBundle ?? fromLegacy ?? {
-    waitingQueue: [],
-    partograms: [],
-    certificates: [],
-    documents: [],
-    ivfProfiles: [],
-    teachMode: false,
-    lastBackupAt: null,
-  };
+  return fromBundle ?? fromLegacy ?? { ...EMPTY_MODULES };
 }

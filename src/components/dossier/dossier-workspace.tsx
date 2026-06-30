@@ -9,7 +9,9 @@ import {
   EMPTY_HISTORY_MAP,
   EMPTY_PATIENTS_MAP,
 } from "@/lib/empty-stable";
+import { CrOpModal } from "@/components/dossier/cr-op-modal";
 import { OrdonnanceModal } from "@/components/ordo/ordonnance-modal";
+import { practitionerDisplayName, usePractitionerStore } from "@/stores/practitioner-store";
 import {
   DossierFormView,
   type DossierTabId,
@@ -21,6 +23,7 @@ export function DossierWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [ordoOpen, setOrdoOpen] = useState(false);
+  const [crOpOpen, setCrOpOpen] = useState(false);
   const [tab, setTab] = useState<DossierTabId>("anamnese");
   const [listQuery, setListQuery] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
@@ -51,6 +54,7 @@ export function DossierWorkspace() {
   const loadConsultation = useHawaeStore((s) => s.loadConsultation);
   const deleteConsultation = useHawaeStore((s) => s.deleteConsultation);
   const setSidebarSpecFilter = useHawaeStore((s) => s.setSidebarSpecFilter);
+  const practitioner = usePractitionerStore((s) => s.profile);
 
   const handledQueryRef = useRef<string | null>(null);
 
@@ -160,6 +164,8 @@ export function DossierWorkspace() {
           onLoadConsultation={loadConsultation}
           onDeleteConsultation={deleteConsultation}
           saveStatus={saveStatus}
+          onOpenOrdonnance={() => setOrdoOpen(true)}
+          onOpenCrOp={() => setCrOpOpen(true)}
         />
       ) : null}
 
@@ -180,6 +186,18 @@ export function DossierWorkspace() {
           });
         }}
       />
+
+      {draft ? (
+        <CrOpModal
+          open={crOpOpen}
+          onClose={() => setCrOpOpen(false)}
+          draft={draft}
+          operateur={practitionerDisplayName(practitioner)}
+          etablissement={
+            practitioner.etablissement || practitioner.adresse || "Cabinet"
+          }
+        />
+      ) : null}
     </>
   );
 }

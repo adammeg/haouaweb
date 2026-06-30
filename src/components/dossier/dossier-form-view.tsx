@@ -19,7 +19,6 @@ import { DossierAlertsBar } from "@/components/dossier/dossier-alerts-bar";
 import { BioCurvesPanel } from "@/components/dossier/bio-curves-panel";
 import { DossierChecklistTab } from "@/components/dossier/dossier-checklist-tab";
 import { OcrCameraModal } from "@/components/echo/ocr-camera-modal";
-import { CrOpModal } from "@/components/dossier/cr-op-modal";
 import { HawaeUnifiedPanel } from "@/components/ia/hawae-unified-panel";
 import { ExamenCliniqueTab } from "@/components/dossier/examen-clinique-tab";
 import { ExamensBilansTab } from "@/components/dossier/examens-bilans-tab";
@@ -28,8 +27,8 @@ import { PmaClient } from "@/components/pma/pma-client";
 import { ProtocolesClient } from "@/components/protocoles/protocoles-client";
 import { RappelsClient } from "@/components/rappels/rappels-client";
 import { PartogramPanel } from "@/components/partogram/partogram-panel";
+import { DocumentsHub } from "@/components/documents/documents-hub";
 import { DocumentsClient } from "@/components/documents/documents-client";
-import { CertificatsClient } from "@/components/certificats/certificats-client";
 import { DossierScoresTab } from "@/components/scores/dossier-scores-tab";
 import { DossierHistoriqueTab } from "@/components/dossier/dossier-tab-panels";
 
@@ -60,6 +59,8 @@ type Props = {
   onLoadConsultation: (id: string) => void;
   onDeleteConsultation: (id: string) => void;
   saveStatus: "saved" | "saving" | "idle";
+  onOpenOrdonnance?: () => void;
+  onOpenCrOp?: () => void;
 };
 
 const BASE_TABS: { id: DossierTabId; label: string }[] = [
@@ -88,10 +89,11 @@ export function DossierFormView({
   onLoadConsultation,
   onDeleteConsultation,
   saveStatus,
+  onOpenOrdonnance,
+  onOpenCrOp,
 }: Props) {
   const router = useRouter();
   const [ocrOpen, setOcrOpen] = useState(false);
-  const [crOpOpen, setCrOpOpen] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
   const [bridgeOnline, setBridgeOnline] = useState(false);
   const [wrToast, setWrToast] = useState<string | null>(null);
@@ -305,10 +307,17 @@ export function DossierFormView({
               </div>
             )}
             {tab === "docs" && (
-              <DocumentsClient embedded patientId={draft.id} />
+              <div className="space-y-8">
+                <DocumentsHub
+                  draft={draft}
+                  onOpenOrdonnance={onOpenOrdonnance}
+                  onOpenCrOp={onOpenCrOp}
+                />
+                <DocumentsClient embedded patientId={draft.id} />
+              </div>
             )}
             {tab === "certificat" && (
-              <CertificatsClient embedded draft={draft} />
+              <DocumentsHub draft={draft} />
             )}
             {tab === "protocoles" && <ProtocolesClient />}
             {tab === "rappels" && <RappelsClient />}
@@ -335,11 +344,6 @@ export function DossierFormView({
         }}
       />
 
-      <CrOpModal
-        open={crOpOpen}
-        onClose={() => setCrOpOpen(false)}
-        draft={draft}
-      />
     </>
   );
 }

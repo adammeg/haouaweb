@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { AiTrainingConsentPanel } from "@/components/settings/ai-training-consent-panel";
 import { PreferencesPanel } from "@/components/settings/preferences-panel";
+import { PractitionerPanel } from "@/components/settings/practitioner-panel";
 
 export const metadata = {
   title: "Paramètres — HawaeMD",
@@ -67,6 +68,8 @@ export default async function SettingsPage() {
         </section>
 
         <PreferencesPanel />
+
+        <PractitionerPanel />
 
         <section className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]">
           <h2 className="font-display text-base font-bold text-[var(--ink)]">

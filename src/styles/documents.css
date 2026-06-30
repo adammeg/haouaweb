@@ -1,0 +1,195 @@
+/* Module documents HawaeMD — impression A4 */
+
+.doc-editor-root {
+  --doc-teal: #0a5c5c;
+}
+
+.doc-editor-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .doc-editor-layout {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.doc-form-panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.doc-preview-panel {
+  background: #e8ecea;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  position: sticky;
+  top: 1rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.doc-preview-paper {
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  margin: 0 auto;
+  min-height: 400px;
+}
+
+.doc-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.65rem;
+}
+
+.doc-field-full {
+  grid-column: 1 / -1;
+}
+
+.doc-field label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+
+.doc-field input,
+.doc-field select,
+.doc-field textarea {
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  background: var(--cream);
+}
+
+.doc-section-title {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--doc-teal);
+  margin: 1rem 0 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.doc-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.65rem;
+}
+
+.doc-hub-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+
+.doc-hub-btn:hover {
+  border-color: var(--teal);
+  box-shadow: var(--shadow-xs);
+}
+
+.doc-hub-btn .icon {
+  font-size: 1.4rem;
+}
+
+.doc-hub-btn .label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.doc-btn {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.doc-btn-primary {
+  background: var(--teal);
+  color: #fff;
+}
+
+.doc-btn-secondary {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  color: var(--ink);
+}
+
+.doc-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.doc-recent-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.75rem;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .doc-print-area,
+  .doc-print-area * {
+    visibility: visible;
+  }
+
+  .doc-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #fff;
+  }
+
+  .doc-no-print {
+    display: none !important;
+  }
+
+  .hawae-doc-page {
+    page-break-after: always;
+  }
+
+  @page {
+    margin: 12mm;
+  }
+}

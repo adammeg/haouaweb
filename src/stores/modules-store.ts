@@ -6,7 +6,9 @@ import { useHawaeStore } from "@/stores/hawae-store";
 import type {
   CertificateDraft,
   CertificateType,
+  DocumentFavorite,
   DocumentItem,
+  GeneratedDocument,
   IvfProfile,
   ModulesWorkspace,
   PartogramSession,
@@ -14,6 +16,7 @@ import type {
   WaitingStatus,
 } from "@/types/modules";
 import { EMPTY_MODULES } from "@/types/modules";
+import { nextDocumentNumber } from "@/lib/documents/numbering";
 
 type ByUser<T> = Record<string, T>;
 
@@ -41,6 +44,12 @@ export interface ModulesState {
 
   saveIvfProfile: (profile: IvfProfile) => void;
   deleteIvfProfile: (id: string) => void;
+
+  saveGeneratedDocument: (doc: GeneratedDocument) => void;
+  deleteGeneratedDocument: (id: string) => void;
+  saveDocumentFavorite: (fav: DocumentFavorite) => void;
+  deleteDocumentFavorite: (id: string) => void;
+  nextDocNumber: () => string;
 
   markBackup: () => void;
   importWorkspace: (data: ModulesWorkspace) => void;
@@ -169,6 +178,56 @@ export const useModulesStore = create<ModulesState>()(
           })),
         ),
 
+      saveGeneratedDocument: (doc) =>
+        set((s) =>
+          patchUser(s, uid(), (w) => {
+            const rest = (w.generatedDocuments ?? []).filter((d) => d.id !== doc.id);
+            const list = [doc, ...rest].slice(0, 10);
+            return { ...w, generatedDocuments: list };
+          }),
+        ),
+
+      deleteGeneratedDocument: (id) =>
+        set((s) =>
+          patchUser(s, uid(), (w) => ({
+            ...w,
+            generatedDocuments: (w.generatedDocuments ?? []).filter((d) => d.id !== id),
+          })),
+        ),
+
+      saveDocumentFavorite: (fav) =>
+        set((s) =>
+          patchUser(s, uid(), (w) => {
+            const rest = (w.documentFavorites ?? []).filter((f) => f.id !== fav.id);
+            return { ...w, documentFavorites: [fav, ...rest].slice(0, 20) };
+          }),
+        ),
+
+      deleteDocumentFavorite: (id) =>
+        set((s) =>
+          patchUser(s, uid(), (w) => ({
+            ...w,
+            documentFavorites: (w.documentFavorites ?? []).filter((f) => f.id !== id),
+          })),
+        ),
+
+      nextDocNumber: () => {
+        const state = useModulesStore.getState();
+        const w = state.workspaceByUser[uid()] ?? EMPTY_MODULES;
+        const next = nextDocumentNumber(
+          w.docCounterYear ?? new Date().getFullYear(),
+          w.docCounterSeq ?? 0,
+        );
+        set((s) =>
+          patchUser(s, uid(), (ws) => ({
+            ...ws,
+            docCounterYear: next.year,
+            docCounterSeq: next.seq,
+          })),
+        );
+        return next.number;
+      },
+
       markBackup: () =>
         set((s) =>
           patchUser(s, uid(), (w) => ({
@@ -196,7 +255,7 @@ export const useModulesStore = create<ModulesState>()(
 export function useModulesWorkspace(): ModulesWorkspace {
   const userId = useHawaeStore((s) => s.currentUserId) ?? "user_default";
   const ws = useModulesStore((s) => s.workspaceByUser[userId]);
-  return ws ?? EMPTY_MODULES;
+  return { ...EMPTY_MODULES, ...(ws ?? {}) };
 }
 
 export function certTypeLabel(t: CertificateType): string {

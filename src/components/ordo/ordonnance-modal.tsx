@@ -6,6 +6,10 @@ import { ORDO_SUGGESTIONS, ORDO_TEMPLATES } from "@/data/ordo-catalog";
 import { MedicamentSearchInput } from "@/components/ordo/medicament-search-input";
 import type { OrdoLine, PatientSnapshot, Specialty } from "@/types/domain";
 import { getPatientDisplayName, patientAgeYears } from "@/lib/patient-utils";
+import {
+  practitionerHeaderInfo,
+  usePractitionerStore,
+} from "@/stores/practitioner-store";
 
 function lineFromSuggestion(s: {
   dci: string;
@@ -43,6 +47,7 @@ export function OrdonnanceModal({
   }) => void;
 }) {
   const spec = (patient?.specialite as Specialty) || "gyn";
+  const practitioner = usePractitionerStore((s) => s.profile);
   const [sidebarQuery, setSidebarQuery] = useState("");
   const [lines, setLines] = useState<OrdoLine[]>(() => [
     lineFromSuggestion({
@@ -147,14 +152,22 @@ export function OrdonnanceModal({
           `<tr><td>${escapeHtml(l.dci)}</td><td>${escapeHtml(l.dose)}</td><td>${escapeHtml(l.posologie)}</td><td>${escapeHtml(l.duree)}</td></tr>`,
       )
       .join("");
+    const dr = practitionerHeaderInfo(practitioner);
+    const drBlock = `<div style="border-bottom:2px solid #0a5c5c;padding-bottom:12px;margin-bottom:16px;font-size:11px">
+      <div style="font-family:Georgia,serif;font-size:15px;font-weight:700;color:#0a5c5c">${escapeHtml(dr.displayName)}</div>
+      <div>${escapeHtml(dr.specialite)}</div>
+      <div>${escapeHtml(dr.cabinet)}${dr.ville ? " — " + escapeHtml(dr.ville) : ""}${dr.telephone ? " — Tél. " + escapeHtml(dr.telephone) : ""}</div>
+    </div>`;
     w.document.write(`<!DOCTYPE html><html><head><title>Ordonnance</title>
       <style>
-        body{font-family:system-ui,sans-serif;padding:24px;max-width:720px;margin:0 auto;color:#1a2e2e}
-        h1{font-size:18px} table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}
+        body{font-family:Georgia,serif;padding:24px;max-width:720px;margin:0 auto;color:#1a2e2e;background:#fafaf8}
+        h1{font-size:16px;color:#0a5c5c;text-align:center;text-decoration:underline}
+        table{width:100%;border-collapse:collapse;margin-top:16px;font-size:11px;font-family:Inter,system-ui,sans-serif}
         th,td{border:1px solid #d4e8e8;padding:8px;text-align:left}
-        th{background:#e8f5f5}
+        th{background:#0a5c5c;color:#fff}
         .meta{font-size:11px;color:#3d5c5c;margin-top:8px}
       </style></head><body>
+      ${drBlock}
       <h1>Ordonnance</h1>
       <div class="meta">${escapeHtml(header)}</div>
       <p class="meta">Validité : ${escapeHtml(validite)}</p>

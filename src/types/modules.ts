@@ -1,5 +1,12 @@
 /** État des modules hors dossier patient (partogramme, file, PMA…). */
 
+import type {
+  DocumentFavorite,
+  GeneratedDocument,
+} from "@/types/documents";
+
+export type { DocumentFavorite, GeneratedDocument };
+
 export type WaitingStatus =
   | "waiting"
   | "in_consult"
@@ -106,6 +113,11 @@ export interface ModulesWorkspace {
   ivfProfiles: IvfProfile[];
   teachMode: boolean;
   lastBackupAt: string | null;
+  /** 10 derniers documents générés */
+  generatedDocuments: GeneratedDocument[];
+  documentFavorites: DocumentFavorite[];
+  docCounterYear: number;
+  docCounterSeq: number;
 }
 
 export const EMPTY_MODULES: ModulesWorkspace = {
@@ -116,4 +128,8 @@ export const EMPTY_MODULES: ModulesWorkspace = {
   ivfProfiles: [],
   teachMode: false,
   lastBackupAt: null,
+  generatedDocuments: [],
+  documentFavorites: [],
+  docCounterYear: new Date().getFullYear(),
+  docCounterSeq: 0,
 };
