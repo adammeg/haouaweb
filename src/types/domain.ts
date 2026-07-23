@@ -330,6 +330,8 @@ export interface PatientSnapshot {
   bio_imagerie?: string;
   lastSaved?: string;
   updatedAt?: string;
+  /** Date de création du dossier, utilisée notamment pour les statistiques. */
+  createdAt?: string;
 
   /** Ordonnance liée au dossier (persistée localement / synchro workspace). */
   ordonnanceLines?: OrdoLine[];

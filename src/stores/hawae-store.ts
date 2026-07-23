@@ -206,11 +206,13 @@ export const useHawaeStore = create<HawaeState>()(
         if (!uid) return "";
         const id = newPatientId();
         const patients = { ...(get().patientsByUser[uid] ?? {}) };
+        const now = new Date().toISOString();
         const snap: PatientSnapshot = {
           ...emptyDraft(id),
           ...fields,
           id,
-          updatedAt: new Date().toISOString(),
+          createdAt: now,
+          updatedAt: now,
         };
         patients[id] = snap;
         set({

@@ -7,10 +7,38 @@ import type { ProtocolItem } from "@/lib/protocols/catalog";
 import type { ManagedProtocol } from "@/lib/db/admin-protocols-repository";
 
 type ClinicRow = { id: string; name: string; slug: string; createdAt: string };
-type DoctorRow = { id: string; email: string; name: string; role?: "doctor"|"clinic_admin"|"app_admin"; clinicId?: string|null; active?: boolean; createdAt: string };
-type Tab = "overview" | "doctors" | "clinics" | "protocols" | "scores" | "ai";
+type DoctorRow = { id: string; email: string; name: string; role?: "doctor"|"secretary"|"clinic_admin"|"app_admin"; clinicId?: string|null; active?: boolean; createdAt: string };
+type DoctorPatientMetric = { doctorId: string; total: number; period: number };
+type Tab = "overview" | "doctors" | "patients" | "clinics" | "protocols" | "scores" | "ai";
 
 const SCORE_NAMES = ["Bishop","Manning","Apgar","MFMU AVAC","Flamm & Geiger","HPP","rASRM","Ménopause","FIGO Col","FIGO Endomètre","FIGO Ovaire","Cancer du sein","RCIU / Hadlock","IOTA","ROMA","ADNEX","LUS","CTG","RPM / HRP / GEU"];
+
+function PatientCountsView({ doctors, counts, clinics, periodDays, onPeriodChange }: {
+  doctors: DoctorRow[]; counts: Map<string, DoctorPatientMetric>; clinics: Map<string, string>;
+  periodDays: string; onPeriodChange: (value: string) => void;
+}) {
+  const rows = doctors.filter((doctor) => doctor.role === "doctor" || doctor.role === "clinic_admin" || !doctor.role);
+  const label = periodDays === "all" ? "Toute la période" : `${periodDays} derniers jours`;
+  const total = rows.reduce((sum, doctor) => sum + (counts.get(doctor.id)?.total ?? 0), 0);
+  const period = rows.reduce((sum, doctor) => sum + (counts.get(doctor.id)?.period ?? 0), 0);
+  return <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm">
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div><h2 className="font-display text-lg font-bold">Patientes par médecin</h2><p className="mt-1 text-xs text-[var(--muted)]">Dossiers globaux et nouvelles patientes sur la période sélectionnée. Les anciens dossiers utilisent leur première date disponible.</p></div>
+      <label className="text-xs font-semibold">Période <select value={periodDays} onChange={(event)=>onPeriodChange(event.target.value)} className="ml-2 rounded-xl border px-3 py-2 text-sm">
+        <option value="7">7 derniers jours</option><option value="30">30 derniers jours</option><option value="90">90 derniers jours</option><option value="365">12 derniers mois</option><option value="all">Toute la période</option>
+      </select></label>
+    </div>
+    <div className="mt-5 grid gap-3 sm:grid-cols-3">
+      <div className="rounded-xl bg-[var(--teal-pale)] p-4"><b className="text-2xl text-[var(--teal)]">{total}</b><small className="block">Patientes globales</small></div>
+      <div className="rounded-xl bg-[var(--blush-pale)] p-4"><b className="text-2xl text-[var(--pink-deep)]">{period}</b><small className="block">{label}</small></div>
+      <div className="rounded-xl bg-[var(--gold-surface)] p-4"><b className="text-2xl text-[var(--gold-dark)]">{rows.length}</b><small className="block">Médecins suivis</small></div>
+    </div>
+    <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[680px] text-left text-xs">
+      <thead className="border-b text-[var(--muted)]"><tr><th className="p-3">Médecin</th><th>Structure</th><th className="text-center">Total global</th><th className="text-center">{label}</th><th className="text-center">Part période</th></tr></thead>
+      <tbody>{rows.map((doctor)=>{const metric=counts.get(doctor.id)??{total:0,period:0};const share=metric.total?Math.round(metric.period/metric.total*100):0;return <tr key={doctor.id} className="border-b border-[var(--border)]"><td className="p-3"><b>{doctor.name}</b><small className="block text-[var(--muted)]">{doctor.email}</small></td><td>{doctor.clinicId?clinics.get(doctor.clinicId)??doctor.clinicId:"Indépendant"}</td><td className="text-center text-base font-bold text-[var(--teal)]">{metric.total}</td><td className="text-center text-base font-bold text-[var(--pink-deep)]">{metric.period}</td><td className="text-center"><span className="rounded-full bg-[var(--cream)] px-2 py-1 font-bold">{share}%</span></td></tr>;})}</tbody>
+    </table></div>
+  </section>;
+}
 
 export function AdminDashboard({ adminName }: { adminName: string }) {
   const [tab, setTab] = useState<Tab>("overview");
@@ -27,21 +55,24 @@ export function AdminDashboard({ adminName }: { adminName: string }) {
   const [search, setSearch] = useState("");
   const [protocolForm, setProtocolForm] = useState({ title:"", category:"obst" as ProtocolItem["category"], summary:"", steps:"", references:"" });
   const [trainingStats, setTrainingStats] = useState<{totalSamples:number;totalDoctors:number;lastIngestedAt:string|null}|null>(null);
+  const [patientMetrics, setPatientMetrics] = useState<DoctorPatientMetric[]>([]);
+  const [periodDays, setPeriodDays] = useState("30");
 
   const load = useCallback(async () => {
     setLoading(true); setErr(null);
     try {
-      const [overviewRes, protocolRes, trainingRes] = await Promise.all([fetch("/api/admin/overview"), fetch("/api/admin/protocols"), fetch("/api/admin/training/stats")]);
+      const [overviewRes, protocolRes, trainingRes] = await Promise.all([fetch(`/api/admin/overview?days=${periodDays}`), fetch("/api/admin/protocols"), fetch("/api/admin/training/stats")]);
       const overview = await overviewRes.json(); if (!overviewRes.ok) throw new Error(overview.error || "overview_failed");
-      setClinics(overview.clinics ?? []); setDoctors(overview.doctors ?? []); setMetrics(overview.metrics ?? null);
+      setClinics(overview.clinics ?? []); setDoctors(overview.doctors ?? []); setMetrics(overview.metrics ?? null); setPatientMetrics(overview.patientMetrics ?? []);
       if (protocolRes.ok) { const data = await protocolRes.json(); setBuiltInProtocols(data.builtIn ?? []); setManagedProtocols(data.managed ?? []); }
       if (trainingRes.ok) { const data = await trainingRes.json(); setTrainingStats(data.stats ?? null); }
     } catch (e) { setErr(e instanceof Error ? e.message : "Erreur de chargement"); }
     finally { setLoading(false); }
-  }, []);
+  }, [periodDays]);
   useEffect(() => { void load(); }, [load]);
 
   const clinicMap = useMemo(() => new Map(clinics.map((c) => [c.id,c.name])), [clinics]);
+  const patientMetricMap = useMemo(() => new Map(patientMetrics.map((row) => [row.doctorId, row])), [patientMetrics]);
   const filteredDoctors = doctors.filter((d) => `${d.name} ${d.email} ${clinicMap.get(d.clinicId ?? "") ?? ""}`.toLowerCase().includes(search.toLowerCase()));
   const notify = (text:string) => { setMessage(text); window.setTimeout(() => setMessage(null), 3500); };
 
@@ -64,7 +95,8 @@ export function AdminDashboard({ adminName }: { adminName: string }) {
       <div className="mt-4 flex gap-2 sm:mt-0"><button onClick={()=>void load()} className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold">Actualiser</button><Link href="/" className="rounded-xl bg-[var(--gold)] px-4 py-2 text-xs font-bold text-[var(--teal-deep)]">Accueil</Link></div>
     </header>
 
-    <nav className="flex gap-2 overflow-x-auto rounded-xl border border-[var(--border)] bg-white p-2" aria-label="Sections administration">{([['overview','Vue globale'],['doctors','Médecins'],['clinics','Cliniques'],['protocols','Protocoles'],['scores','Scores'],['ai','IA & données']] as [Tab,string][]).map(([id,label])=><button key={id} onClick={()=>setTab(id)} className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-bold ${tab===id?'bg-[var(--teal)] text-white':'text-[var(--ink-mid)] hover:bg-[var(--teal-pale)]'}`}>{label}</button>)}</nav>
+    <nav className="flex gap-2 overflow-x-auto rounded-xl border border-[var(--border)] bg-white p-2" aria-label="Sections administration">{([['overview','Vue globale'],['doctors','Médecins'],['patients','Patientes / médecin'],['clinics','Cliniques'],['protocols','Protocoles'],['scores','Scores'],['ai','IA & données']] as [Tab,string][]).map(([id,label])=><button key={id} onClick={()=>setTab(id)} className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-bold ${tab===id?'bg-[var(--teal)] text-white':'text-[var(--ink-mid)] hover:bg-[var(--teal-pale)]'}`}>{label}</button>)}</nav>
+    {tab==="patients"?<PatientCountsView doctors={doctors} counts={patientMetricMap} clinics={clinicMap} periodDays={periodDays} onPeriodChange={setPeriodDays}/>:null}
     {err?<div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{err}</div>:null}{message?<div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{message}</div>:null}
 
     {tab==="overview"?<><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{cards.map(([label,value,sub])=><article key={String(label)} className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm"><div className="text-3xl font-bold text-[var(--teal)]">{String(value)}</div><h2 className="mt-1 text-sm font-bold">{String(label)}</h2><p className="text-[10px] text-[var(--muted)]">{String(sub)}</p></article>)}</div><section className="grid gap-4 lg:grid-cols-3"><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">État des comptes</h2><div className="mt-4 space-y-3 text-sm"><p className="flex justify-between">Actifs <b className="text-emerald-600">{metrics?.doctors.active??0}</b></p><p className="flex justify-between">Désactivés <b className="text-red-600">{metrics?.doctors.disabled??0}</b></p><p className="flex justify-between">Indépendants <b>{metrics?.doctors.independent??0}</b></p></div></div><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">Catalogue clinique</h2><div className="mt-4 space-y-3 text-sm"><p className="flex justify-between">Protocoles intégrés <b>{builtInProtocols.length}</b></p><p className="flex justify-between">Protocoles administrés <b>{managedProtocols.length}</b></p><p className="flex justify-between">Scores protégés <b>{SCORE_NAMES.length}</b></p></div></div><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">Stockage fonctionnel</h2><div className="mt-4 space-y-3 text-sm"><p className="flex justify-between">Profils modules <b>{metrics?.storageProfiles??0}</b></p><p className="flex justify-between">Documents <b>{metrics?.documents??0}</b></p><p className="flex justify-between">Cycles PMA <b>{metrics?.ivfRecords??0}</b></p></div></div></section></>:null}

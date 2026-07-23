@@ -4,11 +4,11 @@ import { isDoctorActive } from "@/lib/auth/require-active";
 import { createClinic, deleteEmptyClinic, listClinics } from "@/lib/db/clinics-repository";
 import { deleteDoctorAndData, listDoctorsAll, setDoctorActiveById } from "@/lib/auth/doctor-store";
 import { dbError } from "@/lib/api/error-response";
-import { getPlatformMetrics } from "@/lib/admin/platform-metrics";
+import { getDoctorPatientMetrics, getPlatformMetrics } from "@/lib/admin/platform-metrics";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   if (!(await isDoctorActive(session.sub))) {
@@ -19,8 +19,22 @@ export async function GET() {
   }
 
   try {
-    const [clinics, doctors, metrics] = await Promise.all([listClinics(), listDoctorsAll(), getPlatformMetrics()]);
-    return NextResponse.json({ clinics, doctors, metrics });
+    const rawDays = new URL(req.url).searchParams.get("days") ?? "30";
+    const days = rawDays === "all" ? null : Math.min(3650, Math.max(1, Number(rawDays) || 30));
+    const from = days === null ? null : new Date(Date.now() - days * 86_400_000);
+    const [clinics, doctors, metrics, patientMetrics] = await Promise.all([
+      listClinics(),
+      listDoctorsAll(),
+      getPlatformMetrics(),
+      getDoctorPatientMetrics(from),
+    ]);
+    return NextResponse.json({
+      clinics,
+      doctors,
+      metrics,
+      patientMetrics,
+      patientPeriod: { days, from: from?.toISOString() ?? null },
+    });
   } catch (e) {
     return dbError("admin.overview.GET", e);
   }

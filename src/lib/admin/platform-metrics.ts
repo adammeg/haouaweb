@@ -14,6 +14,42 @@ export type PlatformMetrics = {
   storageProfiles: number;
 };
 
+export type DoctorPatientMetric = {
+  doctorId: string;
+  total: number;
+  period: number;
+};
+
+export async function getDoctorPatientMetrics(
+  from: Date | null,
+): Promise<DoctorPatientMetric[]> {
+  const db = await getDb();
+  const rows = await db.collection("workspaces").find(
+    {},
+    { projection: { _id: 0, doctorId: 1, patientsByUser: 1 } },
+  ).toArray();
+
+  return rows.map((row) => {
+    let total = 0;
+    let period = 0;
+    const patientsByUser = row.patientsByUser as WorkspacePersisted["patientsByUser"] | undefined;
+    for (const patients of Object.values(patientsByUser ?? {})) {
+      for (const patient of Object.values(patients ?? {})) {
+        total++;
+        if (!from) {
+          period++;
+          continue;
+        }
+        // Legacy records predate createdAt; updatedAt is the best available fallback.
+        const rawDate = patient.createdAt ?? patient.updatedAt;
+        const date = rawDate ? new Date(rawDate) : null;
+        if (date && !Number.isNaN(date.getTime()) && date >= from) period++;
+      }
+    }
+    return { doctorId: String(row.doctorId), total, period };
+  });
+}
+
 export async function getPlatformMetrics(): Promise<PlatformMetrics> {
   const db = await getDb();
   const [doctors, clinics, workspaces, moduleRows, ivfRecords, trainingSamples] = await Promise.all([
