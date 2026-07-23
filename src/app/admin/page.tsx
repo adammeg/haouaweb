@@ -12,6 +12,5 @@ export default async function AdminPage() {
   if (!session) redirect("/admin-login");
   if (!(await isDoctorActive(session.sub))) redirect("/admin-login");
   if (session.role !== "app_admin") redirect("/dossier");
-  return <AdminDashboard adminName={session.name} />;
+  return <main className="admin-page"><AdminDashboard adminName={session.name} /></main>;
 }
-

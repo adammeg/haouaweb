@@ -9,6 +9,7 @@ import {
 
 export function DocumentsClient({
   embedded = false,
+  patientId,
 }: {
   embedded?: boolean;
   patientId?: string;
@@ -25,6 +26,7 @@ export function DocumentsClient({
     const reader = new FileReader();
     reader.onload = () => {
       addDocument({
+        patientId,
         name: file.name,
         category: "scan",
         mimeType: file.type || "application/octet-stream",
@@ -100,7 +102,9 @@ export function DocumentsClient({
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ws.documents.map((d) => (
+        {ws.documents
+          .filter((d) => !patientId || d.patientId === patientId)
+          .map((d) => (
           <figure
             key={d.id}
             className="overflow-hidden rounded-2xl border bg-white shadow-sm"
@@ -127,7 +131,7 @@ export function DocumentsClient({
               </button>
             </figcaption>
           </figure>
-        ))}
+          ))}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 /** Constantes grille OMS — parité HawaeMD v51 / spec clinique */
 export const PARTO_MAX_HOURS = 24;
-export const PARTO_ALERT_OFFSET_H = 4;
-export const PARTO_ACTION_OFFSET_H = 8;
+export const PARTO_ALERT_OFFSET_H = 2;
+export const PARTO_ACTION_OFFSET_H = 4;
 
 export type SimScenario = "normal" | "dystocie" | "precipite";
 

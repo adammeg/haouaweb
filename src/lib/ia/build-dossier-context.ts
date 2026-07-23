@@ -3,12 +3,10 @@ import {
   type PatientSnapshot,
   type Specialty,
 } from "@/types/domain";
-import { getPatientDisplayName } from "@/lib/patient-utils";
 import { buildAssistContextBlock } from "@/lib/assist/context-block";
 import type { AssistRunResult } from "@/lib/assist";
 
 const MAX_LEN = 18_000;
-const MAX_IA_HISTORY_CHARS = 9_000;
 
 function add(label: string, value: string | undefined): string | null {
   const v = (value ?? "").trim();
@@ -47,29 +45,17 @@ function formatOrdonnanceBlock(d: PatientSnapshot): string {
   return parts.join("\n");
 }
 
-function formatIaHistoryBlock(d: PatientSnapshot): string {
-  const h = d.hawaeIaHistory;
-  if (!h?.length) return "";
-  const sorted = [...h].sort((a, b) => a.at.localeCompare(b.at));
-  let block =
-    "--- Historique assistant Hawae (sessions précédentes — contexte pour la suite du suivi) ---\n";
-  for (const e of sorted) {
-    const head =
-      e.mode === "diagnostic"
-        ? `[${e.at}] Analyse automatique Hawae`
-        : `[${e.at}] Question au assistant`;
-    const q =
-      e.mode === "question" && e.question?.trim()
-        ? `\nQuestion médecin : ${e.question.trim()}`
-        : "";
-    const piece = `${head}${q}\nRéponse :\n${e.reply.trim()}\n\n`;
-    if (block.length + piece.length > MAX_IA_HISTORY_CHARS) {
-      block += "[… historique IA tronqué pour limite de contexte]\n";
-      break;
-    }
-    block += piece;
-  }
-  return block.trimEnd();
+function ageYears(ddn?: string): string | undefined {
+  if (!ddn) return undefined;
+  const birth = new Date(ddn);
+  if (!Number.isFinite(birth.getTime())) return undefined;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  if (
+    now.getMonth() < birth.getMonth() ||
+    (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())
+  ) age--;
+  return age >= 0 && age <= 120 ? String(age) : undefined;
 }
 
 /**
@@ -83,12 +69,10 @@ export function buildDossierContextForIa(d: PatientSnapshot | null): string {
     : "";
 
   const lines = [
-    "--- Identité & filière ---",
-    `Identité: ${getPatientDisplayName(d)}`,
-    add("CIN", d.cin),
+    "--- Profil clinique pseudonymisé ---",
+    `Référence dossier: ${d.id}`,
     add("Spécialité dossier", spec || undefined),
-    add("DDN", d.ddn),
-    add("Téléphone", d.tel),
+    add("Âge", ageYears(d.ddn)),
     add("Profession", d.profession),
     "--- Motif & terrain ---",
     add("Motif de consultation", d.motif),
@@ -202,9 +186,7 @@ export function buildDossierContextForIa(d: PatientSnapshot | null): string {
 
   const clinical = lines.join("\n");
   const ordo = formatOrdonnanceBlock(d);
-  const iaHist = formatIaHistoryBlock(d);
-
-  let text = [clinical, assistBlock, ordo, iaHist].filter(Boolean).join("\n\n");
+  let text = [clinical, assistBlock, ordo].filter(Boolean).join("\n\n");
   if (text.length > MAX_LEN) {
     text = text.slice(0, MAX_LEN) + "\n[… contexte global tronqué]";
   }

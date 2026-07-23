@@ -50,7 +50,7 @@ export async function GET(req: Request) {
   if (auth instanceof NextResponse) return withCors(auth, req);
 
   try {
-    const row = await getClinicalBundleByDoctorId(auth.doctor.sub);
+    const row = await getClinicalBundleByDoctorId(auth.doctor.doctorId);
     if (!row) {
       return withCors(
         NextResponse.json({ empty: true, bundle: EMPTY_CLINICAL_BUNDLE }),
@@ -87,9 +87,9 @@ export async function PUT(req: Request) {
   }
 
   try {
-    await upsertModules(auth.doctor.sub, bundle.modulesByUser);
-    const updatedAt = await upsertClinicalBundle(auth.doctor.sub, bundle);
-    void ingestAllFullTrainingData(auth.doctor.sub).catch((err) =>
+    await upsertModules(auth.doctor.doctorId, bundle.modulesByUser);
+    const updatedAt = await upsertClinicalBundle(auth.doctor.doctorId, bundle);
+    void ingestAllFullTrainingData(auth.doctor.doctorId).catch((err) =>
       console.error("[training] bundle ingest failed", err),
     );
     return withCors(NextResponse.json({ ok: true, updatedAt }), req);

@@ -1,11 +1,18 @@
-import type { Metadata } from "next";
-import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { DM_Sans, Noto_Naskh_Arabic, Poppins } from "next/font/google";
 import "./globals.css";
+import { PwaRegister } from "@/components/pwa/pwa-register";
 
-const display = Bricolage_Grotesque({
+const display = Poppins({
   subsets: ["latin"],
   variable: "--font-display",
   weight: ["400", "600", "700", "800"],
+});
+
+const arabic = Noto_Naskh_Arabic({
+  subsets: ["arabic"],
+  variable: "--font-arabic",
+  weight: ["400", "500", "600"],
 });
 
 const body = DM_Sans({
@@ -19,12 +26,15 @@ export const metadata: Metadata = {
   description:
     "Plateforme de dossiers patientes, consultations, scores cliniques et assistante Hawae pour la gynécologie, l'obstétrique et la fertilité.",
   manifest: "/manifest.webmanifest",
-  themeColor: "#007070",
   icons: {
     icon: "/logo.jpeg",
     apple: "/logo.jpeg",
   },
   appleWebApp: { capable: true, title: "HawaeMD" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0A5C5C",
 };
 
 export default function RootLayout({
@@ -42,8 +52,9 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${display.variable} ${body.variable} font-sans antialiased`}
+        className={`${display.variable} ${body.variable} ${arabic.variable} font-sans antialiased`}
       >
+        <PwaRegister />
         {children}
       </body>
     </html>

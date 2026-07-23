@@ -1,7 +1,15 @@
 import { useHawaeStore } from "@/stores/hawae-store";
 import { useModulesStore } from "@/stores/modules-store";
+import { useRdvStore, type Rdv } from "@/stores/rdv-store";
+import {
+  useRappelsStore,
+  type Rappel,
+  type RappelContact,
+} from "@/stores/rappels-store";
+import { usePractitionerStore } from "@/stores/practitioner-store";
 import type { ConsultationEntry, PatientSnapshot, UserProfile } from "@/types/domain";
 import type { ModulesWorkspace } from "@/types/modules";
+import type { PractitionerProfile } from "@/types/practitioner";
 import { EMPTY_MODULES } from "@/types/modules";
 
 type PatientsMap = Record<string, PatientSnapshot>;
@@ -16,6 +24,12 @@ export type CabinetBackup = {
   modules: ModulesWorkspace;
   users?: UserProfile[];
   currentUserId?: string | null;
+  appointments: Rdv[];
+  reminders: Rappel[];
+  reminderContacts: RappelContact[];
+  readNotifications: string[];
+  practitioner: PractitionerProfile;
+  preferences?: Record<string, unknown>;
 };
 
 export function buildCabinetBackup(doctorId?: string): CabinetBackup {
@@ -32,7 +46,23 @@ export function buildCabinetBackup(doctorId?: string): CabinetBackup {
       useModulesStore.getState().workspaceByUser[userId] ?? EMPTY_MODULES,
     users: hawae.users,
     currentUserId: hawae.currentUserId,
+    appointments: useRdvStore.getState().list,
+    reminders: useRappelsStore.getState().list,
+    reminderContacts: useRappelsStore.getState().contacts,
+    readNotifications: useRappelsStore.getState().readNotifs,
+    practitioner: usePractitionerStore.getState().profile,
+    preferences: readPreferences(),
   };
+}
+
+function readPreferences(): Record<string, unknown> | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const value = JSON.parse(localStorage.getItem("hawae-prefs-v1") || "{}");
+    return value && typeof value === "object" ? value : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function downloadCabinetBackup(doctorId?: string): number {
@@ -92,6 +122,31 @@ export function importCabinetBackup(
     useModulesStore.getState().importWorkspace(data.modules);
   }
 
-  onDone?.(`${count} dossier${count > 1 ? "s" : ""} importé${count > 1 ? "s" : ""}.`);
+  if (Array.isArray(data.appointments)) {
+    useRdvStore.setState({ list: data.appointments });
+  }
+  if (Array.isArray(data.reminders)) {
+    useRappelsStore.setState({
+      list: data.reminders,
+      contacts: Array.isArray(data.reminderContacts)
+        ? data.reminderContacts
+        : [],
+      readNotifs: Array.isArray(data.readNotifications)
+        ? data.readNotifications
+        : [],
+    });
+  }
+  if (data.practitioner && typeof data.practitioner === "object") {
+    usePractitionerStore.setState({ profile: data.practitioner });
+  }
+  if (
+    typeof window !== "undefined" &&
+    data.preferences &&
+    typeof data.preferences === "object"
+  ) {
+    localStorage.setItem("hawae-prefs-v1", JSON.stringify(data.preferences));
+  }
+
+  onDone?.(`${count} dossier${count > 1 ? "s" : ""} importé${count > 1 ? "s" : ""}. Rechargez la page pour appliquer toutes les préférences.`);
   return true;
 }

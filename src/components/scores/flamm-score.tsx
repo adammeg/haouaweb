@@ -54,14 +54,13 @@ export function FlammScore() {
           ]}
         />
       </ScoreCriterion>
-      <ScoreCriterion label="Effacement à l'admission">
+      <ScoreCriterion label="Col favorable en début de travail">
         <ScoreSelect
           value={input.col}
           onChange={(v) => patch("col", v as FlammInput["col"])}
           options={[
-            { value: 0, label: "< 25 % (0)" },
-            { value: 1, label: "25–75 % (+1)" },
-            { value: 2, label: "> 75 % (+2)" },
+            { value: 0, label: "Non / Inconnu (0)" },
+            { value: 1, label: "Oui — effacé/dilaté (+1)" },
           ]}
         />
       </ScoreCriterion>

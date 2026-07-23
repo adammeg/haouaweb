@@ -104,3 +104,12 @@ export async function exportFullTrainingRecords(limit = 2000): Promise<
     .toArray();
   return rows as unknown as Omit<FullPatientTrainingRecord, "doctorId">[];
 }
+
+/** Retrait du consentement : supprime toutes les copies d'entraînement du praticien. */
+export async function deleteFullTrainingRecordsForDoctor(
+  doctorId: string,
+): Promise<number> {
+  const db = await getDb();
+  const result = await db.collection(COL).deleteMany({ doctorId });
+  return result.deletedCount;
+}

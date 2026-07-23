@@ -54,6 +54,11 @@ export interface HawaeIaExchange {
    * permet de réafficher la dernière analyse sans rappeler l’API si le dossier n’a pas bougé.
    */
   contextKeyAtGeneration?: string;
+  /** Traçabilité de la génération, sans exposer de secret fournisseur. */
+  provider?: string;
+  model?: string;
+  promptVersion?: string;
+  structuredAnalysisJson?: string;
 }
 
 /** Snapshot dossier — champs optionnels pour évolution sans migration lourde. */

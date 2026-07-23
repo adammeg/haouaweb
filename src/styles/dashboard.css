@@ -60,6 +60,34 @@
   }
 }
 
+@media (max-width: 767px) {
+  .dash-layout-charts,
+  .dash-grid,
+  .dash-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dash-card,
+  .dash-chart-card {
+    min-width: 0;
+    padding: 0.875rem;
+  }
+
+  .dash-recent-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .dash-quick-action {
+    min-height: 44px;
+  }
+
+  .recharts-responsive-container,
+  .recharts-wrapper {
+    max-width: 100% !important;
+  }
+}
+
 .dash-kpi {
   position: relative;
   overflow: hidden;

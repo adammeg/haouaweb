@@ -10,11 +10,11 @@ export interface HPPInput {
   multi: 0 | 1;
   /** Macrosomie ou gémellité (0/1/2). */
   macro: 0 | 1 | 2;
-  placenta: 0 | 1 | 2;
-  coag: 0 | 1;
-  anemie: 0 | 1;
+  placenta: 0 | 2 | 3;
+  coag: 0 | 2;
+  anemie: 0 | 1 | 2;
   travail: 0 | 1;
-  atcd: 0 | 1;
+  atcd: 0 | 2;
   infection: 0 | 1;
 }
 
@@ -70,7 +70,7 @@ export function calcHPP(input: HPPInput): ScoreResult {
   return {
     value: `${score} point${score > 1 ? "s" : ""}`,
     raw: score,
-    max: 11,
+    max: 16,
     level,
     label,
     interpretation,

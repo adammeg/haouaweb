@@ -399,3 +399,128 @@
   color: #991b1b;
   border: 1px solid #fecaca;
 }
+
+/* v51 final polish */
+.hawae-salle-attente-root {
+  min-height: calc(100vh - 60px);
+  background:
+    radial-gradient(circle at 92% 2%, rgba(244, 214, 218, 0.52), transparent 24rem),
+    var(--cream);
+}
+
+.wr-header,
+.wr-queue,
+.wr-sidebar-card,
+.waiting-room .agenda-wrap {
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-s);
+}
+
+.wr-header {
+  position: relative;
+  overflow: hidden;
+  border-top: 3px solid var(--gold);
+}
+
+.wr-header::after {
+  content: "";
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  right: -55px;
+  top: -90px;
+  border-radius: 50%;
+  background: rgba(244, 214, 218, 0.46);
+  pointer-events: none;
+}
+
+.wr-date,
+.wr-queue-title,
+.wr-sidebar-title,
+.waiting-room .agenda-nav-title {
+  font-family: var(--font-display), sans-serif;
+}
+
+.wr-stat-n {
+  font-family: var(--font-display), sans-serif;
+}
+
+.wr-patient-card {
+  box-shadow: var(--shadow-xs);
+}
+
+.wr-patient-card.en-consultation {
+  border-left: 4px solid var(--teal-light);
+  background: var(--teal-pale);
+}
+
+.wr-action-btn.primary,
+.btn-add-rdv {
+  box-shadow: 0 3px 10px rgba(10, 92, 92, 0.18);
+}
+
+.wr-tab {
+  position: relative;
+}
+
+.wr-tab.active {
+  background: var(--teal-pale);
+  border-radius: 8px 8px 0 0;
+}
+
+@media (max-width: 700px) {
+  .hawae-salle-attente-root {
+    margin-top: -1rem;
+  }
+
+  .waiting-room {
+    padding: 14px 12px 24px;
+    gap: 14px;
+  }
+
+  .wr-header {
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .wr-stats-strip {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .wr-patient-card {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .wr-patient-info {
+    min-width: calc(100% - 64px);
+  }
+
+  .wr-actions {
+    width: 100%;
+    padding-left: 60px;
+  }
+
+  .wr-action-btn {
+    flex: 1;
+  }
+
+  .wr-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .wr-tab {
+    flex: 1 0 auto;
+  }
+
+  .waiting-room .agenda-wrap {
+    padding: 14px 10px;
+  }
+
+  .wr-add-grid {
+    grid-template-columns: 1fr;
+  }
+}

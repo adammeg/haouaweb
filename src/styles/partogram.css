@@ -361,3 +361,39 @@
     margin: 10mm;
   }
 }
+
+@media (max-width: 767px) {
+  .parto-layout,
+  .parto-grid,
+  .parto-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .parto-card,
+  .parto-panel {
+    padding: 0.875rem;
+  }
+
+  .parto-actions,
+  .parto-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .parto-btn {
+    flex: 1 1 8rem;
+    min-height: 42px;
+    white-space: normal;
+  }
+
+  .parto-canvas-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .parto-table {
+    min-width: 720px;
+  }
+}

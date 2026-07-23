@@ -749,6 +749,125 @@
   padding: 18px 20px;
 }
 
+/* v51 final polish */
+.dossier-app-body {
+  border-color: var(--border);
+  background:
+    radial-gradient(circle at 100% 0, rgba(244, 214, 218, 0.32), transparent 28rem),
+    var(--cream);
+}
+
+.dossier-main-content {
+  background: transparent;
+}
+
+.dossier-page-title {
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--gold);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-s);
+}
+
+.dossier-page-title h1 {
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+}
+
+.storage-banner {
+  border-left: 4px solid var(--teal-light);
+  box-shadow: var(--shadow-xs);
+}
+
+.dossier-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  border: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  box-shadow: var(--shadow-s);
+}
+
+.dossier-tab.active {
+  box-shadow: inset 0 -1px 0 var(--teal);
+}
+
+.dossier-card {
+  background: var(--surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-color: var(--border);
+}
+
+.dossier-card-header {
+  background: linear-gradient(90deg, var(--teal-pale), rgba(255, 255, 255, 0.72));
+  border-left: 4px solid var(--teal-light);
+}
+
+.dossier-card-header h3 {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .dossier-app-body {
+    margin-inline: -1rem;
+    border-inline: 0;
+  }
+
+  .dossier-main-content {
+    padding: 12px 12px calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .dossier-page-title {
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  .dossier-page-title > div:last-child,
+  .dossier-page-title .btn-header {
+    width: 100%;
+  }
+
+  .dossier-page-title .btn-header {
+    justify-content: center;
+  }
+
+  .storage-banner {
+    align-items: flex-start;
+  }
+
+  .storage-banner > .ml-auto {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .storage-pill,
+  .storage-btn-consult {
+    min-height: 36px;
+  }
+
+  .dossier-tabs {
+    margin-inline: -12px;
+    padding-inline: 10px;
+    border-radius: 0;
+  }
+
+  .dossier-tab {
+    min-height: 44px;
+    padding-inline: 12px;
+  }
+
+  .dossier-card {
+    border-radius: 12px;
+  }
+
+  .dossier-card-header,
+  .dossier-card-body {
+    padding-inline: 14px;
+  }
+}
+
 .checklist-item {
   display: flex;
   align-items: flex-start;
@@ -1852,4 +1971,45 @@
   border: none;
   cursor: pointer;
   font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .dossier-page-title,
+  .obst-csg-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dossier-page-title > *,
+  .obst-csg-header > * {
+    max-width: 100%;
+  }
+
+  .dossier-form-grid,
+  .dossier-form-grid.triple,
+  .obst-parto-form {
+    grid-template-columns: 1fr !important;
+  }
+
+  .exam-chip-group {
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.35rem;
+  }
+
+  .exam-chip {
+    flex: 0 0 auto;
+    min-height: 40px;
+  }
+
+  .obst-parto-actions > * {
+    flex: 1 1 9rem;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .obst-parto-history li {
+    align-items: stretch;
+  }
 }

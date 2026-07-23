@@ -53,6 +53,14 @@ async function consumeIaResponse(
   return acc;
 }
 
+function generationMeta(res: Response) {
+  return {
+    provider: res.headers.get("X-Hawae-AI-Provider") ?? undefined,
+    model: res.headers.get("X-Hawae-AI-Model") ?? undefined,
+    promptVersion: res.headers.get("X-Hawae-Prompt-Version") ?? undefined,
+  };
+}
+
 function appendIaToDraft(
   patchDraft: (p: Partial<PatientSnapshot>) => void,
   entry: Omit<HawaeIaExchange, "id"> & { id?: string },
@@ -98,7 +106,6 @@ export function HawaePanel({ draft }: { draft: PatientSnapshot | null }) {
     const qTrim = q.trim();
     try {
       const dNow = useHawaeStore.getState().draft;
-      const summary = dNow ? buildDossierContextForIa(dNow) : "";
       const res = await fetch("/api/ia", {
         method: "POST",
         signal: ac.signal,
@@ -106,9 +113,10 @@ export function HawaePanel({ draft }: { draft: PatientSnapshot | null }) {
         body: JSON.stringify({
           mode: "question",
           question: qTrim,
-          dossierSummary: summary,
+          patientId: dNow?.id,
         }),
       });
+      const meta = generationMeta(res);
       const final = await consumeIaResponse(res, setFollowUpText);
       const key = stableClinicalDataKey(useHawaeStore.getState().draft);
       appendIaToDraft(patchDraft, {
@@ -117,6 +125,7 @@ export function HawaePanel({ draft }: { draft: PatientSnapshot | null }) {
         reply: final,
         contextKeyAtGeneration: key || dataKey,
         at: new Date().toISOString(),
+        ...meta,
       });
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
@@ -149,6 +158,10 @@ export function HawaePanel({ draft }: { draft: PatientSnapshot | null }) {
         setDiagErr(null);
         return;
       }
+      setDiagnosticText("");
+      setDiagLoading(false);
+      setDiagErr(null);
+      return;
     }
 
     const timer = window.setTimeout(async () => {
@@ -158,17 +171,17 @@ export function HawaePanel({ draft }: { draft: PatientSnapshot | null }) {
       setDiagnosticText("");
       try {
         const dNow = useHawaeStore.getState().draft;
-        const summary = dNow ? buildDossierContextForIa(dNow) : "";
         const res = await fetch("/api/ia", {
           method: "POST",
           signal: ac.signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             mode: "diagnostic",
-            dossierSummary: summary,
+            patientId: dNow?.id,
             stream: true,
           }),
         });
+        const meta = generationMeta(res);
         let final = "";
         const onChunk = (text: string) => {
           final = text;
@@ -181,6 +194,7 @@ export function HawaePanel({ draft }: { draft: PatientSnapshot | null }) {
           reply: final,
           contextKeyAtGeneration: keyNow || dataKey,
           at: new Date().toISOString(),
+          ...meta,
         });
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") return;
@@ -235,10 +249,13 @@ export function HawaePanel({ draft }: { draft: PatientSnapshot | null }) {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-xl border border-[var(--gold)]/40 bg-[var(--gold-surface)] px-4 py-3 text-xs leading-relaxed text-[var(--ink-mid)]">
+        <strong>Analyse externe sur demande.</strong> Le serveur vérifie l&apos;accès au dossier et pseudonymise le contexte avant l&apos;envoi au fournisseur IA.
+      </div>
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-sm font-bold text-[var(--teal)]">
-            Analyse diagnostique (automatique)
+            Analyse diagnostique sur demande
           </h2>
           <div className="flex flex-wrap gap-2">
             {diagLoading && (
@@ -288,7 +305,7 @@ export function HawaePanel({ draft }: { draft: PatientSnapshot | null }) {
 
       <details className="rounded-xl border border-[var(--border)] bg-[var(--teal-pale)]/30 p-4">
         <summary className="cursor-pointer text-xs font-semibold text-[var(--ink-mid)]">
-          Voir le contexte envoyé au modèle (dossier + ordonnance + historique Hawae)
+          Aperçu pseudonymisé du contexte clinique
         </summary>
         <pre className="mt-3 max-h-56 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-relaxed text-[var(--ink-mid)]">
           {previewContext || "Aucun champ renseigné."}

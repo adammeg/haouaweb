@@ -8,6 +8,7 @@ import {
 } from "@/lib/db/doctor-settings-repository";
 import { AI_TRAINING_CONSENT_VERSION } from "@/types/training";
 import { dbError } from "@/lib/api/error-response";
+import { deleteFullTrainingRecordsForDoctor } from "@/lib/db/full-training-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -77,10 +78,14 @@ export async function PATCH(req: Request) {
       session.sub,
       body.enabled,
     );
+    const deletedRecords = body.enabled
+      ? 0
+      : await deleteFullTrainingRecordsForDoctor(session.sub);
     return withCors(
       NextResponse.json({
         settings,
         consentVersion: AI_TRAINING_CONSENT_VERSION,
+        deletedRecords,
       }),
       req,
     );

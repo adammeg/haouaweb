@@ -13,26 +13,31 @@ import {
   SYSTEM_PROMPT_DIAGNOSTIC,
   SYSTEM_PROMPT_QUESTION,
 } from "@/lib/ia/ia-prompts";
+import {
+  AiPatientContextError,
+  buildAuthorizedAiContext,
+} from "@/lib/ia/authorized-patient-context";
+import {
+  clinicalAnalysisToText,
+  parseClinicalAiAnalysis,
+} from "@/lib/ia/clinical-analysis-schema";
+import { buildRagBlock } from "@/lib/rag/rag-engine";
 
 export const runtime = "nodejs";
 
 const MAX_QUESTION = 4_000;
-const MAX_CONTEXT = 20_000;
 const RATE_WINDOW_MS = 60_000;
 const RATE_MAX = 24;
+const PROMPT_VERSION = "clinical-assist-v2";
 
 type Body = {
   question?: string;
-  dossierSummary?: string;
+  patientId?: string;
   /** diagnostic = analyse structurée du dossier ; question = échange ciblé (défaut). */
   mode?: "diagnostic" | "question";
   /** Si false, réponse JSON { reply } au lieu du flux texte (défaut: true avec clé API). */
   stream?: boolean;
 };
-
-function clampContext(raw: string): string {
-  return raw.trim().slice(0, MAX_CONTEXT);
-}
 
 function parseMaxTokens(): number {
   const raw =
@@ -73,6 +78,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Compte désactivé" }, { status: 403 });
   }
 
+  if (session.role === "secretary") {
+    return NextResponse.json({ error: "Accès réservé au médecin" }, { status: 403 });
+  }
+
   const rl = rateLimitMemory(`ia:${session.sub}`, RATE_MAX, RATE_WINDOW_MS);
   if (!rl.ok) {
     return NextResponse.json(
@@ -96,8 +105,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Question vide" }, { status: 400 });
   }
 
-  const context = clampContext(body.dossierSummary ?? "");
-  const wantStream = body.stream !== false;
+  let context = "";
+  if (body.patientId?.trim() || mode === "diagnostic") {
+    try {
+      ({ context } = await buildAuthorizedAiContext({
+        doctorId: session.doctorId,
+        patientId: body.patientId ?? "",
+        question,
+      }));
+    } catch (e) {
+      if (e instanceof AiPatientContextError) {
+        return NextResponse.json({ error: e.message }, { status: e.status });
+      }
+      throw e;
+    }
+  } else {
+    context = buildRagBlock(question.slice(0, 1_500));
+  }
+  // Le diagnostic doit être entièrement reçu puis validé avant affichage.
+  const wantStream = mode === "question" && body.stream !== false;
 
   const provider = resolveIaProvider();
   const maxTokens = parseMaxTokens();
@@ -112,14 +138,10 @@ export async function POST(req: Request) {
 
   if (!provider) {
     if (mode === "diagnostic") {
-      return NextResponse.json({
-        reply:
-          `[Mode hors-clé API — analyse diagnostique]\n\n` +
-          `Dossier reçu (${context.length} caractères).\n\n` +
-          `Pour une analyse générée par modèle, définissez OPENROUTER_API_KEY (ou OPENAI_API_KEY) ` +
-          `dans .env et redémarrez le serveur.\n` +
-          `Rappel : sortie informative seulement ; décision médicale sous votre responsabilité.`,
-      });
+      return NextResponse.json(
+        { error: "Fournisseur IA non configuré. Les scores cliniques locaux restent disponibles." },
+        { status: 503 },
+      );
     }
     return NextResponse.json({
       reply:
@@ -127,6 +149,7 @@ export async function POST(req: Request) {
         `Question : ${question}\n\n` +
         `Pour des réponses générées par modèle, définissez OPENROUTER_API_KEY (ou OPENAI_API_KEY) dans .env.\n` +
         `Rappel : sortie informative seulement, décision médicale sous votre responsabilité.`,
+      meta: { provider: "none", model: "none", promptVersion: PROMPT_VERSION },
     });
   }
 
@@ -153,6 +176,9 @@ export async function POST(req: Request) {
           "Content-Type": "text/plain; charset=utf-8",
           "Cache-Control": "no-store",
           "X-Accel-Buffering": "no",
+          "X-Hawae-AI-Provider": provider.label,
+          "X-Hawae-AI-Model": provider.model,
+          "X-Hawae-Prompt-Version": PROMPT_VERSION,
         },
       });
     } catch (e) {
@@ -196,14 +222,43 @@ export async function POST(req: Request) {
     const data = JSON.parse(raw) as {
       choices?: { message?: { content?: string } }[];
     };
-    const reply = data.choices?.[0]?.message?.content?.trim();
-    if (!reply) {
+    const rawReply = data.choices?.[0]?.message?.content?.trim();
+    if (!rawReply) {
       return NextResponse.json(
         { error: "Réponse modèle vide" },
         { status: 502 },
       );
     }
-    return NextResponse.json({ reply });
+    if (mode === "diagnostic") {
+      try {
+        const analysis = parseClinicalAiAnalysis(rawReply);
+        return NextResponse.json({
+          reply: clinicalAnalysisToText(analysis),
+          analysis,
+          meta: {
+            provider: provider.label,
+            model: provider.model,
+            promptVersion: PROMPT_VERSION,
+          },
+        });
+      } catch (e) {
+        return NextResponse.json(
+          {
+            error: "Réponse IA rejetée : format clinique invalide.",
+            detail: e instanceof Error ? e.message : "validation_failed",
+          },
+          { status: 502 },
+        );
+      }
+    }
+    return NextResponse.json({
+      reply: rawReply,
+      meta: {
+        provider: provider.label,
+        model: provider.model,
+        promptVersion: PROMPT_VERSION,
+      },
+    });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Erreur réseau" },

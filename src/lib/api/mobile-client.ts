@@ -208,7 +208,7 @@ export function createHawaeApiClient(opts: HawaeApiClientOptions = {}) {
     ia: {
       chat: (body: {
         question: string;
-        dossierSummary?: string;
+        patientId: string;
         mode?: "diagnostic" | "question";
         stream?: boolean;
       }) =>

@@ -77,3 +77,9 @@ export async function listClinics(): Promise<ClinicRecord[]> {
   return rows as unknown as ClinicRecord[];
 }
 
+export async function deleteEmptyClinic(id: string): Promise<"deleted" | "not_found" | "not_empty"> {
+  const db = await getDb();
+  if (await db.collection("doctors").countDocuments({ clinicId: id })) return "not_empty";
+  const result = await db.collection(COL).deleteOne({ id });
+  return result.deletedCount ? "deleted" : "not_found";
+}

@@ -21,6 +21,7 @@ export async function GET(req: Request) {
         name: session.name,
         clinicId: session.clinicId,
         role: session.role,
+        doctorId: session.doctorId,
       },
     }),
     req,

@@ -78,7 +78,7 @@ export function calcRASRM(input: RASRMInput): ScoreResult {
   return {
     value: `${score} points`,
     raw: score,
-    max: 100,
+    max: 130,
     level,
     label: stade,
     interpretation,

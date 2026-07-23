@@ -9,4 +9,10 @@ export {
   listDoctorsByClinicId,
   listDoctorsAll,
   setDoctorActiveById,
+  deleteDoctorAndData,
+} from "@/lib/db/doctors-repository";
+export {
+  listSecretariesByDoctorId,
+  setSecretaryActive,
+  deleteSecretary,
 } from "@/lib/db/doctors-repository";

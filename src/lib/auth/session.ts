@@ -7,7 +7,8 @@ export type SessionDoctor = {
   email: string;
   name: string;
   clinicId: string | null;
-  role: "doctor" | "clinic_admin" | "app_admin";
+  role: "doctor" | "secretary" | "clinic_admin" | "app_admin";
+  doctorId: string;
 };
 
 function secretKey() {
@@ -23,13 +24,15 @@ export async function createSessionToken(doctor: {
   email: string;
   name: string;
   clinicId?: string | null;
-  role?: "doctor" | "clinic_admin" | "app_admin";
+  role?: "doctor" | "secretary" | "clinic_admin" | "app_admin";
+  doctorId?: string | null;
 }) {
   return new SignJWT({
     email: doctor.email,
     name: doctor.name,
     clinicId: doctor.clinicId ?? null,
     role: doctor.role ?? "doctor",
+    doctorId: doctor.doctorId ?? doctor.id,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(doctor.id)
@@ -45,6 +48,7 @@ export async function verifySessionToken(token: string): Promise<SessionDoctor> 
   const name = payload.name;
   const clinicId = payload.clinicId;
   const role = payload.role;
+  const doctorId = payload.doctorId;
   if (
     typeof sub !== "string" ||
     typeof email !== "string" ||
@@ -55,10 +59,11 @@ export async function verifySessionToken(token: string): Promise<SessionDoctor> 
   const parsedClinicId =
     clinicId === null || typeof clinicId === "string" ? clinicId : null;
   const parsedRole =
-    role === "clinic_admin" || role === "doctor" || role === "app_admin"
+    role === "clinic_admin" || role === "doctor" || role === "secretary" || role === "app_admin"
       ? role
       : "doctor";
-  return { sub, email, name, clinicId: parsedClinicId, role: parsedRole };
+  const parsedDoctorId = typeof doctorId === "string" ? doctorId : sub;
+  return { sub, email, name, clinicId: parsedClinicId, role: parsedRole, doctorId: parsedDoctorId };
 }
 
 function bearerToken(req: Request): string | null {

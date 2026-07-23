@@ -28,25 +28,27 @@ export function ScoreShell({
   resultIdSuffix?: string;
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-xs)] sm:p-6">
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-display text-lg font-bold text-[var(--ink)]">
+    <section className="overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-white shadow-[var(--shadow-s)]">
+      <header className="flex flex-wrap items-center justify-between gap-2 bg-[linear-gradient(135deg,var(--teal-deep),var(--teal-mid))] px-5 py-4 sm:px-6">
+        <h2 className="font-display text-lg font-bold text-white">
           {title}
         </h2>
         {tag ? (
-          <span className="rounded-full bg-[var(--teal-pale)] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--teal)]">
+          <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
             {tag}
           </span>
         ) : null}
       </header>
-      {description ? (
-        <p className="mb-4 text-sm leading-relaxed text-[var(--ink-mid)]">
-          {description}
-        </p>
-      ) : null}
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="space-y-3">{children}</div>
-        <ScoreResultPanel result={result} idSuffix={resultIdSuffix} />
+      <div className="p-5 sm:p-6">
+        {description ? (
+          <p className="mb-4 text-sm leading-relaxed text-[var(--ink-mid)]">
+            {description}
+          </p>
+        ) : null}
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="space-y-3">{children}</div>
+          <ScoreResultPanel result={result} idSuffix={resultIdSuffix} />
+        </div>
       </div>
     </section>
   );

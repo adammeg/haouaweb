@@ -36,23 +36,24 @@ export function scoreROMA(p: AssistProfile) {
 
 export function scoreADNEX(p: AssistProfile) {
   if (!p.ca125 || !p.cyst_max_diameter_mm) return null;
-  const ca125 = Math.log(Math.max(1, p.ca125));
-  const diam = Math.log(Math.max(1, p.cyst_max_diameter_mm));
+  const ca125 = Math.log(Math.max(1, p.ca125) + 1);
+  const diam = Math.log(Math.max(1, p.cyst_max_diameter_mm) + 1);
   const solid = (p.cyst_solid_pct || 0) / 100;
   const pap = Math.min(4, p.cyst_papillary_projections || 0);
+  const papCoefficient = pap >= 4 ? 0.6144 : pap >= 1 ? 0.3166 : 0;
   const shadow = p.cyst_acoustic_shadows ? 1 : 0;
   const ascite = p.cyst_ascites ? 1 : 0;
   const center = p.oncology_center ? 1 : 0;
   const logit =
-    -5.303 +
+    -5.3718 +
     0.0222 * (p.age || 50) +
-    0.618 * ca125 +
-    0.328 * diam +
-    1.54 * solid +
-    0.537 * pap -
-    0.959 * shadow +
-    1.023 * ascite +
-    0.48 * center;
+    0.4809 * ca125 +
+    0.545 * diam +
+    1.2945 * solid +
+    papCoefficient -
+    0.5628 * shadow +
+    0.8698 * ascite +
+    0.4342 * center;
   const prob = 1 / (1 + Math.exp(-logit));
   const pct = (prob * 100).toFixed(1);
   const conf =

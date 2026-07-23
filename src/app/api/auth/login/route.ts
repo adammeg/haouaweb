@@ -73,6 +73,7 @@ export async function POST(req: Request) {
       name: doctor.name,
       clinicId: doctor.clinicId ?? null,
       role: doctor.role ?? "doctor",
+      doctorId: doctor.doctorId ?? doctor.id,
     });
     await setSessionCookie(token);
 
@@ -82,7 +83,7 @@ export async function POST(req: Request) {
         /** JWT pour apps mobiles (Authorization: Bearer). */
         accessToken: token,
         expiresIn: 60 * 60 * 24 * 7,
-        doctor: { id: doctor.id, email: doctor.email, name: doctor.name },
+        doctor: { id: doctor.id, email: doctor.email, name: doctor.name, role: doctor.role ?? "doctor" },
       }),
       req,
     );

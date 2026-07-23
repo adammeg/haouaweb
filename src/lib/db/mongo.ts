@@ -41,6 +41,7 @@ async function ensureIndexes(db: Db): Promise<void> {
     db.collection("doctors").createIndex({ clinicId: 1, role: 1 }),
     db.collection("doctors").createIndex({ active: 1 }),
     db.collection("doctors").createIndex({ role: 1 }),
+    db.collection("doctors").createIndex({ doctorId: 1, role: 1 }),
     db.collection("clinics").createIndex({ id: 1 }, { unique: true }),
     db.collection("clinics").createIndex({ slug: 1 }, { unique: true }),
     db.collection("workspaces").createIndex({ doctorId: 1 }, { unique: true }),
@@ -56,6 +57,8 @@ async function ensureIndexes(db: Db): Promise<void> {
       .createIndex({ doctorId: 1, patientId: 1 }, { unique: true }),
     db.collection("ai_training_full_records").createIndex({ ingestedAt: -1 }),
     db.collection("doctor_settings").createIndex({ doctorId: 1 }, { unique: true }),
+    db.collection("admin_protocols").createIndex({ id: 1 }, { unique: true }),
+    db.collection("admin_protocols").createIndex({ active: 1, category: 1 }),
   ]);
 }
 

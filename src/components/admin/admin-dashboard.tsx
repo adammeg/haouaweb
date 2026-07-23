@@ -1,288 +1,83 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type { PlatformMetrics } from "@/lib/admin/platform-metrics";
+import type { ProtocolItem } from "@/lib/protocols/catalog";
+import type { ManagedProtocol } from "@/lib/db/admin-protocols-repository";
 
 type ClinicRow = { id: string; name: string; slug: string; createdAt: string };
-type DoctorRow = {
-  id: string;
-  email: string;
-  name: string;
-  role?: "doctor" | "clinic_admin" | "app_admin";
-  clinicId?: string | null;
-  active?: boolean;
-  createdAt: string;
-};
+type DoctorRow = { id: string; email: string; name: string; role?: "doctor"|"clinic_admin"|"app_admin"; clinicId?: string|null; active?: boolean; createdAt: string };
+type Tab = "overview" | "doctors" | "clinics" | "protocols" | "scores" | "ai";
+
+const SCORE_NAMES = ["Bishop","Manning","Apgar","MFMU AVAC","Flamm & Geiger","HPP","rASRM","Ménopause","FIGO Col","FIGO Endomètre","FIGO Ovaire","Cancer du sein","RCIU / Hadlock","IOTA","ROMA","ADNEX","LUS","CTG","RPM / HRP / GEU"];
 
 export function AdminDashboard({ adminName }: { adminName: string }) {
+  const [tab, setTab] = useState<Tab>("overview");
   const [clinics, setClinics] = useState<ClinicRow[]>([]);
   const [doctors, setDoctors] = useState<DoctorRow[]>([]);
+  const [metrics, setMetrics] = useState<PlatformMetrics|null>(null);
+  const [builtInProtocols, setBuiltInProtocols] = useState<ProtocolItem[]>([]);
+  const [managedProtocols, setManagedProtocols] = useState<ManagedProtocol[]>([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [trainingStats, setTrainingStats] = useState<{
-    totalSamples: number;
-    totalDoctors: number;
-    lastIngestedAt: string | null;
-  } | null>(null);
+  const [err, setErr] = useState<string|null>(null);
+  const [message, setMessage] = useState<string|null>(null);
+  const [busyId, setBusyId] = useState<string|null>(null);
+  const [clinicName, setClinicName] = useState("");
+  const [search, setSearch] = useState("");
+  const [protocolForm, setProtocolForm] = useState({ title:"", category:"obst" as ProtocolItem["category"], summary:"", steps:"", references:"" });
+  const [trainingStats, setTrainingStats] = useState<{totalSamples:number;totalDoctors:number;lastIngestedAt:string|null}|null>(null);
 
-  async function load() {
-    setLoading(true);
-    setErr(null);
+  const load = useCallback(async () => {
+    setLoading(true); setErr(null);
     try {
-      const [overviewRes, trainingRes] = await Promise.all([
-        fetch("/api/admin/overview"),
-        fetch("/api/admin/training/stats"),
-      ]);
-      const data = (await overviewRes.json()) as {
-        clinics?: ClinicRow[];
-        doctors?: DoctorRow[];
-        error?: string;
-      };
-      if (!overviewRes.ok) throw new Error(data.error || overviewRes.statusText);
-      setClinics(data.clinics ?? []);
-      setDoctors(data.doctors ?? []);
-      if (trainingRes.ok) {
-        const t = (await trainingRes.json()) as {
-          stats?: {
-            totalSamples: number;
-            totalDoctors: number;
-            lastIngestedAt: string | null;
-          };
-        };
-        if (t.stats) setTrainingStats(t.stats);
-      }
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Erreur");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void load();
+      const [overviewRes, protocolRes, trainingRes] = await Promise.all([fetch("/api/admin/overview"), fetch("/api/admin/protocols"), fetch("/api/admin/training/stats")]);
+      const overview = await overviewRes.json(); if (!overviewRes.ok) throw new Error(overview.error || "overview_failed");
+      setClinics(overview.clinics ?? []); setDoctors(overview.doctors ?? []); setMetrics(overview.metrics ?? null);
+      if (protocolRes.ok) { const data = await protocolRes.json(); setBuiltInProtocols(data.builtIn ?? []); setManagedProtocols(data.managed ?? []); }
+      if (trainingRes.ok) { const data = await trainingRes.json(); setTrainingStats(data.stats ?? null); }
+    } catch (e) { setErr(e instanceof Error ? e.message : "Erreur de chargement"); }
+    finally { setLoading(false); }
   }, []);
+  useEffect(() => { void load(); }, [load]);
 
-  const clinicNameById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const c of clinics) m.set(c.id, c.name);
-    return m;
-  }, [clinics]);
+  const clinicMap = useMemo(() => new Map(clinics.map((c) => [c.id,c.name])), [clinics]);
+  const filteredDoctors = doctors.filter((d) => `${d.name} ${d.email} ${clinicMap.get(d.clinicId ?? "") ?? ""}`.toLowerCase().includes(search.toLowerCase()));
+  const notify = (text:string) => { setMessage(text); window.setTimeout(() => setMessage(null), 3500); };
 
-  const stats = useMemo(() => {
-    const totalDocs = doctors.length;
-    const disabled = doctors.filter((d) => d.active === false).length;
-    const clinicsCount = clinics.length;
-    const independents = doctors.filter((d) => !d.clinicId).length;
-    return { totalDocs, disabled, clinicsCount, independents };
-  }, [clinics.length, doctors]);
-
-  async function setActive(doctorId: string, active: boolean) {
-    setBusyId(doctorId);
-    try {
-      const res = await fetch("/api/admin/overview", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ doctorId, active }),
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok) throw new Error(data.error || res.statusText);
-      await load();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Erreur");
-    } finally {
-      setBusyId(null);
-    }
+  async function mutate(url:string, init:RequestInit, success:string) {
+    setErr(null); const res = await fetch(url, init); const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || res.statusText); notify(success); await load(); return data;
   }
+  async function setActive(id:string, active:boolean) { setBusyId(id); try { await mutate("/api/admin/overview",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({doctorId:id,active})},active?"Compte réactivé":"Compte désactivé"); } catch(e){setErr(e instanceof Error?e.message:"Erreur");} finally{setBusyId(null);} }
+  async function createClinic() { if(!clinicName.trim())return; try { await mutate("/api/admin/overview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"clinic",name:clinicName})},"Clinique créée"); setClinicName(""); } catch(e){setErr(e instanceof Error?e.message:"Erreur");} }
+  async function remove(type:"doctor"|"clinic",id:string,label:string) { if(!window.confirm(`Supprimer définitivement ${label} ? Cette action est irréversible.`))return; setBusyId(id); try { await mutate("/api/admin/overview",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({type,id,confirm:id})},`${label} supprimé`); } catch(e){setErr(e instanceof Error?e.message:"Erreur");} finally{setBusyId(null);} }
+  async function createProtocol() { const steps=protocolForm.steps.split("\n").map(x=>x.trim()).filter(Boolean); try { await mutate("/api/admin/protocols",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...protocolForm,steps})},"Protocole publié"); setProtocolForm({title:"",category:"obst",summary:"",steps:"",references:""}); } catch(e){setErr(e instanceof Error?e.message:"Erreur");} }
+  async function toggleProtocol(p:ManagedProtocol) { try { await mutate("/api/admin/protocols",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:p.id,active:!p.active})},p.active?"Protocole masqué":"Protocole publié"); } catch(e){setErr(e instanceof Error?e.message:"Erreur");} }
+  async function deleteProtocol(p:ManagedProtocol) { if(!window.confirm(`Supprimer « ${p.title} » ?`))return; try { await mutate("/api/admin/protocols",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:p.id,confirm:p.id})},"Protocole supprimé"); } catch(e){setErr(e instanceof Error?e.message:"Erreur");} }
 
-  return (
-    <div className="space-y-8">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-[var(--ink)]">
-            Administration
-          </h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Bonjour <span className="font-semibold">{adminName}</span> — gestion globale
-            (cliniques, médecins, activation).
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/"
-            className="rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--teal-pale)]/30"
-          >
-            Accueil
-          </Link>
-        </div>
-      </header>
+  const cards = metrics ? [["Médecins",metrics.doctors.total,"Comptes plateforme"],["Patientes",metrics.patients,"Dossiers enregistrés"],["Consultations",metrics.consultations,"Archives cliniques"],["Cliniques",metrics.clinics,"Structures"],["Documents",metrics.documents,"Scans et documents générés"],["Partogrammes",metrics.partograms,"Sessions sauvegardées"],["PMA / FIV",metrics.ivfRecords,"Profils persistés"],["IA",metrics.trainingSamples,"Échantillons consentis"]] : [];
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-          <div className="text-3xl font-bold text-[var(--teal)]">{stats.totalDocs}</div>
-          <div className="text-xs font-semibold text-[var(--muted)]">Comptes médecins</div>
-        </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-          <div className="text-3xl font-bold text-[var(--ink)]">{stats.clinicsCount}</div>
-          <div className="text-xs font-semibold text-[var(--muted)]">Cliniques</div>
-        </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-          <div className="text-3xl font-bold text-[var(--ink)]">{stats.independents}</div>
-          <div className="text-xs font-semibold text-[var(--muted)]">Indépendants</div>
-        </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-          <div className="text-3xl font-bold text-red-600">{stats.disabled}</div>
-          <div className="text-xs font-semibold text-[var(--muted)]">Désactivés</div>
-        </div>
-      </div>
+  return <div className="space-y-6">
+    <header className="rounded-2xl bg-[linear-gradient(135deg,var(--teal-deep),var(--teal))] p-6 text-white shadow-[var(--shadow-m)] sm:flex sm:items-center sm:justify-between">
+      <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[var(--gold-light)]">HawaeMD Control Center</p><h1 className="mt-2 font-display text-2xl font-bold">Administration plateforme</h1><p className="mt-1 text-sm text-white/60">Connecté en tant que {adminName}</p></div>
+      <div className="mt-4 flex gap-2 sm:mt-0"><button onClick={()=>void load()} className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold">Actualiser</button><Link href="/" className="rounded-xl bg-[var(--gold)] px-4 py-2 text-xs font-bold text-[var(--teal-deep)]">Accueil</Link></div>
+    </header>
 
-      {trainingStats ? (
-        <section className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="font-display text-lg font-bold text-[var(--ink)]">
-                Dataset IA (dossiers complets)
-              </h2>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                {trainingStats.totalSamples} échantillons ·{" "}
-                {trainingStats.totalDoctors} médecins contributeurs
-                {trainingStats.lastIngestedAt
-                  ? ` · dernier ingest ${new Date(trainingStats.lastIngestedAt).toLocaleString("fr-FR")}`
-                  : ""}
-              </p>
-            </div>
-            <a
-              href="/api/admin/training/export?format=ndjson&limit=10000"
-              className="rounded-xl bg-[var(--teal)] px-4 py-2 text-sm font-semibold text-white hover:opacity-95"
-            >
-              Exporter NDJSON
-            </a>
-          </div>
-        </section>
-      ) : null}
+    <nav className="flex gap-2 overflow-x-auto rounded-xl border border-[var(--border)] bg-white p-2" aria-label="Sections administration">{([['overview','Vue globale'],['doctors','Médecins'],['clinics','Cliniques'],['protocols','Protocoles'],['scores','Scores'],['ai','IA & données']] as [Tab,string][]).map(([id,label])=><button key={id} onClick={()=>setTab(id)} className={`whitespace-nowrap rounded-lg px-4 py-2 text-xs font-bold ${tab===id?'bg-[var(--teal)] text-white':'text-[var(--ink-mid)] hover:bg-[var(--teal-pale)]'}`}>{label}</button>)}</nav>
+    {err?<div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{err}</div>:null}{message?<div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{message}</div>:null}
 
-      {err ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {err}
-        </div>
-      ) : null}
+    {tab==="overview"?<><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{cards.map(([label,value,sub])=><article key={String(label)} className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm"><div className="text-3xl font-bold text-[var(--teal)]">{String(value)}</div><h2 className="mt-1 text-sm font-bold">{String(label)}</h2><p className="text-[10px] text-[var(--muted)]">{String(sub)}</p></article>)}</div><section className="grid gap-4 lg:grid-cols-3"><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">État des comptes</h2><div className="mt-4 space-y-3 text-sm"><p className="flex justify-between">Actifs <b className="text-emerald-600">{metrics?.doctors.active??0}</b></p><p className="flex justify-between">Désactivés <b className="text-red-600">{metrics?.doctors.disabled??0}</b></p><p className="flex justify-between">Indépendants <b>{metrics?.doctors.independent??0}</b></p></div></div><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">Catalogue clinique</h2><div className="mt-4 space-y-3 text-sm"><p className="flex justify-between">Protocoles intégrés <b>{builtInProtocols.length}</b></p><p className="flex justify-between">Protocoles administrés <b>{managedProtocols.length}</b></p><p className="flex justify-between">Scores protégés <b>{SCORE_NAMES.length}</b></p></div></div><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">Stockage fonctionnel</h2><div className="mt-4 space-y-3 text-sm"><p className="flex justify-between">Profils modules <b>{metrics?.storageProfiles??0}</b></p><p className="flex justify-between">Documents <b>{metrics?.documents??0}</b></p><p className="flex justify-between">Cycles PMA <b>{metrics?.ivfRecords??0}</b></p></div></div></section></>:null}
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-bold text-[var(--ink)]">Cliniques</h2>
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="text-sm font-semibold text-[var(--teal)] hover:underline"
-            >
-              Rafraîchir
-            </button>
-          </div>
-          {loading ? (
-            <p className="mt-4 text-sm text-[var(--muted)]">Chargement…</p>
-          ) : (
-            <ul className="mt-4 space-y-2">
-              {clinics.length === 0 ? (
-                <li className="text-sm text-[var(--muted)]">Aucune clinique.</li>
-              ) : (
-                clinics.map((c) => (
-                  <li
-                    key={c.id}
-                    className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3"
-                  >
-                    <div className="text-sm font-semibold text-[var(--ink)]">{c.name}</div>
-                    <div className="mt-1 text-xs text-[var(--muted)]">
-                      ID: <span className="font-mono">{c.id}</span> · slug{" "}
-                      <span className="font-mono">{c.slug}</span>
-                    </div>
-                  </li>
-                ))
-              )}
-            </ul>
-          )}
-        </div>
+    {tab==="doctors"?<section className="rounded-2xl border bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-display text-lg font-bold">Comptes médecins</h2><p className="text-xs text-[var(--muted)]">Activation, rattachement et suppression complète.</p></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher…" className="rounded-xl border px-3 py-2 text-sm"/></div><div className="mt-5 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-xs"><thead className="border-b text-[var(--muted)]"><tr><th className="p-3">Médecin</th><th>Rôle</th><th>Structure</th><th>Création</th><th>État</th><th className="text-right">Actions</th></tr></thead><tbody>{filteredDoctors.map(d=><tr key={d.id} className="border-b border-[var(--border)]"><td className="p-3"><b>{d.name}</b><small className="block text-[var(--muted)]">{d.email}</small></td><td>{d.role??'doctor'}</td><td>{d.clinicId?clinicMap.get(d.clinicId)??d.clinicId:'Indépendant'}</td><td>{new Date(d.createdAt).toLocaleDateString('fr-FR')}</td><td><span className={`rounded-full px-2 py-1 font-bold ${d.active===false?'bg-red-50 text-red-700':'bg-emerald-50 text-emerald-700'}`}>{d.active===false?'Désactivé':'Actif'}</span></td><td><div className="flex justify-end gap-2"><button disabled={busyId===d.id||d.role==='app_admin'} onClick={()=>void setActive(d.id,d.active===false)} className="rounded-lg border px-2 py-1 font-bold disabled:opacity-40">{d.active===false?'Réactiver':'Désactiver'}</button><button disabled={busyId===d.id||d.role==='app_admin'} onClick={()=>void remove('doctor',d.id,d.name)} className="rounded-lg border border-red-200 px-2 py-1 font-bold text-red-700 disabled:opacity-40">Supprimer</button></div></td></tr>)}</tbody></table></div></section>:null}
 
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-bold text-[var(--ink)]">Médecins</h2>
-            <button
-              type="button"
-              onClick={() => void load()}
-              className="text-sm font-semibold text-[var(--teal)] hover:underline"
-            >
-              Rafraîchir
-            </button>
-          </div>
+    {tab==="clinics"?<section className="grid gap-5 lg:grid-cols-[340px_1fr]"><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">Créer une clinique</h2><p className="mt-1 text-xs text-[var(--muted)]">La structure pourra ensuite créer ses comptes praticiens.</p><input value={clinicName} onChange={e=>setClinicName(e.target.value)} placeholder="Nom de la clinique" className="mt-4 w-full rounded-xl border px-3 py-2 text-sm"/><button onClick={()=>void createClinic()} className="mt-3 w-full rounded-xl bg-[var(--teal)] px-4 py-2 text-sm font-bold text-white">Ajouter la clinique</button></div><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">Structures ({clinics.length})</h2><ul className="mt-4 space-y-2">{clinics.map(c=>{const count=doctors.filter(d=>d.clinicId===c.id).length;return <li key={c.id} className="flex items-center justify-between rounded-xl border p-3"><div><b className="text-sm">{c.name}</b><small className="block text-[var(--muted)]">{c.slug} · {count} compte(s)</small></div><button disabled={count>0||busyId===c.id} onClick={()=>void remove('clinic',c.id,c.name)} className="rounded-lg border border-red-200 px-3 py-1 text-xs font-bold text-red-700 disabled:opacity-30" title={count>0?'Retirez les médecins avant de supprimer':''}>Supprimer</button></li>})}</ul></div></section>:null}
 
-          {loading ? (
-            <p className="mt-4 text-sm text-[var(--muted)]">Chargement…</p>
-          ) : (
-            <ul className="mt-4 space-y-2">
-              {doctors.length === 0 ? (
-                <li className="text-sm text-[var(--muted)]">Aucun compte.</li>
-              ) : (
-                doctors.map((d) => {
-                  const clinicName = d.clinicId ? clinicNameById.get(d.clinicId) : null;
-                  const isDisabled = d.active === false;
-                  return (
-                    <li
-                      key={d.id}
-                      className={`rounded-xl border px-4 py-3 ${
-                        isDisabled
-                          ? "border-red-200 bg-red-50"
-                          : "border-[var(--border)] bg-[var(--surface-raised)]"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-[var(--ink)]">
-                            {d.name}
-                          </div>
-                          <div className="truncate text-xs text-[var(--muted)]">{d.email}</div>
-                          <div className="mt-1 text-[11px] text-[var(--muted)]">
-                            {d.role ?? "doctor"} ·{" "}
-                            {clinicName ? `Clinique: ${clinicName}` : "Indépendant"} ·{" "}
-                            {isDisabled ? "Désactivé" : "Actif"}
-                          </div>
-                        </div>
-                        <div className="shrink-0">
-                          <button
-                            type="button"
-                            disabled={busyId === d.id || d.role === "app_admin"}
-                            onClick={() => void setActive(d.id, isDisabled)}
-                            className={`rounded-lg px-3 py-2 text-xs font-semibold ${
-                              isDisabled
-                                ? "bg-[var(--teal)] text-white"
-                                : "border border-red-200 bg-white text-red-700"
-                            } disabled:opacity-50`}
-                            title={
-                              d.role === "app_admin"
-                                ? "Sécurité : pas de désactivation depuis l'UI"
-                                : ""
-                            }
-                          >
-                            {busyId === d.id
-                              ? "…"
-                              : isDisabled
-                                ? "Réactiver"
-                                : "Désactiver"}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="mt-2 text-[11px] text-[var(--muted)]">
-                        ID: <span className="font-mono">{d.id}</span> · Créé{" "}
-                        {new Date(d.createdAt).toLocaleDateString("fr-FR")}
-                      </div>
-                    </li>
-                  );
-                })
-              )}
-            </ul>
-          )}
-        </div>
-      </section>
-    </div>
-  );
+    {tab==="protocols"?<section className="grid gap-5 lg:grid-cols-[380px_1fr]"><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">Nouveau protocole</h2><div className="mt-4 space-y-3"><input value={protocolForm.title} onChange={e=>setProtocolForm({...protocolForm,title:e.target.value})} placeholder="Titre" className="w-full rounded-xl border px-3 py-2 text-sm"/><select value={protocolForm.category} onChange={e=>setProtocolForm({...protocolForm,category:e.target.value as ProtocolItem['category']})} className="w-full rounded-xl border px-3 py-2 text-sm"><option value="obst">Obstétrique</option><option value="gyn">Gynécologie</option><option value="pma">PMA</option><option value="urgence">Urgence</option></select><textarea value={protocolForm.summary} onChange={e=>setProtocolForm({...protocolForm,summary:e.target.value})} placeholder="Résumé" className="min-h-20 w-full rounded-xl border px-3 py-2 text-sm"/><textarea value={protocolForm.steps} onChange={e=>setProtocolForm({...protocolForm,steps:e.target.value})} placeholder={'Étapes — une par ligne'} className="min-h-36 w-full rounded-xl border px-3 py-2 text-sm"/><input value={protocolForm.references} onChange={e=>setProtocolForm({...protocolForm,references:e.target.value})} placeholder="Références" className="w-full rounded-xl border px-3 py-2 text-sm"/><button onClick={()=>void createProtocol()} className="w-full rounded-xl bg-[var(--teal)] px-4 py-2 text-sm font-bold text-white">Publier</button></div></div><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">Catalogue ({builtInProtocols.length+managedProtocols.length})</h2><p className="text-xs text-[var(--muted)]">Les protocoles intégrés sont protégés. Les protocoles administrés peuvent être masqués ou supprimés.</p><div className="mt-4 space-y-2">{builtInProtocols.map(p=><div key={p.id} className="rounded-xl border p-3"><div className="flex justify-between"><b className="text-sm">{p.title}</b><span className="text-[9px] font-bold text-[var(--teal)]">INTÉGRÉ</span></div><p className="mt-1 text-xs text-[var(--muted)]">{p.summary}</p></div>)}{managedProtocols.map(p=><div key={p.id} className={`rounded-xl border p-3 ${!p.active?'opacity-55':''}`}><div className="flex justify-between gap-3"><div><b className="text-sm">{p.title}</b><p className="mt-1 text-xs text-[var(--muted)]">{p.summary}</p></div><div className="flex shrink-0 gap-2"><button onClick={()=>void toggleProtocol(p)} className="rounded-lg border px-2 py-1 text-[10px] font-bold">{p.active?'Masquer':'Publier'}</button><button onClick={()=>void deleteProtocol(p)} className="rounded-lg border border-red-200 px-2 py-1 text-[10px] font-bold text-red-700">Supprimer</button></div></div></div>)}</div></div></section>:null}
+
+    {tab==="scores"?<section className="rounded-2xl border bg-white p-5"><h2 className="font-display text-lg font-bold">Catalogue des scores cliniques</h2><p className="mt-1 max-w-3xl text-xs text-[var(--muted)]">Les scores validés sont protégés contre la suppression administrative car leurs formules et seuils nécessitent une validation clinique et des tests de non-régression. L’administration peut surveiller le catalogue; l’ajout d’un score suit le processus de validation clinique.</p><div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{SCORE_NAMES.map((name,i)=><div key={name} className="flex items-center justify-between rounded-xl border p-3"><div><b className="text-sm">{name}</b><small className="block text-[var(--muted)]">Module clinique #{String(i+1).padStart(2,'0')}</small></div><span className="rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-bold text-emerald-700">ACTIF · PROTÉGÉ</span></div>)}</div></section>:null}
+
+    {tab==="ai"?<section className="grid gap-5 lg:grid-cols-2"><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">Dataset IA</h2><div className="mt-5 grid grid-cols-2 gap-3"><div className="rounded-xl bg-[var(--teal-pale)] p-4"><b className="text-2xl text-[var(--teal)]">{trainingStats?.totalSamples??0}</b><small className="block">Échantillons consentis</small></div><div className="rounded-xl bg-[var(--gold-surface)] p-4"><b className="text-2xl text-[var(--gold-dark)]">{trainingStats?.totalDoctors??0}</b><small className="block">Contributeurs</small></div></div><p className="mt-4 text-xs text-[var(--muted)]">Dernière ingestion : {trainingStats?.lastIngestedAt?new Date(trainingStats.lastIngestedAt).toLocaleString('fr-FR'):'Aucune'}</p><a href="/api/admin/training/export?format=ndjson&limit=10000" className="mt-4 inline-flex rounded-xl bg-[var(--teal)] px-4 py-2 text-xs font-bold text-white">Exporter NDJSON</a></div><div className="rounded-2xl border bg-white p-5"><h2 className="font-display font-bold">Gouvernance</h2><ul className="mt-4 space-y-3 text-sm"><li className="flex justify-between">Consentement versionné <b className="text-emerald-600">Actif</b></li><li className="flex justify-between">Suppression au retrait <b className="text-emerald-600">Active</b></li><li className="flex justify-between">Contexte IA pseudonymisé <b className="text-emerald-600">Actif</b></li><li className="flex justify-between">Validation structurée <b className="text-emerald-600">Active</b></li></ul></div></section>:null}
+    {loading?<p className="text-center text-sm text-[var(--muted)]">Actualisation des données…</p>:null}
+  </div>;
 }
-

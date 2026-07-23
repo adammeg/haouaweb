@@ -17,7 +17,13 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    await jwtVerify(token, new TextEncoder().encode(secret));
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+    if (payload.role === "secretary") {
+      const allowed = ["/salle-attente", "/agenda", "/rappels", "/settings"];
+      if (!allowed.some((path) => request.nextUrl.pathname.startsWith(path))) {
+        return NextResponse.redirect(new URL("/salle-attente", request.url));
+      }
+    }
     return NextResponse.next();
   } catch {
     const u = new URL("/login", request.url);

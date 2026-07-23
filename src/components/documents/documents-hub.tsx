@@ -143,13 +143,17 @@ export function DocumentsHub({ draft, onOpenOrdonnance, onOpenCrOp }: Props) {
         </section>
       ) : null}
 
-      {(ws.generatedDocuments ?? []).length > 0 ? (
+      {(ws.generatedDocuments ?? []).filter(
+        (d) => !draft?.id || d.patientId === draft.id,
+      ).length > 0 ? (
         <section>
           <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
             Documents récents
           </h3>
           <div className="doc-recent-list">
-            {(ws.generatedDocuments ?? []).map((d) => (
+            {(ws.generatedDocuments ?? [])
+              .filter((d) => !draft?.id || d.patientId === draft.id)
+              .map((d) => (
               <div key={d.id} className="doc-recent-item">
                 <div>
                   <strong>{d.title}</strong>
@@ -170,7 +174,7 @@ export function DocumentsHub({ draft, onOpenOrdonnance, onOpenCrOp }: Props) {
                   Rouvrir
                 </button>
               </div>
-            ))}
+              ))}
           </div>
         </section>
       ) : null}

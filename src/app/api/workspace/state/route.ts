@@ -59,7 +59,7 @@ export async function GET(req: Request) {
         req,
       );
     }
-    const row = await getWorkspaceByDoctorId(session.sub);
+    const row = await getWorkspaceByDoctorId(session.doctorId);
     if (!row) {
       return withCors(NextResponse.json({ empty: true }), req);
     }
@@ -107,8 +107,8 @@ export async function PUT(req: Request) {
         req,
       );
     }
-    const updatedAt = await upsertWorkspace(session.sub, workspace);
-    void ingestWorkspaceForTraining(session.sub, workspace, updatedAt).catch(
+    const updatedAt = await upsertWorkspace(session.doctorId, workspace);
+    void ingestWorkspaceForTraining(session.doctorId, workspace, updatedAt).catch(
       (err) => console.error("[training] workspace ingest failed", err),
     );
     return withCors(NextResponse.json({ ok: true, updatedAt }), req);

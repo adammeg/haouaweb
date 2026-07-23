@@ -12,8 +12,8 @@ export interface FlammInput {
   avb: 0 | 2;
   /** Indication précédente césarienne (autre que dystocie) : 0 ou 1. */
   ind: 0 | 1;
-  /** Effacement col à l'admission : 0..2. */
-  col: 0 | 1 | 2;
+  /** Col favorable en début de travail. */
+  col: 0 | 1;
   /** Travail spontané : 0 ou 1. */
   travail: 0 | 1;
 }

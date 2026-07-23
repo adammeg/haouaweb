@@ -13,8 +13,13 @@ import {
   buildDossierContextForIa,
   stableClinicalDataKey,
 } from "@/lib/ia/build-dossier-context";
-import { buildRagBlock, getRagChunkCount, retrieveRagChunks } from "@/lib/rag/rag-engine";
+import { getRagChunkCount } from "@/lib/rag/rag-engine";
 import { useHawaeStore } from "@/stores/hawae-store";
+import type {
+  ClinicalAiAnalysis,
+  ClinicalConfidence,
+  ClinicalUrgency,
+} from "@/lib/ia/clinical-analysis-schema";
 
 /* ── Progression déterministe ── */
 const PROGRESS: Record<string, number> = {
@@ -22,8 +27,6 @@ const PROGRESS: Record<string, number> = {
   scores: 15,
   context: 20,
 };
-const LLM_START = 20; // la barre part de 20% au début du LLM
-const LLM_CEIL = 95;  // plafond avant la finalisation à 100%
 
 /** Texte de statut affiché sous la barre selon la phase */
 const STEP_LABELS: Record<string, string> = {
@@ -70,15 +73,31 @@ async function consumeIaResponse(
   return acc;
 }
 
-/**
- * Fonction de progression exponentielle pour la phase LLM.
- * Chaque nouveau chunk comble la moitié du gap restant vers LLM_CEIL.
- */
-function llmProgress(bytes: number): number {
-  // "chunks" simulé : plus on reçoit de bytes, plus on avance
-  // On utilise une courbe 1 - 0.5^(bytes/500) pour éviter les micro-sauts
-  const ratio = 1 - Math.pow(0.5, bytes / 500);
-  return LLM_START + ratio * (LLM_CEIL - LLM_START);
+function generationMeta(res: Response) {
+  return {
+    provider: res.headers.get("X-Hawae-AI-Provider") ?? undefined,
+    model: res.headers.get("X-Hawae-AI-Model") ?? undefined,
+    promptVersion: res.headers.get("X-Hawae-Prompt-Version") ?? undefined,
+  };
+}
+
+async function consumeDiagnosticResponse(res: Response): Promise<{
+  reply: string;
+  analysis: ClinicalAiAnalysis;
+  meta: { provider?: string; model?: string; promptVersion?: string };
+}> {
+  const data = (await res.json().catch(() => ({}))) as {
+    reply?: string;
+    analysis?: ClinicalAiAnalysis;
+    error?: string;
+    detail?: string;
+    meta?: { provider?: string; model?: string; promptVersion?: string };
+  };
+  if (!res.ok) {
+    throw new Error([data.error, data.detail].filter(Boolean).join(" — ") || res.statusText);
+  }
+  if (!data.reply || !data.analysis) throw new Error("Analyse clinique structurée absente.");
+  return { reply: data.reply, analysis: data.analysis, meta: data.meta ?? {} };
 }
 
 function appendIaToDraft(
@@ -123,6 +142,74 @@ function ProgressBar({
   );
 }
 
+const CONFIDENCE_LABEL: Record<ClinicalConfidence, string> = {
+  strongly_supported: "Fortement étayée",
+  plausible: "Plausible",
+  must_exclude: "À éliminer",
+  insufficient_information: "Informations insuffisantes",
+};
+const URGENCY_LABEL: Record<ClinicalUrgency, string> = {
+  none: "Aucune urgence identifiée",
+  routine: "Suivi habituel",
+  rapid: "Évaluation rapide",
+  immediate: "Évaluation immédiate",
+};
+
+function StructuredClinicalAnalysis({ analysis }: { analysis: ClinicalAiAnalysis }) {
+  return (
+    <div className="space-y-5 text-sm text-[var(--ink)]">
+      <section>
+        <h4 className="mb-2 font-display text-sm font-bold text-[var(--teal)]">Synthèse clinique</h4>
+        <ul className="list-disc space-y-1 pl-5">{analysis.summary.map((x) => <li key={x}>{x}</li>)}</ul>
+      </section>
+
+      <section>
+        <h4 className="mb-2 font-display text-sm font-bold text-[var(--teal)]">Hypothèses à discuter</h4>
+        <div className="space-y-3">
+          {analysis.hypotheses.length ? analysis.hypotheses.map((h, i) => (
+            <article key={`${h.label}-${i}`} className="rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <strong>{h.label}</strong>
+                <span className="rounded-full bg-[var(--teal-pale)] px-2 py-0.5 text-[10px] font-bold text-[var(--teal)]">{CONFIDENCE_LABEL[h.confidence]}</span>
+              </div>
+              {h.supportingFacts.length ? <p className="mt-2 text-xs text-[var(--ink-mid)]"><strong>Éléments en faveur :</strong> {h.supportingFacts.join(" · ")}</p> : null}
+              {h.limitingFacts.length ? <p className="mt-1 text-xs text-[var(--muted)]"><strong>Limites :</strong> {h.limitingFacts.join(" · ")}</p> : null}
+            </article>
+          )) : <p className="text-xs text-[var(--muted)]">Aucune hypothèse structurée.</p>}
+        </div>
+      </section>
+
+      <section>
+        <h4 className="mb-2 font-display text-sm font-bold text-[var(--red)]">Signaux d&apos;alerte</h4>
+        <div className="space-y-2">
+          {analysis.redFlags.length ? analysis.redFlags.map((f, i) => (
+            <div key={`${f.label}-${i}`} className="rounded-xl border border-red-200 bg-red-50 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2"><strong>{f.label}</strong><span className="text-[10px] font-bold uppercase text-red-700">{URGENCY_LABEL[f.urgency]}</span></div>
+              <p className="mt-1 text-xs text-red-900">{f.rationale}</p>
+            </div>
+          )) : <p className="text-xs text-[var(--muted)]">Aucun signal d&apos;alerte ajouté par le modèle. Les alertes déterministes restent prioritaires.</p>}
+        </div>
+      </section>
+
+      {([
+        ["Informations à compléter", analysis.missingInformation],
+        ["Examens à discuter", analysis.suggestedInvestigations],
+        ["Orientation et suivi", analysis.followUp],
+        ["Limites de l’analyse", analysis.limitations],
+      ] as const).map(([title, items]) => items.length ? (
+        <section key={title}><h4 className="mb-2 font-display text-sm font-bold text-[var(--ink)]">{title}</h4><ul className="list-disc space-y-1 pl-5">{items.map((x) => <li key={x}>{x}</li>)}</ul></section>
+      ) : null)}
+
+      {analysis.citations.length ? (
+        <section className="border-t border-[var(--border)] pt-3">
+          <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--muted)]">Références déclarées</h4>
+          <ul className="space-y-1 text-xs text-[var(--ink-mid)]">{analysis.citations.map((c, i) => <li key={`${c.source}-${c.title}-${i}`}>[{c.source}{c.year ? ` ${c.year}` : ""}] {c.title}</li>)}</ul>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
 export function HawaeUnifiedPanel({
   draft,
 }: {
@@ -145,6 +232,7 @@ export function HawaeUnifiedPanel({
 
   /* ── LLM diagnostic ── */
   const [diagnosticText, setDiagnosticText] = useState("");
+  const [structuredAnalysis, setStructuredAnalysis] = useState<ClinicalAiAnalysis | null>(null);
   const [diagLoading, setDiagLoading] = useState(false);
   const [diagErr, setDiagErr] = useState<string | null>(null);
   const abortDiagRef = useRef<AbortController | null>(null);
@@ -159,7 +247,6 @@ export function HawaeUnifiedPanel({
 
   /* ── Progression ── */
   const [progress, setProgress] = useState(0);
-  const [ragSources, setRagSources] = useState<string[]>([]);
   const ragCount = getRagChunkCount();
   const [phase, setPhase] = useState<
     "idle" | "scores" | "context" | "llm" | "done"
@@ -188,6 +275,13 @@ export function HawaeUnifiedPanel({
       draft.hawaeAssistResultJson
     ) {
       setDiagnosticText(lastDiag.reply);
+      if (lastDiag.structuredAnalysisJson) {
+        try {
+          setStructuredAnalysis(JSON.parse(lastDiag.structuredAnalysisJson) as ClinicalAiAnalysis);
+        } catch {
+          setStructuredAnalysis(null);
+        }
+      }
       setPhase("done");
       setProgress(100);
       return;
@@ -199,6 +293,7 @@ export function HawaeUnifiedPanel({
     setProgress(PROGRESS.scores);
     setDiagErr(null);
     setDiagnosticText("");
+    setStructuredAnalysis(null);
 
     const profile = profileFromSnapshot(draft);
     const sr = runAssist(profile);
@@ -220,27 +315,21 @@ export function HawaeUnifiedPanel({
       if (runId !== diagRunIdRef.current) return;
       try {
         const dNow = useHawaeStore.getState().draft;
-        const summary = dNow ? buildDossierContextForIa(dNow) : "";
-        const ragQuery = "diagnostic analyse clinique grossesse pathologie";
-        const hits = retrieveRagChunks(ragQuery, 4);
-        setRagSources(hits.map((c) => c.source));
-        const ragBlock = buildRagBlock(ragQuery);
-        const enriched = ragBlock ? summary + ragBlock : summary;
         const res = await fetch("/api/ia", {
           method: "POST",
           signal: ac.signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             mode: "diagnostic",
-            dossierSummary: enriched,
-            stream: true,
+            patientId: dNow?.id,
+            stream: false,
           }),
         });
-        const onProgress = (bytes: number) => {
-          setProgress(Math.min(llmProgress(bytes), LLM_CEIL));
-        };
-        const final = await consumeIaResponse(res, onProgress);
+        const result = await consumeDiagnosticResponse(res);
+        const final = result.reply;
+        const meta = result.meta;
         setDiagnosticText(final);
+        setStructuredAnalysis(result.analysis);
         setProgress(100);
         const keyNow = stableClinicalDataKey(
           useHawaeStore.getState().draft,
@@ -250,6 +339,8 @@ export function HawaeUnifiedPanel({
           reply: final,
           contextKeyAtGeneration: keyNow || dataKey,
           at: new Date().toISOString(),
+          ...meta,
+          structuredAnalysisJson: JSON.stringify(result.analysis),
         });
         setPhase("done");
       } catch (e) {
@@ -264,18 +355,32 @@ export function HawaeUnifiedPanel({
   }, [draft, dataKey, patchDraft]);
 
   /* Déclenchement automatique à l'ouverture */
-  const hasRunRef = useRef(false);
+  const scoredPatientRef = useRef<string | null>(null);
   useEffect(() => {
-    if (
-      !draft?.id ||
-      hasRunRef.current ||
-      scoresResult ||
-      phase !== "idle"
-    )
-      return;
-    hasRunRef.current = true;
-    const t = setTimeout(() => runFullAnalysis(), 300);
-    return () => clearTimeout(t);
+    if (!draft?.id || scoredPatientRef.current === draft.id) return;
+    scoredPatientRef.current = draft.id;
+    const profile = profileFromSnapshot(draft);
+    const result = runAssist(profile);
+    setScoresResult(result);
+    patchDraft({
+      hawaeAssistResultJson: JSON.stringify(result),
+      hawaeAssistAt: new Date().toISOString(),
+    });
+    const lastDiag = [...(draft.hawaeIaHistory ?? [])]
+      .reverse()
+      .find((entry) => entry.mode === "diagnostic");
+    if (lastDiag?.contextKeyAtGeneration === dataKey) {
+      setDiagnosticText(lastDiag.reply);
+      if (lastDiag.structuredAnalysisJson) {
+        try {
+          setStructuredAnalysis(JSON.parse(lastDiag.structuredAnalysisJson) as ClinicalAiAnalysis);
+        } catch {
+          setStructuredAnalysis(null);
+        }
+      }
+      setPhase("done");
+      setProgress(100);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft?.id]);
 
@@ -290,10 +395,6 @@ export function HawaeUnifiedPanel({
     const qTrim = q.trim();
     try {
       const dNow = useHawaeStore.getState().draft;
-      const summary = dNow ? buildDossierContextForIa(dNow) : "";
-      const ragBlock = buildRagBlock(qTrim);
-      setRagSources(retrieveRagChunks(qTrim, 4).map((c) => c.source));
-      const enriched = ragBlock ? summary + ragBlock : summary;
       const res = await fetch("/api/ia", {
         method: "POST",
         signal: ac.signal,
@@ -301,9 +402,10 @@ export function HawaeUnifiedPanel({
         body: JSON.stringify({
           mode: "question",
           question: qTrim,
-          dossierSummary: enriched,
+          patientId: dNow?.id,
         }),
       });
+      const meta = generationMeta(res);
       const final = await consumeIaResponse(res);
       setFollowUpText(final);
       const key = stableClinicalDataKey(useHawaeStore.getState().draft);
@@ -313,6 +415,7 @@ export function HawaeUnifiedPanel({
         reply: final,
         contextKeyAtGeneration: key || dataKey,
         at: new Date().toISOString(),
+        ...meta,
       });
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
@@ -339,20 +442,11 @@ export function HawaeUnifiedPanel({
             background: "linear-gradient(135deg,#0a5c5c 0%,#1a8c7c 100%)",
             boxShadow: "0 2px 8px rgba(10,92,92,0.4)",
           }}
-          title={
-            ragSources.length
-              ? `Sources : ${ragSources.join(", ")}`
-              : "Base de connaissances RAG"
-          }
+          title="Base de connaissances RAG sélectionnée côté serveur selon le dossier"
         >
           <span aria-hidden>📚</span>
           <span id="hawae-rag-count">{ragCount} guidelines</span>
         </span>
-        {ragSources.length > 0 ? (
-          <p className="mt-2 text-[10px] text-[var(--muted)]">
-            Sources actives : {ragSources.join(" · ")}
-          </p>
-        ) : null}
       </div>
       {/* Bannière avec barre de progression déterministe */}
       {isWorking ? (
@@ -368,6 +462,9 @@ export function HawaeUnifiedPanel({
       ) : null}
 
       {/* Barre d'actions */}
+      <div className="rounded-xl border border-[var(--gold)]/40 bg-[var(--gold-surface)] px-4 py-3 text-xs leading-relaxed text-[var(--ink-mid)]">
+        <strong>Analyse externe sur demande.</strong> Le serveur vérifie l&apos;accès au dossier et retire le nom, le CIN, le téléphone et la date de naissance exacte avant l&apos;envoi. Les scores cliniques restent calculés localement.
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-display text-sm font-bold text-[var(--teal)]">
           Analyse Hawae — scores cliniques + intelligence artificielle
@@ -405,7 +502,7 @@ export function HawaeUnifiedPanel({
                 </span>
               </>
             ) : (
-              "🔁 Relancer l'analyse complète"
+            "🔐 Lancer l'analyse IA"
             )}
           </button>
         </div>
@@ -432,7 +529,9 @@ export function HawaeUnifiedPanel({
             {diagErr}
           </p>
         )}
-        {diagnosticText ? (
+        {structuredAnalysis ? (
+          <StructuredClinicalAnalysis analysis={structuredAnalysis} />
+        ) : diagnosticText ? (
           <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-[var(--ink)]">
             {diagnosticText}
           </pre>
@@ -461,8 +560,7 @@ export function HawaeUnifiedPanel({
       {/* Contexte envoyé (détails repliables) */}
       <details className="rounded-xl border border-[var(--border)] bg-[var(--teal-pale)]/30 p-4">
         <summary className="cursor-pointer text-xs font-semibold text-[var(--ink-mid)]">
-          Voir le contexte envoyé au modèle (dossier + scores + ordonnance +
-          historique Hawae)
+          Aperçu pseudonymisé du contexte clinique (le serveur vérifie et reconstruit le dossier)
         </summary>
         <pre className="mt-3 max-h-56 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-relaxed text-[var(--ink-mid)]">
           {draft ? buildDossierContextForIa(draft) || "Aucun champ renseigné." : ""}

@@ -4,13 +4,13 @@ export function opts(labels: string[]): { value: string; label: string }[] {
   return labels.map((l) => ({ value: l, label: l }));
 }
 
-export const ETHNIE_OPTIONS = opts([
-  "Caucasienne",
-  "Afro-caribéenne",
-  "Sud-asiatique",
-  "Est-asiatique",
-  "Métissée",
-]);
+export const ETHNIE_OPTIONS = [
+  { value: "caucasian", label: "Caucasienne" },
+  { value: "afrocaribbean", label: "Afro-caribéenne" },
+  { value: "south_asian", label: "Sud-asiatique" },
+  { value: "east_asian", label: "Est-asiatique" },
+  { value: "mixed", label: "Métissée" },
+];
 
 export const DEBUT_OPTIONS = opts([
   "Aujourd'hui",

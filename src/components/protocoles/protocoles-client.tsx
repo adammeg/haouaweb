@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PROTOCOL_CATALOG, type ProtocolItem } from "@/lib/protocols/catalog";
 import { useModulesStore, useModulesWorkspace } from "@/stores/modules-store";
 
@@ -10,6 +10,20 @@ export function ProtocolesClient() {
   const [selected, setSelected] = useState<ProtocolItem | null>(
     PROTOCOL_CATALOG[0] ?? null,
   );
+  const [protocols, setProtocols] = useState<ProtocolItem[]>(PROTOCOL_CATALOG);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/protocols")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data: { protocols?: ProtocolItem[] }) => {
+        if (!alive || !Array.isArray(data.protocols)) return;
+        setProtocols(data.protocols);
+        setSelected((current) => data.protocols?.find((p) => p.id === current?.id) ?? data.protocols?.[0] ?? null);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -32,7 +46,7 @@ export function ProtocolesClient() {
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
         <ul className="space-y-1">
-          {PROTOCOL_CATALOG.map((p) => (
+          {protocols.map((p) => (
             <li key={p.id}>
               <button
                 type="button"

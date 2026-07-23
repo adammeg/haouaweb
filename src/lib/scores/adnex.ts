@@ -26,24 +26,25 @@ export function calcADNEX(input: ADNEXInput): ScoreResult | null {
   const { age, ca125, cystMaxMm } = input;
   if (!ca125 || !cystMaxMm || ca125 <= 0 || cystMaxMm <= 0) return null;
 
-  const ca125Log = Math.log(Math.max(1, ca125));
-  const diamLog = Math.log(Math.max(1, cystMaxMm));
+  const ca125Log = Math.log(Math.max(1, ca125) + 1);
+  const diamLog = Math.log(Math.max(1, cystMaxMm) + 1);
   const solid = (input.solidPct || 0) / 100;
   const pap = Math.min(4, input.papillaryProjections || 0);
+  const papCoefficient = pap >= 4 ? 0.6144 : pap >= 1 ? 0.3166 : 0;
   const shadow = input.acousticShadows ? 1 : 0;
   const ascite = input.ascites ? 1 : 0;
   const center = input.oncologyCenter ? 1 : 0;
 
   const logit =
-    -5.303 +
+    -5.3718 +
     0.0222 * (age || 50) +
-    0.618 * ca125Log +
-    0.328 * diamLog +
-    1.54 * solid +
-    0.537 * pap -
-    0.959 * shadow +
-    1.023 * ascite +
-    0.48 * center;
+    0.4809 * ca125Log +
+    0.545 * diamLog +
+    1.2945 * solid +
+    papCoefficient -
+    0.5628 * shadow +
+    0.8698 * ascite +
+    0.4342 * center;
 
   const prob = 1 / (1 + Math.exp(-logit));
   const pct = prob * 100;

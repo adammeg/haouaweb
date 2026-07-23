@@ -65,7 +65,7 @@ const ITEMS = [
   { href: "/dashboard", label: "Stats", icon: IconDashboard },
 ] as const;
 
-export function MobileBottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
+export function MobileBottomNav({ onOpenMenu, secretary = false }: { onOpenMenu: () => void; secretary?: boolean }) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
@@ -76,15 +76,15 @@ export function MobileBottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
       style={{ paddingBottom: "max(0.35rem, env(safe-area-inset-bottom, 0px))" }}
       aria-label="Navigation rapide"
     >
-      <div className="mx-auto flex max-w-lg items-stretch justify-around">
-        {ITEMS.map(({ href, label, icon: Icon }) => {
+      <div className="mx-auto flex max-w-lg items-stretch justify-around overflow-hidden">
+        {(secretary ? ITEMS.filter((item) => item.href === "/salle-attente") : ITEMS).map(({ href, label, icon: Icon }) => {
           const active = isActive(href);
           return (
             <Link
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className="flex min-h-[var(--bottom-nav-h)] min-w-[4.5rem] flex-col items-center justify-center gap-0.5 px-2 py-1"
+              className="flex min-h-[var(--bottom-nav-h)] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1"
             >
               <NavIcon active={active}>
                 <Icon className="h-5 w-5" />
@@ -100,7 +100,7 @@ export function MobileBottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
         <button
           type="button"
           onClick={onOpenMenu}
-          className="flex min-h-[var(--bottom-nav-h)] min-w-[4.5rem] flex-col items-center justify-center gap-0.5 px-2 py-1"
+          className="flex min-h-[var(--bottom-nav-h)] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1"
           aria-label="Ouvrir le menu complet"
         >
           <NavIcon active={false}>

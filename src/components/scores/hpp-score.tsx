@@ -52,14 +52,14 @@ export function HPPScore() {
           ]}
         />
       </ScoreCriterion>
-      <ScoreCriterion label="Placenta praevia / accreta">
+      <ScoreCriterion label="Placenta prævia ou bas inséré">
         <ScoreSelect
           value={input.placenta}
           onChange={(v) => patch("placenta", v as HPPInput["placenta"])}
           options={[
             { value: 0, label: "Non (0)" },
-            { value: 1, label: "Praevia (+1)" },
-            { value: 2, label: "Accreta (+2)" },
+            { value: 2, label: "Placenta bas inséré (+2)" },
+            { value: 3, label: "Prævia total (+3)" },
           ]}
         />
       </ScoreCriterion>
@@ -69,17 +69,18 @@ export function HPPScore() {
           onChange={(v) => patch("coag", v as HPPInput["coag"])}
           options={[
             { value: 0, label: "Non (0)" },
-            { value: 1, label: "Oui (+1)" },
+            { value: 2, label: "Oui (+2)" },
           ]}
         />
       </ScoreCriterion>
-      <ScoreCriterion label="Anémie sévère">
+      <ScoreCriterion label="Anémie prépartum (Hb < 10 g/dL)">
         <ScoreSelect
           value={input.anemie}
           onChange={(v) => patch("anemie", v as HPPInput["anemie"])}
           options={[
             { value: 0, label: "Non (0)" },
-            { value: 1, label: "Oui (+1)" },
+            { value: 1, label: "Hb 8–10 g/dL (+1)" },
+            { value: 2, label: "Hb < 8 g/dL (+2)" },
           ]}
         />
       </ScoreCriterion>
@@ -89,7 +90,7 @@ export function HPPScore() {
           onChange={(v) => patch("travail", v as HPPInput["travail"])}
           options={[
             { value: 0, label: "Non (0)" },
-            { value: 1, label: "Oui (+1)" },
+            { value: 2, label: "Oui (+2)" },
           ]}
         />
       </ScoreCriterion>

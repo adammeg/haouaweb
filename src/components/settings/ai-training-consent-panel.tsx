@@ -55,7 +55,7 @@ export function AiTrainingConsentPanel() {
         await runSync();
       } else {
         setMessage(
-          "Contribution désactivée. Aucun nouveau dossier ne sera collecté.",
+          `Contribution désactivée. ${data.deletedRecords ?? 0} copie(s) d'entraînement supprimée(s).`,
         );
       }
     } catch {

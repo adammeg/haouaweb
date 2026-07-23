@@ -25,7 +25,7 @@ export async function GET(req: Request) {
   if (auth instanceof NextResponse) return withCors(auth, req);
 
   try {
-    const row = await getModulesByDoctorId(auth.doctor.sub);
+    const row = await getModulesByDoctorId(auth.doctor.doctorId);
     if (!row) {
       return withCors(NextResponse.json({ empty: true }), req);
     }
@@ -60,10 +60,10 @@ export async function PUT(req: Request) {
 
   try {
     const updatedAt = await upsertModules(
-      auth.doctor.sub,
+      auth.doctor.doctorId,
       raw.workspaceByUser as Record<string, ModulesWorkspace>,
     );
-    void ingestAllFullTrainingData(auth.doctor.sub).catch((err) =>
+    void ingestAllFullTrainingData(auth.doctor.doctorId).catch((err) =>
       console.error("[training] modules ingest failed", err),
     );
     return withCors(NextResponse.json({ ok: true, updatedAt }), req);

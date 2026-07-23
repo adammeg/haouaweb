@@ -16,6 +16,7 @@ import { BackupModal } from "@/components/backup/backup-modal";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { useModulesWorkspace } from "@/stores/modules-store";
 import { todayIso } from "@/lib/waiting-room/utils";
+import { QuickAiBubble } from "@/components/assist/quick-ai-bubble";
 
 function IconWaiting(props: SVGProps<SVGSVGElement>) {
   return (
@@ -151,24 +152,18 @@ function SidebarItem({
       href={item.href}
       aria-current={active ? "page" : undefined}
       onClick={onClick}
-      className={`group relative flex items-center gap-3 rounded-lg border-l-[3px] px-3 py-2.5 transition-all ${
+      className={`sidebar-nav-item group relative flex items-center gap-3 ${
         active
           ? "border-[var(--blush)] bg-white/[0.13] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
           : "border-transparent hover:border-white/20 hover:bg-white/[0.08]"
       }`}
     >
       <span
-        className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg text-base transition-transform group-hover:scale-[1.04] ${
+        className={`sidebar-nav-icon flex shrink-0 items-center justify-center transition-transform group-hover:scale-[1.04] ${
           active ? "bg-[rgba(193,122,122,0.32)]" : "bg-white/[0.07]"
         }`}
       >
-        {item.emoji ? (
-          <span aria-hidden className="leading-none">
-            {item.emoji}
-          </span>
-        ) : (
-          <Icon className="h-4 w-4 text-white/95" />
-        )}
+        <Icon className="h-4 w-4 text-white/95" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[12.5px] font-semibold leading-tight text-white/90">
@@ -181,7 +176,7 @@ function SidebarItem({
         ) : null}
       </span>
       {badge != null && badge > 0 ? (
-        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-amber-400 px-1 text-[10px] font-bold text-amber-950">
+        <span className="sidebar-nav-badge flex h-5 min-w-5 shrink-0 items-center justify-center px-1">
           {badge > 99 ? "99+" : badge}
         </span>
       ) : null}
@@ -202,7 +197,7 @@ export function AppChrome({
   doctor: {
     email: string;
     name: string;
-    role: "doctor" | "clinic_admin" | "app_admin";
+    role: "doctor" | "secretary" | "clinic_admin" | "app_admin";
   };
 }) {
   const pathname = usePathname();
@@ -267,19 +262,19 @@ export function AppChrome({
       ) : null}
 
       <aside
-        className={`fixed bottom-0 left-0 top-0 z-[200] flex w-[var(--sidebar-w)] flex-col shadow-[4px_0_24px_rgba(10,92,92,0.22)] transition-transform sm:translate-x-0 ${
+        className={`app-sidebar fixed bottom-0 left-0 top-0 z-[200] flex w-[var(--sidebar-w)] flex-col transition-transform sm:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         style={{ background: "var(--gradient-sidebar)" }}
         aria-label="Navigation principale"
       >
-        <div className="flex shrink-0 items-center gap-3 border-b border-white/10 px-[18px] py-[18px]">
+        <div className="sidebar-logo flex shrink-0 items-center gap-3">
           <HawaeLogo
             size={42}
             rounded="lg"
-            className="shadow-md ring-1 ring-white/25"
+            className="sidebar-logo-icon ring-1 ring-white/25"
           />
-          <div className="min-w-0">
+          <div className="sidebar-logo-text min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="font-display text-[17px] font-extrabold leading-tight text-white">
                 HawaeMD
@@ -292,13 +287,16 @@ export function AppChrome({
         </div>
 
         <nav
-          className="hawae-scroll flex flex-1 flex-col gap-0.5 overflow-y-auto px-2.5 py-3.5"
+          className="sidebar-nav hawae-scroll flex flex-1 flex-col gap-0.5 overflow-y-auto px-2.5 py-3.5"
           aria-label="Sections principales"
         >
-          <div className="px-2.5 pb-1 pt-2 text-[9px] font-bold uppercase tracking-[1.8px] text-white/30">
+          <div className="sidebar-nav-label">
             Espaces
           </div>
-          {PRIMARY_NAV.map((item) => (
+          {(doctor.role === "secretary"
+            ? PRIMARY_NAV.filter((item) => item.href === "/salle-attente")
+            : PRIMARY_NAV
+          ).map((item) => (
             <SidebarItem
               key={item.href}
               item={item}
@@ -312,19 +310,20 @@ export function AppChrome({
             />
           ))}
 
-          <div className="mt-4 px-2.5 pb-1 text-[9px] font-bold uppercase tracking-[1.8px] text-white/30">
+          <div className="sidebar-nav-label">
             Outils
           </div>
+          {doctor.role !== "secretary" ? (
           <button
             type="button"
             onClick={() => {
               setNewPatientOpen(true);
               closeMobile();
             }}
-            className="group flex w-full items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 py-2.5 text-left transition-all hover:border-white/20 hover:bg-white/[0.08]"
+            className="sidebar-nav-item group flex w-full items-center gap-3 text-left"
           >
-            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-white/[0.07] text-base">
-              ➕
+            <span className="sidebar-nav-icon flex shrink-0 items-center justify-center">
+              +
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[12.5px] font-semibold leading-tight text-white/90">
@@ -332,16 +331,17 @@ export function AppChrome({
               </span>
             </span>
           </button>
+          ) : null}
           <button
             type="button"
             onClick={() => {
               router.push("/agenda");
               closeMobile();
             }}
-            className="group flex w-full items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 py-2.5 text-left transition-all hover:border-white/20 hover:bg-white/[0.08]"
+            className="sidebar-nav-item group flex w-full items-center gap-3 text-left"
           >
-            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-white/[0.07] text-base">
-              📅
+            <span className="sidebar-nav-icon flex shrink-0 items-center justify-center">
+              ＋
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[12.5px] font-semibold leading-tight text-white/90">
@@ -349,16 +349,17 @@ export function AppChrome({
               </span>
             </span>
           </button>
+          {doctor.role !== "secretary" ? (
           <button
             type="button"
             onClick={() => {
               setBackupOpen(true);
               closeMobile();
             }}
-            className="group flex w-full items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 py-2.5 text-left transition-all hover:border-white/20 hover:bg-white/[0.08]"
+            className="sidebar-nav-item group flex w-full items-center gap-3 text-left"
           >
-            <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-lg bg-white/[0.07] text-base">
-              💾
+            <span className="sidebar-nav-icon flex shrink-0 items-center justify-center">
+              ↓
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[12.5px] font-semibold leading-tight text-white/90">
@@ -366,7 +367,8 @@ export function AppChrome({
               </span>
             </span>
           </button>
-          <ToolsNavGroups
+          ) : null}
+          {doctor.role !== "secretary" ? <ToolsNavGroups
             isActive={isActive}
             onNavigate={closeMobile}
             renderItem={({ item, active, onClick }) => (
@@ -377,11 +379,11 @@ export function AppChrome({
                 onClick={onClick}
               />
             )}
-          />
+          /> : null}
 
           {doctor.role === "clinic_admin" || doctor.role === "app_admin" ? (
             <>
-              <div className="mt-4 px-2.5 pb-1 text-[9px] font-bold uppercase tracking-[1.8px] text-white/30">
+              <div className="sidebar-nav-label">
                 Administration
               </div>
               {doctor.role === "clinic_admin" ? (
@@ -412,7 +414,7 @@ export function AppChrome({
           ) : null}
         </nav>
 
-        <div className="border-t border-white/10">
+        <div className="sidebar-footer border-t border-white/10">
           <UserSwitcher
             triggerClassName="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left hover:bg-white/[0.05]"
             avatar={
@@ -438,8 +440,8 @@ export function AppChrome({
         </div>
       </aside>
 
-      <div className="min-h-screen bg-gradient-to-b from-white/55 via-[var(--cream)] to-[var(--cream-dark)]/30 sm:pl-[var(--sidebar-w)]">
-        <div className="sticky top-0 z-[150] border-b border-[var(--border)] bg-white/92 shadow-[0_1px_0_rgba(10,92,92,0.06)] backdrop-blur-md supports-[backdrop-filter]:bg-white/78">
+      <div className="app-main-zone min-h-screen sm:pl-[var(--sidebar-w)]">
+        <div className="app-topbar sticky top-0 z-[150]">
           <div className="mx-auto flex h-[var(--topbar-h)] max-w-[var(--content-max)] items-center gap-3 px-4 sm:px-8">
             <button
               type="button"
@@ -460,7 +462,7 @@ export function AppChrome({
               </svg>
             </button>
             <div className="min-w-0 flex-1">
-              <span className="truncate font-display text-base font-extrabold tracking-tight text-[var(--ink)] sm:text-[17px]">
+              <span className="topbar-space-title truncate font-display text-base tracking-tight sm:text-[17px]">
                 {pageTitle}
               </span>
             </div>
@@ -482,6 +484,8 @@ export function AppChrome({
                 }
               />
               <NotificationBell />
+              {doctor.role !== "secretary" ? (
+              <>
               <button
                 type="button"
                 onClick={() => saveDraft()}
@@ -490,6 +494,8 @@ export function AppChrome({
               >
                 💾 Sauvegarder
               </button>
+              </>
+              ) : null}
               <Link
                 href="/agenda"
                 className="btn-header hidden sm:inline-flex"
@@ -522,12 +528,16 @@ export function AppChrome({
           </div>
         </div>
 
-        <main className="hawae-page mx-auto min-h-[calc(100vh-var(--topbar-h))] max-w-[var(--content-max)] px-4 pt-6 sm:px-8 sm:pt-7">
+        <main
+          key={pathname}
+          className="hawae-page hawae-page-enter mx-auto min-h-[calc(100vh-var(--topbar-h))] max-w-[var(--content-max)] px-4 pt-6 sm:px-8 sm:pt-7"
+        >
           {children}
         </main>
       </div>
 
-      <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} />
+      <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} secretary={doctor.role === "secretary"} />
+      {doctor.role === "doctor" || doctor.role === "clinic_admin" ? <QuickAiBubble /> : null}
 
       <NewPatientModal
         open={newPatientOpen}
