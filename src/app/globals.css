@@ -192,10 +192,11 @@ html {
 
 /* Assistant IA rapide */
 .quick-ai {
+  --quick-ai-nav-h: 0px;
   position: fixed;
-  right: 1.25rem;
-  bottom: 1.25rem;
-  z-index: 175;
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + var(--quick-ai-nav-h));
+  z-index: 250;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -237,7 +238,7 @@ html {
 .quick-ai-panel {
   display: flex;
   width: min(370px, calc(100vw - 2rem));
-  height: min(520px, calc(100dvh - 6rem));
+  height: min(520px, calc(100dvh - env(safe-area-inset-bottom, 0px) - var(--quick-ai-nav-h) - 6rem));
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -301,6 +302,8 @@ html {
 .quick-ai-welcome { color: var(--ink-mid); font-size: .78rem; line-height: 1.55; }
 .quick-ai-welcome strong { color: var(--ink); font-size: .95rem; }
 .quick-ai-welcome > p { margin-top: .3rem; }
+.quick-ai-access { padding: .85rem; border: 1px solid var(--border); border-radius: 11px; background: var(--teal-pale); }
+.quick-ai-access a { display: block; margin-top: .5rem; color: var(--teal); font-weight: 700; text-decoration: underline; }
 .quick-ai-welcome > div:last-child { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; margin-top: 1rem; }
 .quick-ai-welcome-symbol { display: grid; place-items: center; width: 44px; height: 44px; margin: .2rem 0 1rem; border: 1px solid var(--border); border-radius: 15px; background: var(--blush-pale); color: var(--teal); font-size: 1.5rem; }
 .quick-ai-welcome button {
@@ -382,13 +385,13 @@ html {
 @keyframes quick-ai-dot { 0%, 70%, 100% { opacity: .3; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-3px); } }
 
 @media (max-width: 639px) {
+  body:has(.hawae-app-shell) .quick-ai { --quick-ai-nav-h: var(--bottom-nav-h, 72px); }
   .quick-ai {
-    right: .75rem;
-    bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + .65rem);
+    right: max(.75rem, env(safe-area-inset-right, 0px));
+    bottom: calc(var(--quick-ai-nav-h) + env(safe-area-inset-bottom, 0px) + .75rem);
   }
-  .quick-ai-trigger > span:last-child { display: none; }
-  .quick-ai-trigger { width: 52px; height: 52px; justify-content: center; padding: 0; }
-  .quick-ai-panel { width: min(370px, calc(100vw - 1.5rem)); height: min(520px, calc(100dvh - var(--bottom-nav-h) - env(safe-area-inset-bottom, 0px) - 5.5rem)); }
+  .quick-ai-trigger { min-height: 48px; font-size: .72rem; }
+  .quick-ai-panel { width: min(370px, calc(100vw - 1.5rem)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

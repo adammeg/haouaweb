@@ -16,7 +16,6 @@ import { BackupModal } from "@/components/backup/backup-modal";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { useModulesWorkspace } from "@/stores/modules-store";
 import { todayIso } from "@/lib/waiting-room/utils";
-import { QuickAiBubble } from "@/components/assist/quick-ai-bubble";
 
 function IconWaiting(props: SVGProps<SVGSVGElement>) {
   return (
@@ -251,7 +250,7 @@ export function AppChrome({
   }, [mobileOpen]);
 
   return (
-    <div className="min-h-screen bg-[var(--cream)]">
+    <div className="hawae-app-shell min-h-screen bg-[var(--cream)]">
       {mobileOpen ? (
         <button
           type="button"
@@ -537,7 +536,6 @@ export function AppChrome({
       </div>
 
       <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} secretary={doctor.role === "secretary"} />
-      {doctor.role === "doctor" || doctor.role === "clinic_admin" ? <QuickAiBubble key={doctor.email} /> : null}
 
       <NewPatientModal
         open={newPatientOpen}

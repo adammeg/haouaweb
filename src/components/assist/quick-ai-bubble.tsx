@@ -11,7 +11,7 @@ const SUGGESTIONS = [
   { label: "Discutons", question: "Bonjour Hawae, de quoi peut-on discuter en gynécologie ?" },
 ];
 
-export function QuickAiBubble() {
+export function QuickAiBubble({ access }: { access: "enabled" | "sign-in" | "restricted" }) {
   const panelId = useId();
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
@@ -60,7 +60,7 @@ export function QuickAiBubble() {
 
   async function ask(raw: string) {
     const text = raw.trim();
-    if (!text || text.length > 2000 || abortRef.current) return;
+    if (access !== "enabled" || !text || text.length > 2000 || abortRef.current) return;
     const history = quickChatHistory(messages);
     const ac = new AbortController();
     const run = ++runRef.current;
@@ -137,9 +137,11 @@ export function QuickAiBubble() {
                 <div className="quick-ai-welcome-symbol" aria-hidden>✦</div>
                 <strong>Un point de gynéco ?</strong>
                 <p>Une notion à éclaircir, une question courte ou simplement envie d’échanger ? Je vous écoute.</p>
-                <div>{SUGGESTIONS.map((suggestion) => (
+                {access === "enabled" ? <div>{SUGGESTIONS.map((suggestion) => (
                   <button key={suggestion.label} type="button" onClick={() => void ask(suggestion.question)}><span>{suggestion.label}</span><span aria-hidden>↗</span></button>
-                ))}</div>
+                ))}</div> : <p className="quick-ai-access">
+                  {access === "sign-in" ? <>Connectez-vous à votre compte pour discuter avec Hawae. <a href="/login">Se connecter →</a></> : "La discussion médicale est réservée aux comptes médecins et administrateurs."}
+                </p>}
               </div>
             ) : messages.map((message) => (
               <div key={message.id} className={`quick-ai-message quick-ai-${message.role}`}>
@@ -150,7 +152,7 @@ export function QuickAiBubble() {
             ))}
           </div>
           {error ? <p className="quick-ai-error" role="alert">{error}</p> : null}
-          <form onSubmit={submit} className="quick-ai-form">
+          {access === "enabled" ? <form onSubmit={submit} className="quick-ai-form">
             <textarea ref={inputRef} value={question} onChange={(event) => setQuestion(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); }
@@ -158,12 +160,12 @@ export function QuickAiBubble() {
               maxLength={2000} rows={2} placeholder="Une petite question…" aria-label="Votre question de gynécologie" enterKeyHint="send" />
             {loading ? <button type="button" onClick={stop} aria-label="Arrêter la réponse" title="Arrêter"><span className="quick-ai-stop" aria-hidden /></button>
               : <button type="submit" disabled={!question.trim()} aria-label="Envoyer la question" title="Envoyer">↑</button>}
-          </form>
+          </form> : null}
           <p className="quick-ai-disclaimer">Échanges informatifs · pour un cas patient, utilisez l’analyse du dossier.</p>
         </section>
       ) : null}
       <button ref={triggerRef} type="button" className="quick-ai-trigger" onClick={() => open ? close() : setOpen(true)} aria-label={open ? "Fermer la discussion avec Hawae" : "Ouvrir la discussion avec Hawae"} aria-expanded={open} aria-controls={open ? panelId : undefined} aria-haspopup="dialog">
-        <span aria-hidden>✦</span><span>Un mot avec Hawae</span>
+        <span aria-hidden><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H4l-2 2V11.5a9.5 9.5 0 0 1 19 0Z" strokeLinecap="round" strokeLinejoin="round" /><path d="M7 11h.01M12 11h.01M17 11h.01" strokeWidth="3" strokeLinecap="round" /></svg></span><span>Hawae · Question rapide</span>
       </button>
     </div>
   );

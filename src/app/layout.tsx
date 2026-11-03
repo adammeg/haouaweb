@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, Noto_Naskh_Arabic, Poppins } from "next/font/google";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa/pwa-register";
+import { QuickAiBubble } from "@/components/assist/quick-ai-bubble";
+import { getSession } from "@/lib/auth/session";
 
 const display = Poppins({
   subsets: ["latin"],
@@ -37,11 +39,12 @@ export const viewport: Viewport = {
   themeColor: "#0A5C5C",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getSession();
   return (
     <html lang="fr">
       <head>
@@ -56,6 +59,10 @@ export default function RootLayout({
       >
         <PwaRegister />
         {children}
+        <QuickAiBubble
+          key={session ? `${session.sub}:${session.role}` : "guest"}
+          access={!session ? "sign-in" : session.role === "secretary" ? "restricted" : "enabled"}
+        />
       </body>
     </html>
   );
