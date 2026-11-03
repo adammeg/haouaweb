@@ -101,7 +101,7 @@ function toBaseUnit(
 
 export function convertFmfMoM(input: FmfMomInput): FmfMomResult | null {
   const { gaWeeks, rawValue, marker } = input;
-  if (!gaWeeks || gaWeeks < 11 || gaWeeks > 14 || !rawValue) return null;
+  if (!Number.isFinite(gaWeeks) || gaWeeks < 11 || gaWeeks >= 14 || !Number.isFinite(rawValue) || rawValue <= 0) return null;
 
   const val = toBaseUnit(marker, rawValue, input.unit);
   let median: number;

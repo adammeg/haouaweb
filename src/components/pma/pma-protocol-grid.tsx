@@ -64,7 +64,7 @@ export function PmaProtocolGrid({
             <DoseRow
               label="Adaptation"
               value={
-                analysis.poseidon.group >= 3
+                (analysis.poseidon.group ?? 0) >= 3
                   ? "Step-up prudent (réserve basse)"
                   : analysis.response.responseType.includes("Hyper")
                     ? "Step-down si E2 > 2500 pg/mL"

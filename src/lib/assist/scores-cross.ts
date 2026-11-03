@@ -1,5 +1,5 @@
 import { Norm } from "./norm";
-import { scoreOut } from "./helpers";
+import { insufficient, scoreOut } from "./helpers";
 import type { AssistProfile } from "./types";
 import { DOMAIN, RISK } from "./types";
 
@@ -76,13 +76,13 @@ export function scoreGDM(p: AssistProfile) {
     } else if (p.ogtt_fasting >= 5.1) {
       criteria.push(`Jeûn ${p.ogtt_fasting} ≥ 5.1 mmol/L (IADPSG)`);
     }
-    if (p.ogtt_1h && p.ogtt_1h >= 10.0) {
+  }
+    if (p.ogtt_1h != null && p.ogtt_1h >= 10.0) {
       criteria.push(`H1 ${p.ogtt_1h} ≥ 10.0`);
     }
-    if (p.ogtt_2h && p.ogtt_2h >= 8.5) {
+    if (p.ogtt_2h != null && p.ogtt_2h >= 8.5) {
       criteria.push(`H2 ${p.ogtt_2h} ≥ 8.5`);
     }
-  }
   let riskScore = 0;
   const riskFactors: string[] = [];
   const bmi = p.bmi_computed ?? p.bmi;
@@ -103,9 +103,9 @@ export function scoreGDM(p: AssistProfile) {
     return scoreOut(
       "GDM_IADPSG",
       DOMAIN.CROSS,
-      "DG=OUI",
+      (p.ogtt_fasting ?? 0) >= 7 ? "Diabète manifeste à confirmer" : "DG=OUI",
       RISK.HIGH,
-      `🔴 DIABÈTE GESTATIONNEL — ${criteria.join("; ")}`,
+      `🔴 ${(p.ogtt_fasting ?? 0) >= 7 ? "DIABÈTE MANIFESTE À CONFIRMER" : "DIABÈTE GESTATIONNEL"} — ${criteria.join("; ")}`,
       "high",
       [
         "Autosurveillance glycémique 4×/jour",
@@ -124,16 +124,17 @@ export function scoreGDM(p: AssistProfile) {
       ["HGPO 75g si non faite", "HGPO à 24–28 SA"],
     );
 
-  if (p.ogtt_fasting == null)
+  const missing = (["ogtt_fasting", "ogtt_1h", "ogtt_2h"] as const).filter((f) => p[f] == null);
+  if (missing.length)
     return scoreOut(
       "GDM_IADPSG",
       DOMAIN.CROSS,
       "Non testé",
       RISK.UNKNOWN,
-      `HGPO non disponible — facteurs: ${riskScore}/6`,
+      "HGPO incomplète — aucune conclusion négative possible",
       "low",
       ["Prescrire HGPO 75g à 24–28 SA"],
-      ["ogtt_fasting"],
+      [...missing],
     );
 
   return scoreOut(
@@ -149,6 +150,8 @@ export function scoreGDM(p: AssistProfile) {
 
 export function scoreVTE(p: AssistProfile) {
   if (!p.is_pregnant) return null;
+  const required = ["age", "bmi", "parity", "previous_vte", "thrombophilia_high", "thrombophilia_low", "sle", "antiphospholipid", "smoking", "multiple_pregnancy", "vte_current_infection", "vte_immobility", "vte_surgical"] as const;
+  const missing = required.filter((f) => p[f] == null);
   let score = 0;
   const factors: string[] = [];
   if (p.previous_vte) {
@@ -238,6 +241,7 @@ export function scoreVTE(p: AssistProfile) {
       "high",
       ["HBPM prophylactique dès 28 SA"],
     );
+  if (missing.length) return insufficient("VTE_RCOG", DOMAIN.CROSS, [...missing]);
   return scoreOut(
     "VTE_RCOG",
     DOMAIN.CROSS,

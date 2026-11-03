@@ -21,6 +21,8 @@ import type {
   ScoreOutput,
 } from "./types";
 import { RISK, RISK_NUM } from "./types";
+import type { AssistAssessment } from "./types";
+import { ASSIST_VERSION } from "@/lib/ia/versions";
 
 type ScoreFn = (p: AssistProfile) => ScoreOutput | null;
 
@@ -48,9 +50,9 @@ function enrichProfile(p: AssistProfile): AssistProfile {
   if (ep.weight_kg && ep.height_cm) {
     ep.bmi_computed = Norm.bmi(ep.weight_kg, ep.height_cm);
   }
-  if (ep.amh_ngml && !ep.amh_pmol) {
+  if (ep.amh_ngml != null && ep.amh_pmol == null) {
     ep.amh_normalized_pmol = Norm.amhNgmlToPmol(ep.amh_ngml);
-  } else if (ep.amh_pmol) {
+  } else if (ep.amh_pmol != null) {
     ep.amh_normalized_pmol = ep.amh_pmol;
   }
   return ep;
@@ -79,7 +81,8 @@ function computeMetaRisk(scores: ScoreOutput[]): MetaRisk {
     3: RISK.HIGH,
     4: RISK.CRITICAL,
   };
-  const overall = Math.max(...Object.values(domMax));
+  const maxRisk = Math.max(...Object.values(domMax));
+  const overall = maxRisk === 1 && scores.some((s) => s.risk_level === RISK.UNKNOWN) ? 0 : maxRisk;
   return {
     overall: numToStr[overall],
     domains: Object.fromEntries(
@@ -104,7 +107,7 @@ function buildReport(
     unknown: "⚪",
   };
   const msgs: Record<string, string> = {
-    low: "Profil de risque global FAIBLE — Suivi standard",
+    low: "Risque faible parmi les scores évalués — ne préjuge pas des domaines non évalués",
     intermediate: "Profil de risque INTERMÉDIAIRE — Surveillance renforcée",
     high: `Profil de risque ÉLEVÉ (${meta.high_count} score(s))`,
     critical: `ALERTE CRITIQUE (${meta.critical_count} score(s))`,
@@ -146,23 +149,28 @@ export function runAssist(rawProfile: AssistProfile): AssistRunResult {
   const p = enrichProfile(rawProfile);
   const executed: ScoreOutput[] = [];
   const allMissing: string[] = [];
+  const assessments: AssistAssessment[] = [];
 
   for (const fn of SCORE_RUNNERS) {
     let result: ScoreOutput | null;
     try {
       result = fn(p);
     } catch {
+      assessments.push({ score_name: fn.name, status: "error", missing_inputs: [], error_code: "calculator_failed" });
+      executed.push({ score_name: fn.name, domain: "cross_domain", value: null, risk_level: RISK.UNKNOWN, interpretation: "Échec du calcul : score non évalué", confidence: "low", recommended_actions: [] });
       continue;
     }
-    if (!result) continue;
+    if (!result) {
+      assessments.push({ score_name: fn.name, status: "not_applicable", missing_inputs: [] });
+      continue;
+    }
+    assessments.push({ score_name: result.score_name, status: result.risk_level === RISK.UNKNOWN || result.missing_inputs?.length ? "incomplete" : "ok", missing_inputs: result.missing_inputs ?? [] });
     if (
-      result.risk_level === RISK.UNKNOWN &&
       result.missing_inputs?.length
     ) {
       allMissing.push(...result.missing_inputs);
-    } else {
-      executed.push(result);
     }
+    executed.push(result);
   }
 
   const uniqueMissing = [...new Set(allMissing)];
@@ -175,6 +183,8 @@ export function runAssist(rawProfile: AssistProfile): AssistRunResult {
   const report = buildReport(executed, alerts, contras);
 
   return {
+    engine_version: ASSIST_VERSION,
+    assessments,
     executed,
     alerts,
     contradictions: contras,

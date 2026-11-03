@@ -7,6 +7,7 @@ export type ClinicalConfidence =
 export type ClinicalUrgency = "none" | "routine" | "rapid" | "immediate";
 
 export interface ClinicalAiCitation {
+  chunkId?: string;
   source: string;
   year: number | null;
   title: string;
@@ -56,30 +57,36 @@ function object(value: unknown): Record<string, unknown> {
 
 function text(value: unknown, label: string, max = 1_200): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(`${label} invalide`);
-  return value.trim().slice(0, max);
+  if (value.trim().length > max) throw new Error(`${label} trop long`);
+  return value.trim();
 }
 
 function texts(value: unknown, label: string, maxItems = 12): string[] {
   if (!Array.isArray(value)) throw new Error(`${label} doit être une liste`);
-  return value.slice(0, maxItems).map((v, i) => text(v, `${label}[${i}]`, 600));
+  if (value.length > maxItems) throw new Error(`${label} trop de valeurs`);
+  return value.map((v, i) => text(v, `${label}[${i}]`, 600));
 }
 
-function citation(value: unknown): ClinicalAiCitation {
+type CitationEvidence = { id: string; source: string; year: number; title: string };
+function citation(value: unknown, evidence: readonly CitationEvidence[]): ClinicalAiCitation {
   const o = object(value);
-  const year = o.year == null ? null : Number(o.year);
+  const match = evidence.find((c) => c.id === o.chunkId);
+  if (!match) throw new Error("Citation absente des extraits fournis");
   return {
-    source: text(o.source, "citation.source", 160),
-    year: year != null && Number.isInteger(year) && year >= 1900 && year <= 2100 ? year : null,
-    title: text(o.title, "citation.title", 240),
+    chunkId: match.id,
+    source: match.source,
+    year: match.year,
+    title: match.title,
   };
 }
 
-function citations(value: unknown): ClinicalAiCitation[] {
+function citations(value: unknown, evidence: readonly CitationEvidence[]): ClinicalAiCitation[] {
   if (!Array.isArray(value)) throw new Error("citations doit être une liste");
-  return value.slice(0, 12).map(citation);
+  if (value.length > 12) throw new Error("Trop de citations");
+  return value.map((entry) => citation(entry, evidence));
 }
 
-export function validateClinicalAiAnalysis(value: unknown): ClinicalAiAnalysis {
+export function validateClinicalAiAnalysis(value: unknown, evidence: readonly CitationEvidence[] = []): ClinicalAiAnalysis {
   const o = object(value);
   if (o.schemaVersion !== "clinical-analysis-v1") {
     throw new Error("version de schéma incorrecte");
@@ -87,6 +94,8 @@ export function validateClinicalAiAnalysis(value: unknown): ClinicalAiAnalysis {
   if (!Array.isArray(o.hypotheses) || !Array.isArray(o.redFlags)) {
     throw new Error("hypotheses/redFlags doivent être des listes");
   }
+  if (o.hypotheses.length > 10 || o.redFlags.length > 10) throw new Error("Trop d'hypothèses ou d'alertes");
+  if (!Array.isArray(o.summary) || !o.summary.length || !Array.isArray(o.limitations) || !o.limitations.length) throw new Error("Synthèse et limites requises");
 
   return {
     schemaVersion: "clinical-analysis-v1",
@@ -101,7 +110,7 @@ export function validateClinicalAiAnalysis(value: unknown): ClinicalAiAnalysis {
         confidence: h.confidence as ClinicalConfidence,
         supportingFacts: texts(h.supportingFacts, `hypotheses[${i}].supportingFacts`, 8),
         limitingFacts: texts(h.limitingFacts, `hypotheses[${i}].limitingFacts`, 8),
-        citations: citations(h.citations),
+        citations: citations(h.citations, evidence),
       };
     }),
     redFlags: o.redFlags.slice(0, 10).map((entry, i) => {
@@ -113,27 +122,27 @@ export function validateClinicalAiAnalysis(value: unknown): ClinicalAiAnalysis {
         label: text(f.label, `redFlags[${i}].label`, 240),
         urgency: f.urgency as ClinicalUrgency,
         rationale: text(f.rationale, `redFlags[${i}].rationale`, 600),
-        citations: citations(f.citations),
+        citations: citations(f.citations, evidence),
       };
     }),
     missingInformation: texts(o.missingInformation, "missingInformation"),
     suggestedInvestigations: texts(o.suggestedInvestigations, "suggestedInvestigations"),
     followUp: texts(o.followUp, "followUp"),
-    citations: citations(o.citations),
+    citations: citations(o.citations, evidence),
     limitations: texts(o.limitations, "limitations", 8),
   };
 }
 
-export function parseClinicalAiAnalysis(raw: string): ClinicalAiAnalysis {
+export function parseClinicalAiAnalysis(raw: string, evidence: readonly CitationEvidence[] = []): ClinicalAiAnalysis {
   const cleaned = raw.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start < 0 || end <= start) throw new Error("JSON clinique absent");
-  return validateClinicalAiAnalysis(JSON.parse(cleaned.slice(start, end + 1)));
+  return validateClinicalAiAnalysis(JSON.parse(cleaned.slice(start, end + 1)), evidence);
 }
 
 export function clinicalAnalysisToText(a: ClinicalAiAnalysis): string {
-  const hypotheses = a.hypotheses.map((h) => `- ${h.label} (${h.confidence})`).join("\n");
+  const hypotheses = a.hypotheses.map((h) => `- ${h.label} (${h.confidence})\n  En faveur: ${h.supportingFacts.join(" ; ")}\n  Limites: ${h.limitingFacts.join(" ; ")}\n  Références: ${h.citations.map((c) => c.chunkId).join(", ")}`).join("\n");
   const redFlags = a.redFlags.map((f) => `- ${f.label} [${f.urgency}] — ${f.rationale}`).join("\n");
   return [
     "SYNTHÈSE CLINIQUE",
@@ -148,5 +157,9 @@ export function clinicalAnalysisToText(a: ClinicalAiAnalysis): string {
     ...a.suggestedInvestigations.map((x) => `- ${x}`),
     "\nSUIVI",
     ...a.followUp.map((x) => `- ${x}`),
+    "\nLIMITES",
+    ...a.limitations.map((x) => `- ${x}`),
+    "\nRÉFÉRENCES FOURNIES",
+    ...[...a.citations, ...a.hypotheses.flatMap((h) => h.citations), ...a.redFlags.flatMap((f) => f.citations)].map((c) => `- [${c.chunkId}] ${c.source} — ${c.title}`),
   ].join("\n");
 }

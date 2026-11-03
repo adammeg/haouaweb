@@ -4,7 +4,9 @@ import { DOMAIN, RISK } from "./types";
 
 export function scoreROMA(p: AssistProfile) {
   if (!p.ca125 || !p.he4) return null;
-  const post = p.is_postmenopause || (p.age != null && p.age >= 51);
+  if (p.ca125 <= 0 || p.he4 <= 0 || !Number.isFinite(p.ca125) || !Number.isFinite(p.he4)) return insufficient("ROMA", DOMAIN.GYN, ["ca125", "he4"]);
+  if (p.is_postmenopause == null) return insufficient("ROMA", DOMAIN.GYN, ["is_postmenopause"]);
+  const post = p.is_postmenopause;
   const pi = post
     ? -8.09 + 1.04 * Math.log(p.he4) + 0.732 * Math.log(p.ca125)
     : -12.0 + 2.38 * Math.log(p.he4) + 0.0626 * Math.log(p.ca125);
@@ -36,6 +38,8 @@ export function scoreROMA(p: AssistProfile) {
 
 export function scoreADNEX(p: AssistProfile) {
   if (!p.ca125 || !p.cyst_max_diameter_mm) return null;
+  const missing = (["age", "cyst_solid_pct", "cyst_papillary_projections", "cyst_acoustic_shadows", "cyst_ascites", "oncology_center"] as const).filter((f) => p[f] == null);
+  if (missing.length) return insufficient("ADNEX_Simplified", DOMAIN.GYN, [...missing]);
   const ca125 = Math.log(Math.max(1, p.ca125) + 1);
   const diam = Math.log(Math.max(1, p.cyst_max_diameter_mm) + 1);
   const solid = (p.cyst_solid_pct || 0) / 100;
@@ -168,10 +172,11 @@ export function scorePFDI20(p: AssistProfile) {
       [],
       ["pfdi20_items"],
     );
+  if (items.some((v) => v != null && (!Number.isInteger(v) || v < 0 || v > 4))) return insufficient("PFDI_20_Scorer", DOMAIN.GYN, ["pfdi20_items"]);
   const sub = (arr: number[]) => {
     const answered = arr.filter((v) => v != null);
     if (!answered.length) return 0;
-    const mean = answered.reduce((a, b) => a + b, 0) / arr.length;
+    const mean = answered.reduce((a, b) => a + b, 0) / answered.length;
     return +(mean * 25).toFixed(1);
   };
   const popdi = sub(items.slice(0, 6));

@@ -23,7 +23,7 @@ export function PmaAnalysisPanel({ analysis }: { analysis: IvfAnalysis }) {
       <div className="pma-summary-strip">
         <div className="pma-summary-item">
           <div className="pma-summary-label">Groupe POSEIDON</div>
-          <div className="pma-summary-val">G{a.poseidon.group}</div>
+          <div className="pma-summary-val">{a.poseidon.group == null ? "Non classe" : `G${a.poseidon.group}`}</div>
           <div className="pma-summary-sub">
             {a.poseidon.subgroup ? "Sous-groupe " + a.poseidon.subgroup : "—"}
           </div>
@@ -61,7 +61,7 @@ export function PmaAnalysisPanel({ analysis }: { analysis: IvfAnalysis }) {
             <p className="text-[0.65rem] font-bold uppercase tracking-wider opacity-70 mb-1.5">
               Classification POSEIDON 2016
             </p>
-            <div className="pma-poseidon-group">G{a.poseidon.group}</div>
+            <div className="pma-poseidon-group">{a.poseidon.group == null ? "Non classe" : `G${a.poseidon.group}`}</div>
             <p className="pma-poseidon-label">{a.poseidon.desc}</p>
             <p className="pma-poseidon-desc">
               {a.poseidon.lowReserve
@@ -70,7 +70,7 @@ export function PmaAnalysisPanel({ analysis }: { analysis: IvfAnalysis }) {
               <br />
               {a.poseidon.poorPrevResponse
                 ? "🔴 Mauvaise réponse antérieure"
-                : a.poseidon.group <= 2
+                : a.poseidon.group != null && a.poseidon.group <= 2
                   ? "🟢 Bonne réponse prédite"
                   : "—"}
             </p>

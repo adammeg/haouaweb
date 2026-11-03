@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import type { PatientSnapshot } from "@/types/domain";
 import { convertFmfMoM } from "@/lib/assist/fmf-mom";
+import { clinicalNumber, gestationalWeeks } from "@/lib/clinical/parse";
 import { Field, SectionTitle, SelectInput, TextInput, type FieldPatch } from "./form-primitives";
 
 export function FmfConverterPanel({
@@ -12,12 +13,12 @@ export function FmfConverterPanel({
   draft: PatientSnapshot;
   onField: (p: FieldPatch) => void;
 }) {
-  const ga = parseFloat(draft.o_terme || "12") || 12;
+  const ga = gestationalWeeks(draft.o_terme);
   const eth = draft.ethnie || "caucasian";
 
   const papp = useMemo(() => {
-    const raw = parseFloat(draft.o_papp_a_raw || "");
-    if (!raw) return null;
+    const raw = clinicalNumber(draft.o_papp_a_raw);
+    if (!raw || ga == null) return null;
     return convertFmfMoM({
       gaWeeks: ga,
       rawValue: raw,
@@ -28,8 +29,8 @@ export function FmfConverterPanel({
   }, [draft.o_papp_a_raw, draft.o_papp_a_unit, ga, eth]);
 
   const bhcg = useMemo(() => {
-    const raw = parseFloat(draft.o_bhcg_raw || "");
-    if (!raw) return null;
+    const raw = clinicalNumber(draft.o_bhcg_raw);
+    if (!raw || ga == null) return null;
     return convertFmfMoM({
       gaWeeks: ga,
       rawValue: raw,
@@ -40,8 +41,8 @@ export function FmfConverterPanel({
   }, [draft.o_bhcg_raw, draft.o_bhcg_unit, ga, eth]);
 
   const plgf = useMemo(() => {
-    const raw = parseFloat(draft.o_plgf_raw || "");
-    if (!raw) return null;
+    const raw = clinicalNumber(draft.o_plgf_raw);
+    if (!raw || ga == null) return null;
     return convertFmfMoM({
       gaWeeks: ga,
       rawValue: raw,
@@ -77,7 +78,7 @@ export function FmfConverterPanel({
     <div className="rounded-xl border border-[var(--border)] bg-[var(--teal-pale)]/20 p-4">
       <SectionTitle>FMF Converter — MoM T1 (11–14 SA)</SectionTitle>
       <p className="mb-3 text-xs text-[var(--muted)]">
-        Terme : {draft.o_terme || "—"} SA · MoM alimentent Hawae Assist (FMF T21/PE)
+        Terme : {draft.o_terme || "—"} · Estimation locale des MoM ; privilégier les résultats corrigés du laboratoire. Les risques FMF nécessitent un calculateur vérifié.
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="PAPP-A brut">

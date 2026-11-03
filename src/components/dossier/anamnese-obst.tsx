@@ -432,7 +432,7 @@ export function ObstAnamnese({
             <Field label="ATCD pré-éclampsie">
               <PillGroup
                 name="o-atcd-pe"
-                value={draft.o_atcd_pe || "non"}
+                value={draft.o_atcd_pe ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui" },
@@ -443,7 +443,7 @@ export function ObstAnamnese({
             <Field label="ATCD prématurité spontanée">
               <PillGroup
                 name="o-atcd-prem"
-                value={draft.o_atcd_prematurite || "non"}
+                value={draft.o_atcd_prematurite ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui" },
@@ -454,7 +454,7 @@ export function ObstAnamnese({
             <Field label="ATCD thrombose (TVP/EP)">
               <PillGroup
                 name="o-atcd-vte"
-                value={draft.o_atcd_vte || "non"}
+                value={draft.o_atcd_vte ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui" },
@@ -476,7 +476,7 @@ export function ObstAnamnese({
             <Field label="Lupus (LED)">
               <PillGroup
                 name="o-led"
-                value={draft.o_led || "non"}
+                value={draft.o_led ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui" },
@@ -487,7 +487,7 @@ export function ObstAnamnese({
             <Field label="SAPL">
               <PillGroup
                 name="o-apl"
-                value={draft.o_apl || "non"}
+                value={draft.o_apl ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui" },
@@ -543,7 +543,7 @@ export function ObstAnamnese({
             <Field label="Contractions">
               <PillGroup
                 name="o-cu"
-                value={draft.o_cu || "non"}
+                value={draft.o_cu ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "bh", label: "Braxton-Hicks" },
@@ -555,7 +555,7 @@ export function ObstAnamnese({
             <Field label="Œdèmes">
               <PillGroup
                 name="o-oed"
-                value={draft.o_oed || "non"}
+                value={draft.o_oed ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui" },
@@ -578,13 +578,14 @@ export function ObstAnamnese({
                   { value: "1+", label: "1+" },
                   { value: "2+", label: "2+" },
                   { value: "3+", label: "3+" },
+                  { value: "4+", label: "4+" },
                 ]}
               />
             </Field>
             <Field label="Céphalées / Troubles visuels">
               <PillGroup
                 name="o-cephalees"
-                value={draft.o_cephalees || "non"}
+                value={draft.o_cephalees ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui" },
@@ -595,13 +596,19 @@ export function ObstAnamnese({
             <Field label="Douleur épigastrique">
               <PillGroup
                 name="o-epigastre"
-                value={draft.o_epigastre || "non"}
+                value={draft.o_epigastre ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui" },
                 ]}
                 onChange={(v) => patch("o_epigastre", v)}
               />
+            </Field>
+            <Field label="Douleur thoracique ou dyspnée (miniPIERS)">
+              <PillGroup name="o-thorax-dyspnee" value={draft.o_thorax_dyspnee ?? ""} options={[{ value: "non", label: "Non" }, { value: "oui", label: "Oui" }]} onChange={(v) => patch("o_thorax_dyspnee", v)} />
+            </Field>
+            <Field label="Saignement vaginal avec douleur abdominale (miniPIERS)">
+              <PillGroup name="o-saignement-douleur" value={draft.o_saignement_douleur ?? ""} options={[{ value: "non", label: "Non" }, { value: "oui", label: "Oui" }]} onChange={(v) => patch("o_saignement_douleur", v)} />
             </Field>
           </div>
         </AnaCard>

@@ -1,3 +1,4 @@
+import { poseidonClassification } from "@/lib/clinical/poseidon";
 import { Norm } from "./norm";
 import { insufficient, scoreOut } from "./helpers";
 import type { AssistProfile } from "./types";
@@ -5,67 +6,17 @@ import { DOMAIN, RISK } from "./types";
 
 export function scorePOSEIDON(p: AssistProfile) {
   if (!p.is_infertility) return null;
-  if (p.age == null || p.afc == null)
-    return insufficient(
-      "POSEIDON",
-      DOMAIN.PMA,
-      ["age", "afc"].filter((f) => p[f as keyof AssistProfile] == null),
-    );
-  const amh = p.amh_normalized_pmol;
-  const lowRO = p.afc < 5 || (amh != null && amh < 1.2);
-  const por = p.previous_poor_response;
-  if (!lowRO && !por)
-    return scoreOut(
-      "POSEIDON",
-      DOMAIN.PMA,
-      "Normal",
-      RISK.LOW,
-      "POSEIDON Normal — bonne réponse attendue",
-      "high",
-      ["Protocole FIV standard"],
-      [],
-      { group: "Normal" },
-    );
-  if (!lowRO && por) {
-    const g = p.age < 35 ? "1a" : "1b";
-    return scoreOut(
-      "POSEIDON",
-      DOMAIN.PMA,
-      `Groupe ${g}`,
-      RISK.INTERMEDIATE,
-      `POSEIDON ${g} — mauvaise réponse inattendue`,
-      "high",
-      ["Modifier protocole", "DuoStim à discuter"],
-      [],
-      { group: g },
-    );
+  const amhNgml = p.amh_normalized_pmol != null ? Norm.amhPmolToNgml(p.amh_normalized_pmol) : p.amh_ngml;
+  const pos = poseidonClassification({ age: p.age, amhNgml, afc: p.afc, previousPoorResponse: p.previous_poor_response, previousOocytes: p.previous_oocytes });
+  if (p.age == null || (!pos.lowReserve && (amhNgml == null || p.afc == null))) {
+    return insufficient("POSEIDON", DOMAIN.PMA, [p.age == null && "age", amhNgml == null && "amh_ngml", p.afc == null && "afc"].filter((v): v is string => !!v));
   }
-  if (lowRO && por) {
-    const g = p.age < 35 ? "2a" : "2b";
-    return scoreOut(
-      "POSEIDON",
-      DOMAIN.PMA,
-      `Groupe ${g}`,
-      RISK.HIGH,
-      `POSEIDON ${g} — réserve diminuée + mauvaise réponse antérieure`,
-      "high",
-      ["Antagoniste+FSHr max dose", "Don d'ovocytes si AFC<3+âge>40"],
-      [],
-      { group: g },
-    );
-  }
-  const g = p.age < 35 ? "3" : "4";
-  return scoreOut(
-    "POSEIDON",
-    DOMAIN.PMA,
-    `Groupe ${g}`,
-    RISK.HIGH,
-    `POSEIDON ${g} — réserve diminuée (AFC=${p.afc})`,
-    "high",
-    ["Antagoniste+FSHr haute dose", "Accumulation multi-cycles"],
-    [],
-    { group: g },
-  );
+  if (pos.group == null) return scoreOut("POSEIDON", DOMAIN.PMA, null, RISK.UNKNOWN,
+    "Réserve préservée : groupe POSEIDON non établi sans réponse observée à la stimulation", "low", [], ["previous_oocytes"], { group: null });
+  return scoreOut("POSEIDON", DOMAIN.PMA, "Groupe " + (pos.subgroup ?? pos.group), pos.lowReserve ? RISK.HIGH : RISK.INTERMEDIATE,
+    "POSEIDON " + (pos.subgroup ?? pos.group) + (pos.lowReserve ? " — réserve diminuée" : " — réponse diminuée inattendue"),
+    "moderate", ["Discuter la stratégie de stimulation avec le spécialiste AMP"], [], { ...pos },
+    "Classification de réserve et de réponse, sans prédiction individuelle de naissance vivante.");
 }
 
 export function scoreOHSS(p: AssistProfile) {
@@ -127,6 +78,8 @@ export function scoreOHSS(p: AssistProfile) {
       [],
       { score },
     );
+  const missing = (["age", "weight_kg", "amh_normalized_pmol", "previous_ohss"] as const).filter((f) => p[f] == null);
+  if (missing.length) return insufficient("OHSS_Risk", DOMAIN.PMA, [...missing]);
   return scoreOut(
     "OHSS_Risk",
     DOMAIN.PMA,
@@ -142,6 +95,9 @@ export function scoreOHSS(p: AssistProfile) {
 
 export function scoreIVFPrognosis(p: AssistProfile) {
   if (!p.is_infertility || p.age == null) return null;
+  const missing: string[] = (["infertility_cause", "sperm_quality", "previous_ivf_attempts", "bmi"] as const).filter((f) => p[f] == null);
+  if (p.amh_normalized_pmol == null && p.afc == null) missing.push("amh_normalized_pmol");
+  if (missing.length) return insufficient("HAWAE_IVF_Prognosis", DOMAIN.PMA, [...missing]);
   const amh = p.amh_normalized_pmol;
   const bmi = p.bmi_computed ?? p.bmi;
   let logit = 1.05;
@@ -171,15 +127,13 @@ export function scoreIVFPrognosis(p: AssistProfile) {
   }
   const lbrProb = 1 / (1 + Math.exp(-logit));
   const lbr = +Math.max(2, Math.min(62, lbrProb * 100)).toFixed(1);
-  const lo = Math.max(1, +(lbr - 8).toFixed(1));
-  const hi = Math.min(65, +(lbr + 8).toFixed(1));
   if (lbr >= 35)
     return scoreOut(
       "HAWAE_IVF_Prognosis",
       DOMAIN.PMA,
-      `LBR ~${lbr}%/cycle`,
+      `Estimation heuristique ~${lbr}%/cycle`,
       RISK.LOW,
-      `Bon pronostic FIV — LBR ~${lbr}% (IC95: ${lo}–${hi}%)`,
+      `Estimation locale FIV — LBR ~${lbr}% (heuristique non calibrée)`,
       "moderate",
       ["Protocole FIV standard", "SET recommandé"],
     );
@@ -187,7 +141,7 @@ export function scoreIVFPrognosis(p: AssistProfile) {
     return scoreOut(
       "HAWAE_IVF_Prognosis",
       DOMAIN.PMA,
-      `LBR ~${lbr}%/cycle`,
+      `Estimation heuristique ~${lbr}%/cycle`,
       RISK.INTERMEDIATE,
       `Pronostic intermédiaire — LBR ~${lbr}%`,
       "moderate",
@@ -196,7 +150,7 @@ export function scoreIVFPrognosis(p: AssistProfile) {
   return scoreOut(
     "HAWAE_IVF_Prognosis",
     DOMAIN.PMA,
-    `LBR ~${lbr}%/cycle`,
+    `Estimation heuristique ~${lbr}%/cycle`,
     RISK.HIGH,
     `Pronostic réservé — LBR ~${lbr}%`,
     "moderate",

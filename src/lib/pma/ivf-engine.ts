@@ -1,3 +1,4 @@
+import { poseidonClassification } from "@/lib/clinical/poseidon";
 /**
  * IVF / PMA Engine — porté depuis hawaemd_v50.html (IVFEngineService).
  */
@@ -13,64 +14,8 @@ import type {
 } from "./ivf-types";
 
 export function classifyPoseidon(p: IvfPatientProfile): PoseidonResult {
-  const lowR =
-    (p.amh !== null && p.amh < 1.2) || (p.afc !== null && p.afc < 5);
-  const adR = !lowR;
-  const poorPrev =
-    p.prevCycles > 0 && p.prevOocytes !== null && p.prevOocytes < 4;
-  let group: number;
-  let desc: string;
-  let sub: string | null = null;
-
-  if (!p.prevCycles || p.prevCycles === 0) {
-    if (p.age != null && p.age < 35 && lowR) {
-      group = 3;
-      desc = "Jeune patiente à réserve ovarienne diminuée";
-    } else if (p.age != null && p.age >= 35 && lowR) {
-      group = 4;
-      desc = "Patiente ≥ 35 ans à réserve ovarienne diminuée";
-    } else if (p.age != null && p.age < 35) {
-      group = 1;
-      desc = "Jeune patiente, bonne réserve prédite";
-      sub = "1a";
-    } else {
-      group = 2;
-      desc = "Patiente ≥ 35 ans, bonne réserve";
-      sub = "2a";
-    }
-  } else {
-    if (p.age != null && p.age < 35 && adR && poorPrev) {
-      group = 1;
-      desc = "Mauvaise répondante inattendue < 35 ans";
-      sub = "1b";
-    } else if (p.age != null && p.age >= 35 && adR && poorPrev) {
-      group = 2;
-      desc = "Mauvaise répondante inattendue ≥ 35 ans";
-      sub = "2b";
-    } else if (p.age != null && p.age < 35 && lowR) {
-      group = 3;
-      desc = "Jeune patiente à réserve diminuée";
-    } else if (p.age != null && p.age >= 35 && lowR) {
-      group = 4;
-      desc = "Patiente âgée à réserve diminuée";
-    } else if (p.age != null && p.age < 35) {
-      group = 1;
-      desc = "Bonne réponse attendue < 35 ans";
-      sub = "1a";
-    } else {
-      group = 2;
-      desc = "Bonne réponse attendue ≥ 35 ans";
-      sub = "2a";
-    }
-  }
-  return {
-    group,
-    desc,
-    subgroup: sub,
-    lowReserve: lowR,
-    adequateReserve: adR,
-    poorPrevResponse: poorPrev,
-  };
+  const result = poseidonClassification({ age: p.age, amhNgml: p.amh, afc: p.afc, previousOocytes: p.prevCycles > 0 ? p.prevOocytes : null, previousPoorResponse: p.previousPoorResponse });
+  return { ...result, desc: result.group == null ? "Groupe non etabli : reserve ou reponse observee incomplete" : result.lowReserve ? "Reserve ovarienne diminuee" : "Reponse diminuee inattendue" };
 }
 
 export function classifyBologna(p: IvfPatientProfile): BolognaResult {
@@ -247,7 +192,7 @@ export function generateProtocols(
 ): IvfProtocolOption[] {
   const sopk = p.sopk !== "non";
   const poor =
-    poseidon.group >= 3 || response.responseType.includes("Poor");
+    (poseidon.group ?? 0) >= 3 || response.responseType.includes("Poor");
   const extremePoor =
     (p.amh !== null && p.amh < 0.5) ||
     (p.afc !== null && p.afc < 3);

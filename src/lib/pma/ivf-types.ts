@@ -37,6 +37,7 @@ export interface IvfPatientProfile {
   glyc: number | null;
   prevCycles: number;
   prevOocytes: number | null;
+  previousPoorResponse?: boolean | null;
   prevEmbryons: number | null;
   embryoQual: string;
   implFail: number;
@@ -47,7 +48,7 @@ export interface IvfPatientProfile {
 }
 
 export interface PoseidonResult {
-  group: number;
+  group: number | null;
   desc: string;
   subgroup: string | null;
   lowReserve: boolean;

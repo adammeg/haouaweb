@@ -1,225 +1,86 @@
-/**
- * BM25 search engine + RAG context block builder (port v50 BLOC 14).
- * Pure JS tokenisation française (stop words + NFD normalisation).
- */
+﻿import { SEED_KB, type RagChunk } from "./knowledge-base";
+import { KNOWLEDGE_VERSION } from "@/lib/ia/versions";
 
-import { SEED_KB, type RagChunk } from "@/lib/rag/knowledge-base";
-
-const STOP_WORDS = new Set([
-  "le", "la", "les", "de", "du", "des", "un", "une", "et", "en", "est",
-  "pour", "par", "sur", "avec", "dans", "qui", "que", "ou", "si", "au",
-  "aux", "ce", "se", "ne", "pas", "sont", "ont", "etre", "avoir",
-  "mais", "comme", "il", "elle", "ils", "elles", "on", "leur", "nous",
-  "vous", "tout", "cette", "aussi", "tres", "bien", "meme", "dont",
-  "lors", "car", "donc", "puis", "chez", "sans", "sous",
-  "apres", "avant", "entre", "peut", "plus",
-]);
-
-function tokenise(text: string): string[] {
-  return (text || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s]/g, " ")
-    .split(/\s+/)
-    .filter((t) => t.length > 2 && !STOP_WORDS.has(t));
-}
-
-type IndexChunk = {
-  freq: Record<string, number>;
-  len: number;
+const STOP_WORDS = new Set("le la les de du des un une et en est pour par sur avec dans qui que ou si au aux ce se ne pas sont ont etre avoir mais comme il elle ils elles on leur nous vous tout cette aussi tres bien meme dont lors car donc puis chez sans sous apres avant entre peut plus".split(" "));
+const ABBREVIATIONS = new Set(["pe", "dv", "ao", "ip", "nt", "cl", "lh", "t1", "t2"]);
+const SYNONYMS: Record<string, string[]> = {
+  pe: ["preeclampsie"], preeclampsie: ["pe"], rciu: ["fgr"], fgr: ["rciu"],
+  cfa: ["afc"], afc: ["cfa"], fiv: ["ivf"], ivf: ["fiv"],
+  dv: ["ductus"], ao: ["ombilicale"], acm: ["cerebrale"], sopk: ["pcos"], pcos: ["sopk"],
 };
-
-type Bm25Index = {
-  N: number;
-  avgdl: number;
-  df: Record<string, number>;
-  tf: IndexChunk[];
-};
-
-function buildIndex(chunks: RagChunk[]): Bm25Index {
-  const N = chunks.length;
-  let avgdl = 0;
-  const df: Record<string, number> = {};
-  const tf: IndexChunk[] = [];
-
-  for (const c of chunks) {
-    // Keywords boosted ×3 (same as v50)
-    const raw =
-      c.title +
-      " " +
-      c.text +
-      " " +
-      c.source +
-      " " +
-      c.topic +
-      " " +
-      c.keywords.join(" ") +
-      " " +
-      c.keywords.join(" ") +
-      " " +
-      c.keywords.join(" ");
-    const toks = tokenise(raw);
-    const freq: Record<string, number> = {};
-    for (const t of toks) freq[t] = (freq[t] || 0) + 1;
-    tf.push({ freq, len: toks.length });
-    avgdl += toks.length;
-    for (const t of Object.keys(freq)) df[t] = (df[t] || 0) + 1;
-  }
-
-  return { N, avgdl: avgdl / (N || 1), df, tf };
+function normalize(text: string): string {
+  return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/pre[\s-]+eclampsie/g, "preeclampsie");
+}
+function tokens(text: string, expand = false): string[] {
+  const base = normalize(text).replace(/[^\w\s]/g, " ").split(/\s+/).filter((t) => (t.length > 2 || ABBREVIATIONS.has(t)) && !STOP_WORDS.has(t));
+  return expand ? [...new Set(base.flatMap((t) => [t, ...(SYNONYMS[t] ?? [])]))] : base;
 }
 
-function search(
-  idx: Bm25Index,
-  chunks: RagChunk[],
-  query: string,
-  topK = 4,
-): RagChunk[] {
-  const toks = tokenise(query);
-  if (!toks.length) return [];
-
-  const K1 = 1.5;
-  const B = 0.75;
-  const qLower = query
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-  const scored = chunks
-    .map((c, i) => {
-      let score = 0;
-      for (const t of toks) {
-        const n = idx.df[t] || 0;
-        if (!n) continue;
-        const f = idx.tf[i]?.freq[t] || 0;
-        const idf = Math.log((idx.N - n + 0.5) / (n + 0.5) + 1);
-        const tfScore =
-          (f * (K1 + 1)) /
-          (f + K1 * (1 - B + B * (idx.tf[i]?.len ?? 1) / idx.avgdl));
-        score += idf * tfScore;
-      }
-      // Topic boost
-      const topicNorm = (c.topic || "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-      if (qLower.includes(topicNorm) && topicNorm.length > 2) score *= 1.5;
-      // Keyword exact boost
-      for (const kw of c.keywords) {
-        const kwNorm = kw
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "");
-        if (qLower.includes(kwNorm) && kwNorm.length > 3) score *= 1.2;
-      }
-      return { c, s: score };
-    })
-    .filter((r) => r.s > 0.05)
-    .sort((a, b) => b.s - a.s)
-    .slice(0, topK)
-    .map((r) => r.c);
-
-  return scored;
-}
-
-// Singleton index (built once on first call)
-let _idx: Bm25Index | null = null;
-let _chunks: RagChunk[] = [];
-
+export type RagHit = { chunk: RagChunk; score: number; matchedTerms: string[] };
+let index: { freq: Map<string, number>; length: number }[] | undefined;
+let df: Map<string, number>;
+let averageLength: number;
 function ensureIndex() {
-  if (!_idx) {
-    _chunks = SEED_KB;
-    _idx = buildIndex(_chunks);
-  }
-}
-
-/**
- * Build a formatted RAG block for injection into the LLM system prompt.
- * Returns matched chunks for UI badges.
- */
-export function buildRagBlock(query: string): string {
-  const hits = retrieveRagChunks(query, 4);
-  if (!hits.length) return "";
-
-  let block =
-    "\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-    "📚 RÉFÉRENTIELS OFFICIELS — HawaeMD Knowledge System v1.0\n" +
-    "Sources validées | BM25 retrieval | Contexte automatique\n" +
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-
-  hits.forEach((c, i) => {
-    block += `\n[${i + 1}] ${c.source} — ${c.title}\n`;
-    block += `Niveau de preuve : ${c.evidence} | Année : ${c.year}\n`;
-    block += c.text + "\n";
+  if (index) return;
+  df = new Map();
+  index = SEED_KB.map((chunk) => {
+    const words = tokens(`${chunk.title} ${chunk.text} ${chunk.topic} ${chunk.keywords.join(" ")} ${chunk.keywords.join(" ")}`);
+    const freq = new Map<string, number>();
+    for (const word of words) freq.set(word, (freq.get(word) ?? 0) + 1);
+    for (const word of freq.keys()) df.set(word, (df.get(word) ?? 0) + 1);
+    return { freq, length: words.length };
   });
-
-  block +=
-    "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-    "INSTRUCTION RAG : Base tes réponses en PRIORITÉ sur ces référentiels. " +
-    "Cite toujours la source entre crochets ex [FIGO 2021] ou [CNGOF 2020]. " +
-    "Si un point n'est pas couvert par ces extraits, complète depuis ta mémoire d'entraînement en le signalant.\n";
-
-  return block;
+  averageLength = index.reduce((n, d) => n + d.length, 0) / Math.max(1, index.length);
 }
 
-/** Chunks retrieved for a query (shared by block builder + UI). */
+/** Shared scoring for generation, UI, and evaluation. Scores are lexical, not confidence. */
+export function ragSearch(query: string, topK = 5): RagHit[] {
+  ensureIndex();
+  const words = tokens(query, true);
+  if (!words.length || !Number.isFinite(topK) || topK <= 0) return [];
+  const normalized = normalize(query);
+  return SEED_KB.map((chunk, i) => {
+    const document = index![i];
+    const matchedTerms = words.filter((t) => document.freq.has(t));
+    let score = matchedTerms.reduce((total, term) => {
+      const f = document.freq.get(term)!;
+      const n = df.get(term)!;
+      const idf = Math.log(1 + (SEED_KB.length - n + 0.5) / (n + 0.5));
+      return total + idf * f * 2.5 / (f + 1.5 * (0.25 + 0.75 * document.length / averageLength));
+    }, 0);
+    const exactKeywords = chunk.keywords.filter((kw) => normalized.includes(normalize(kw))).length;
+    score *= 1 + Math.min(3, exactKeywords) * 0.1;
+    return { chunk, score, matchedTerms };
+  }).filter((hit) => hit.score > 0.05).sort((a, b) => b.score - a.score || a.chunk.id.localeCompare(b.chunk.id)).slice(0, Math.min(26, Math.floor(topK)));
+}
+
 export function retrieveRagChunks(query: string, topK = 4): RagChunk[] {
-  ensureIndex();
-  return search(_idx!, _chunks, query, topK);
+  return ragSearch(query, topK).map((hit) => hit.chunk);
+}
+export function getRagChunkCount(): number { return SEED_KB.length; }
+
+/** Retrieve the question independently so patient narratives cannot displace it. */
+export function retrieveRagEvidence(question: string, patientQuery = "", topK = 4): RagHit[] {
+  const candidates = [...ragSearch(question, topK), ...ragSearch(patientQuery, topK * 2)];
+  const seen = new Set<string>();
+  const selected: RagHit[] = [];
+  for (const hit of candidates) {
+    if (seen.has(hit.chunk.id)) continue;
+    seen.add(hit.chunk.id);
+    selected.push(hit);
+    if (selected.length === topK) break;
+  }
+  return selected;
 }
 
-export function getRagChunkCount(): number {
-  ensureIndex();
-  return _chunks.length;
+/** Evidence data only. Grounding policy belongs in the system prompt. */
+export function formatRagEvidence(hits: RagHit[]): string {
+  return JSON.stringify({
+    knowledgeVersion: KNOWLEDGE_VERSION,
+    status: hits.length ? "excerpts_available" : "no_relevant_evidence",
+    excerpts: hits.map(({ chunk }) => ({ chunkId: chunk.id, source: chunk.source, title: chunk.title, year: chunk.year, sourceUrl: chunk.sourceUrl ?? null, reviewStatus: chunk.reviewStatus ?? "unreviewed", evidenceAsDeclared: chunk.evidence, text: chunk.text })),
+  });
 }
-
-/**
- * Search the KB directly (for UI display / debugging).
- */
-export function ragSearch(
-  query: string,
-  topK = 5,
-): { chunk: RagChunk; score: number }[] {
-  ensureIndex();
-  const toks = tokenise(query);
-  if (!toks.length) return [];
-
-  const K1 = 1.5;
-  const B = 0.75;
-  const qLower = query
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-  return _chunks
-    .map((c, i) => {
-      let score = 0;
-      for (const t of toks) {
-        const n = _idx!.df[t] || 0;
-        if (!n) continue;
-        const f = _idx!.tf[i]!.freq[t] || 0;
-        const idf = Math.log((_idx!.N - n + 0.5) / (n + 0.5) + 1);
-        const tfScore =
-          (f * (K1 + 1)) /
-          (f + K1 * (1 - B + B * (_idx!.tf[i]?.len ?? 1) / _idx!.avgdl));
-        score += idf * tfScore;
-      }
-      const topicNorm = (c.topic || "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-      if (qLower.includes(topicNorm) && topicNorm.length > 2) score *= 1.5;
-      for (const kw of c.keywords) {
-        const kwNorm = kw
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "");
-        if (qLower.includes(kwNorm) && kwNorm.length > 3) score *= 1.2;
-      }
-      return { chunk: c, score };
-    })
-    .filter((r) => r.score > 0.05)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, topK);
+export function buildRagBlock(query: string): string {
+  return formatRagEvidence(ragSearch(query, 4));
 }

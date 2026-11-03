@@ -44,6 +44,8 @@ function ScoreCard({ s }: { s: ScoreOutput }) {
       </summary>
       <div className="border-t border-[var(--border)] px-4 py-3">
         <p className="text-sm text-[var(--ink-mid)]">{s.interpretation}</p>
+        <p className="mt-2 text-xs text-[var(--muted)]">Confiance : {s.confidence}</p>
+        {s.missing_inputs?.length ? <p className="mt-1 text-xs text-[var(--muted)]">Entrées manquantes : {s.missing_inputs.join(", ")}</p> : null}
         {s.recommended_actions.length > 0 && (
           <ul className="mt-3 space-y-1.5">
             {s.recommended_actions.map((a, i) => (
@@ -101,6 +103,7 @@ export function AssistPanel({
           {result.executed.length} score(s) · {result.alerts.length} alerte(s) ·{" "}
           {result.questions_needed.length} question(s)
         </p>
+        {result.assessments ? <p className="mt-1 text-xs" style={{ color: st.text }}>{result.assessments.filter((s) => s.status === "ok").length} évaluations exploitables · {result.assessments.filter((s) => s.status === "incomplete" || s.status === "error").length} incomplètes ou en échec</p> : null}
       </div>
 
       {result.alerts.map((a) => {

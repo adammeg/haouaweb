@@ -1,4 +1,5 @@
 import type { PatientSnapshot, Specialty } from "@/types/domain";
+import { ageYears } from "@/lib/clinical/parse";
 
 export function getPatientDisplayName(p: PatientSnapshot): string {
   const n = `${p.prenom ?? ""} ${p.nom ?? ""}`.trim();
@@ -6,11 +7,7 @@ export function getPatientDisplayName(p: PatientSnapshot): string {
 }
 
 export function patientAgeYears(ddn?: string): number | null {
-  if (!ddn) return null;
-  const b = new Date(ddn);
-  if (Number.isNaN(b.getTime())) return null;
-  const diff = Date.now() - b.getTime();
-  return Math.floor(diff / (365.25 * 24 * 3600 * 1000));
+  return ageYears(ddn);
 }
 
 /** Champs conservés après « Nouvelle consultation » (logique template). */

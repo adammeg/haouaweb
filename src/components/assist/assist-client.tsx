@@ -5,7 +5,6 @@ import { useHawaeStore } from "@/stores/hawae-store";
 import {
   profileFromSnapshot,
   runAssist,
-  type AssistRunResult,
 } from "@/lib/assist";
 import { AssistPanel } from "./assist-panel";
 import { getPatientDisplayName } from "@/lib/patient-utils";
@@ -22,37 +21,24 @@ export function AssistClient() {
   const patchDraft = useHawaeStore((s) => s.patchDraft);
 
   const [loading, setLoading] = useState(false);
-  const [localResult, setLocalResult] = useState<AssistRunResult | null>(null);
 
   const patient = draft ?? (currentPatientId ? patientsMap[currentPatientId] : null);
 
-  const cachedResult = useMemo(() => {
-    if (!patient?.hawaeAssistResultJson) return null;
-    try {
-      return JSON.parse(patient.hawaeAssistResultJson) as AssistRunResult;
-    } catch {
-      return null;
-    }
-  }, [patient?.hawaeAssistResultJson]);
-
-  const result = localResult ?? cachedResult;
+  const result = useMemo(() => patient ? runAssist(profileFromSnapshot(patient)) : null, [patient]);
 
   const run = useCallback(() => {
     if (!patient) return;
     setLoading(true);
-    setTimeout(() => {
       try {
         const profile = profileFromSnapshot(patient);
         const r = runAssist(profile);
-        setLocalResult(r);
-        patchDraft({
+        if (useHawaeStore.getState().draft?.id === patient.id) patchDraft({
           hawaeAssistResultJson: JSON.stringify(r),
           hawaeAssistAt: new Date().toISOString(),
         });
       } finally {
         setLoading(false);
       }
-    }, 80);
   }, [patient, patchDraft]);
 
   const patientList = Object.values(patientsMap);
@@ -65,7 +51,7 @@ export function AssistClient() {
             Hawae
           </h1>
           <p className="mt-1.5 text-sm text-[var(--muted)]">
-            Moteur clinique · 16 scores validés · FMF · FGR · ROMA · POSEIDON · VTE
+            Évaluations cliniques locales · FGR · ROMA · POSEIDON · VTE
           </p>
         </div>
         <button

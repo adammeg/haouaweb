@@ -111,7 +111,7 @@ export function InfAnamnese({
             <Field label="Dyspareunie profonde">
               <PillGroup
                 name="i-dysp"
-                value={draft.i_dysp || "non"}
+                value={draft.i_dysp ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui" },
@@ -122,7 +122,7 @@ export function InfAnamnese({
             <Field label="Signes SOPK">
               <PillGroup
                 name="i-sopk"
-                value={draft.i_sopk || "non"}
+                value={draft.i_sopk ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui" },
@@ -182,7 +182,7 @@ export function InfAnamnese({
             <Field label="Mauvaise réponse ovarienne ant.">
               <PillGroup
                 name="i-mauvaise-reponse"
-                value={draft.i_mauvaise_reponse || "non"}
+                value={draft.i_mauvaise_reponse ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui (<4 ovocytes)" },
@@ -193,7 +193,7 @@ export function InfAnamnese({
             <Field label="ATCD OHSS">
               <PillGroup
                 name="i-atcd-ohss"
-                value={draft.i_atcd_ohss || "non"}
+                value={draft.i_atcd_ohss ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "mod", label: "Modéré" },
@@ -217,6 +217,9 @@ export function InfAnamnese({
                   { value: "inexpliquee", label: "Inexpliquée" },
                 ]}
               />
+            </Field>
+            <Field label="Ovocytes recueillis lors de la stimulation précédente">
+              <TextInput type="number" value={draft.i_ovocytes_precedents} onChange={(v) => patch("i_ovocytes_precedents", v)} />
             </Field>
           </div>
           <SectionDivider>Marqueurs tumoraux — si kyste ovarien</SectionDivider>
@@ -243,7 +246,7 @@ export function InfAnamnese({
             <Field label="Spermogramme">
               <PillGroup
                 name="i-spermo"
-                value={draft.i_spermo || "non"}
+                value={draft.i_spermo ?? ""}
                 options={[
                   { value: "oui", label: "Réalisé" },
                   { value: "non", label: "Non réalisé" },
@@ -285,7 +288,7 @@ export function InfAnamnese({
             <Field label="ATCD IST / Salpingite">
               <PillGroup
                 name="i-ist"
-                value={draft.i_ist || "non"}
+                value={draft.i_ist ?? ""}
                 options={[
                   { value: "non", label: "Non" },
                   { value: "oui", label: "Oui" },

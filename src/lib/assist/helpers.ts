@@ -13,17 +13,19 @@ export function scoreOut(
   meta: Record<string, unknown> = {},
   disclaimer = "",
 ): ScoreOutput {
+  const heuristics = ["HAWAE_IVF_Prognosis", "OHSS_Risk", "ADNEX_Simplified", "FGR_Staging", "VTE_RCOG"];
+  const heuristic = heuristics.includes(name);
   return {
     score_name: name,
     domain,
     value,
     risk_level: risk,
     interpretation,
-    confidence,
+    confidence: name === "HAWAE_IVF_Prognosis" ? "low" : heuristic && confidence === "high" ? "moderate" : confidence,
     recommended_actions: actions,
     missing_inputs: missing,
-    metadata: meta,
-    ...(disclaimer ? { disclaimer } : {}),
+    metadata: heuristic ? { validation_status: "heuristic", ...meta } : meta,
+    ...(disclaimer || heuristic ? { disclaimer: disclaimer || "Évaluation locale indicative ; modèle et applicabilité à confirmer avec le référentiel et le spécialiste." } : {}),
   };
 }
 

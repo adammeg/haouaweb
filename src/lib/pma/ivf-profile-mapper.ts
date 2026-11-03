@@ -1,15 +1,10 @@
 import type { PatientSnapshot } from "@/types/domain";
 import { patientAgeYears } from "@/lib/patient-utils";
+import { clinicalNumber as num } from "@/lib/clinical/parse";
 import {
   EMPTY_IVF_PROFILE,
   type IvfPatientProfile,
 } from "@/lib/pma/ivf-types";
-
-function num(v: string | undefined): number | null {
-  if (v == null || v === "") return null;
-  const n = parseFloat(v);
-  return Number.isFinite(n) ? n : null;
-}
 
 function mapSopk(v?: string): string {
   if (v === "oui") return "oui";
@@ -91,7 +86,8 @@ export function ivfProfileFromPatient(d: PatientSnapshot): IvfPatientProfile {
     amh,
     afc: num(d.i_cfa) != null ? Math.round(num(d.i_cfa)!) : null,
     prevCycles: prevCycles != null ? Math.max(0, Math.round(prevCycles)) : 0,
-    prevOocytes: poor ? 3 : null,
+    prevOocytes: num(d.i_ovocytes_precedents),
+    previousPoorResponse: d.i_mauvaise_reponse ? poor : null,
     historyNotes: d.i_amp ?? d.i_hormones ?? "",
   };
 }

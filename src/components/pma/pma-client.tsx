@@ -177,7 +177,7 @@ export function PmaClient({ patientId: boundPatientId, embedded = false }: PmaCl
       patientName: getPatientDisplayName(patient),
       protocol: selectedProto.name,
       startDate,
-      poseidonGroup: "G" + analysis.poseidon.group,
+      poseidonGroup: analysis.poseidon.group == null ? undefined : "G" + analysis.poseidon.group,
       bolognaPor: analysis.bologna.positive,
       days: calendarToCycleDays(analysis),
       updatedAt: new Date().toISOString(),

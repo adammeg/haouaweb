@@ -58,6 +58,11 @@ export interface HawaeIaExchange {
   provider?: string;
   model?: string;
   promptVersion?: string;
+  revision?: string;
+  cacheVersion?: string;
+  knowledgeVersion?: string;
+  engineVersion?: string;
+  evidenceIds?: string[];
   structuredAnalysisJson?: string;
 }
 
@@ -184,6 +189,8 @@ export interface PatientSnapshot {
   o_bandelette?: string;
   o_cephalees?: string;
   o_epigastre?: string;
+  o_thorax_dyspnee?: string;
+  o_saignement_douleur?: string;
   i_duree?: string;
   i_type?: string;
   i_ddr?: string;
@@ -204,6 +211,7 @@ export interface PatientSnapshot {
   i_amp?: string;
   i_tentatives_fiv?: string;
   i_mauvaise_reponse?: string;
+  i_ovocytes_precedents?: string;
   i_atcd_ohss?: string;
   i_cause_inf?: string;
   i_ca125?: string;

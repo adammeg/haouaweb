@@ -19,8 +19,8 @@ export function hadlockPfe4(
     0.00386 * a * f +
     0.0064 * h +
     0.00061 * b * a +
-    0.0425 * f +
-    0.174 * a;
+    0.0424 * a +
+    0.174 * f;
   return Math.round(10 ** logEfw);
 }
 

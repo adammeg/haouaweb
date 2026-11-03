@@ -1,4 +1,5 @@
 /** L2 — Normalisation (MoM, Hadlock, Nicolaides, etc.). */
+import { hadlockPfe4 } from "@/lib/growth-curves/hadlock-pfe";
 
 const ETHNICITY_FACTORS: Record<
   string,
@@ -212,13 +213,8 @@ export const Norm = {
     acMm: number,
     flMm: number,
   ): number | null {
-    const b = bpdMm / 10;
-    const h = hcMm / 10;
-    const a = acMm / 10;
-    const f = flMm / 10;
-    const logEfw =
-      1.3596 - 0.00386 * a * f + 0.0064 * h + 0.00061 * b * a + 0.0424 * a + 0.174 * f;
-    return Math.round(10 ** logEfw);
+    if (![bpdMm, hcMm, acMm, flMm].every((v) => Number.isFinite(v) && v > 0)) return null;
+    return hadlockPfe4(bpdMm, hcMm, acMm, flMm);
   },
 
   amhNgmlToPmol: (ng: number) => +(ng * 7.14).toFixed(2),

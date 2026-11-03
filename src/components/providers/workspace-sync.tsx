@@ -1,4 +1,5 @@
 "use client";
+import { pushWorkspaceNow } from "@/lib/storage/workspace-sync-client";
 
 import { useEffect, useRef } from "react";
 import { useHawaeStore } from "@/stores/hawae-store";
@@ -48,30 +49,11 @@ export function WorkspaceSync() {
 
     async function push() {
       if (cancelled || applyingRemote.current) return;
-      const s = useHawaeStore.getState();
-      const body: WorkspacePayload = {
-        users: s.users,
-        currentUserId: s.currentUserId,
-        patientsByUser: s.patientsByUser,
-        historyByUser: s.historyByUser,
-        setupDone: s.setupDone,
-        workspaceSavedAt: s.workspaceSavedAt,
-      };
       try {
-        const res = await fetch("/api/workspace/state", {
-          method: "PUT",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok || cancelled) return;
-        const j = (await res.json()) as { updatedAt?: string };
-        if (j.updatedAt) {
-          lastPushed.current = snapshotForSync(useHawaeStore.getState());
-          useHawaeStore.setState({ workspaceSavedAt: j.updatedAt });
-        }
+        const result = await pushWorkspaceNow();
+        if (!cancelled) lastPushed.current = result.snapshot;
       } catch {
-        /* hors-ligne ou serveur indisponible */
+        /* Explicit AI saves surface errors; background synchronization retries on subsequent changes. */
       }
     }
 
@@ -93,7 +75,6 @@ export function WorkspaceSync() {
         if (data.empty === true) {
           await push();
           initialDone.current = true;
-          lastPushed.current = snapshotForSync(useHawaeStore.getState());
           return;
         }
         if (data.empty !== false || !data.workspace) {

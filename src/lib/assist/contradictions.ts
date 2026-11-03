@@ -23,8 +23,8 @@ export function detectContradictions(
   if (ohss?.risk_level === RISK.HIGH && amh && amh < 1.0)
     add(
       "R01",
-      "error",
-      "OHSS risque ÉLEVÉ + AMH < 1 pmol/L : contradiction physiologique",
+      "warning",
+      "OHSS élevé avec AMH très basse : vérifier les entrées et les autres facteurs de risque",
       ["OHSS_Risk", "POSEIDON"],
       "Vérifier unité AMH (pmol/L vs ng/mL) et CFA",
     );
@@ -66,23 +66,10 @@ export function detectContradictions(
   )
     add(
       "R04",
-      "error",
-      "POSEIDON réserve basse + OHSS élevé : incompatible",
-      ["POSEIDON", "OHSS_Risk"],
-      "Recalibrer CFA ou AMH",
-    );
-
-  if (
-    pe &&
-    (pe.risk_level === RISK.HIGH || pe.risk_level === RISK.CRITICAL) &&
-    (p.gestational_age_weeks ?? 0) > 16
-  )
-    add(
-      "R05",
       "warning",
-      "Risque PE élevé après 16 SA — fenêtre aspirine dépassée",
-      ["FMF_PE_FirstTrimester"],
-      "Surveillance sFlt-1/PlGF immédiate",
+      "Réserve basse et risque OHSS élevé : résultats à rapprocher des facteurs individuels",
+      ["POSEIDON", "OHSS_Risk"],
+      "Vérifier unités et mesures sans modifier les données pour faire correspondre les scores",
     );
 
   const roma = m["ROMA"];
@@ -98,7 +85,7 @@ export function detectContradictions(
       "info",
       "ROMA élevé chez patiente <35 ans CA125 bas",
       ["ROMA"],
-      "IRM + CA19-9 + AFP avant oncologie",
+      "Vérifier le statut ménopausique, la méthode de dosage et les données morphologiques",
     );
 
   const cpr = m["CPR"];
@@ -111,14 +98,8 @@ export function detectContradictions(
       "Reclasser surveillance intensive",
     );
 
-  if (pe && pe.risk_level === RISK.HIGH && !p.uterine_artery_pi_left)
-    add(
-      "R08",
-      "warning",
-      "Risque PE sans IP UtA — confiance réduite",
-      ["FMF_PE_FirstTrimester"],
-      "Mesurer IP UtA bilatéral",
-    );
+  if (p.amh_ngml != null && p.amh_pmol != null && Math.abs(p.amh_ngml * 7.14 - p.amh_pmol) > Math.max(0.1, p.amh_pmol * 0.1))
+    add("AMH_UNITS", "warning", "Les deux valeurs AMH ne concordent pas après conversion des unités", ["POSEIDON", "OHSS_Risk"], "Vérifier les dates des prélèvements et les unités ng/mL et pmol/L");
 
   return contras;
 }

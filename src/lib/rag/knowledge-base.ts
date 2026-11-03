@@ -15,6 +15,8 @@ export type RagChunk = {
   evidence: string;
   keywords: string[];
   text: string;
+  sourceUrl?: string;
+  reviewStatus?: "source_checked" | "unreviewed";
 };
 
 export const SEED_KB: RagChunk[] = [
@@ -196,14 +198,16 @@ export const SEED_KB: RagChunk[] = [
   },
   {
     id: "minipiers-score",
-    source: "von Dadelszen 2011 Lancet",
+    source: "Payne et al. PLOS Medicine 2014",
+    sourceUrl: "https://doi.org/10.1371/journal.pmed.1001589",
+    reviewStatus: "source_checked",
     domain: "OBST",
     topic: "PE",
-    title: "miniPIERS — Score pronostique PE, issue défavorable 48h",
-    year: 2011,
-    evidence: "B",
-    keywords: ["miniPIERS", "PIERS", "prééclampsie", "pronostic", "48h", "issue", "défavorable", "SpO2", "créatinine", "céphalées", "GA", "score"],
-    text: "miniPIERS (von Dadelszen, Lancet 2011) :\nPrédit issue maternelle défavorable dans les 48h chez femme hospitalisée pour PE. AUC = 0.88.\n\nFORMULE :\nlogit(p) = -7.490 + (0.010 × AG_jours) + (coeff SpO2) + (1.029 × céphalées/troubles visuels) + (0.878 × douleur thoracique/dyspnée) + (coeff plaquettes) + (coeff créatinine)\n\nCOEFFICIENTS SpO2 (air ambiant) :\n≥ 96% → 0 | 93-95% → 1.08 | 90-92% → 1.52 | < 90% → 2.44\n\nCOEFFICIENTS PLAQUETTES (G/L) :\n> 150 → 0 | 100-150 → 0.58 | 50-99 → 1.26 | < 50 → 1.85\n\nCOEFFICIENTS CRÉATININE (µmol/L) :\n< 100 → 0 | 100-149 → 1.08 | ≥ 150 → 2.13\n\nINTERPRÉTATION :\n< 25% : surveillance standard. 25-50% : intensifier, discuter extraction.\n> 50% : extraction à considérer quelle que soit lAG.\n\nÉvénements cibles : éclampsie, HELLP, défaillance rénale, œdème pulmonaire, AVC, mort.",
+    title: "miniPIERS — pronostic maternel à 48 heures en cas de trouble hypertensif",
+    year: 2014,
+    evidence: "Étude de développement et validation ; applicabilité à vérifier",
+    keywords: ["miniPIERS", "PIERS", "prééclampsie", "pronostic", "48h", "céphalées", "protéinurie"],
+    text: "Modèle miniPIERS de Payne et al. (2014) : estimation des complications maternelles dans les 48 heures suivant l'admission pour trouble hypertensif de la grossesse. Prédicteurs : parité, âge gestationnel, pression systolique, protéinurie à la bandelette, céphalées ou troubles visuels, douleur thoracique ou dyspnée, saignement vaginal avec douleur abdominale. Ne pas confondre avec fullPIERS, qui utilise des mesures biologiques et la saturation en oxygène. Un score inférieur au seuil de triage ne permet pas d'exclure une complication. La calibration et le contexte de mesure doivent être vérifiés avant utilisation locale.",
   },
   {
     id: "cpr-doppler-fgr",

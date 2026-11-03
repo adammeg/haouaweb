@@ -77,7 +77,16 @@ export interface AssistReport {
   disclaimer: string;
 }
 
+export interface AssistAssessment {
+  score_name: string;
+  status: "ok" | "incomplete" | "not_applicable" | "error";
+  missing_inputs: string[];
+  error_code?: string;
+}
+
 export interface AssistRunResult {
+  engine_version?: string;
+  assessments?: AssistAssessment[];
   executed: ScoreOutput[];
   alerts: ScoreOutput[];
   contradictions: Contradiction[];
@@ -95,40 +104,42 @@ export interface AssistProfile {
   bmi: number | null;
   bmi_computed?: number | null;
   ethnicity?: string;
-  smoking?: boolean;
+  smoking?: boolean | null;
 
-  is_pregnant?: boolean;
-  is_infertility?: boolean;
-  is_prolapse?: boolean;
-  is_oncology?: boolean;
-  is_endometriosis?: boolean;
-  is_postmenopause?: boolean;
+  is_pregnant?: boolean | null;
+  is_infertility?: boolean | null;
+  is_prolapse?: boolean | null;
+  is_oncology?: boolean | null;
+  is_endometriosis?: boolean | null;
+  is_postmenopause?: boolean | null;
 
   gestational_age_weeks: number | null;
   parity: number | null;
   gravidity: number | null;
   previous_cs: number | null;
   conception_method: string | null;
-  multiple_pregnancy?: boolean;
+  multiple_pregnancy?: boolean | null;
 
-  previous_pe?: boolean;
-  chronic_hypertension?: boolean;
-  diabetes_type1?: boolean;
-  diabetes_type2?: boolean;
-  sle?: boolean;
-  antiphospholipid?: boolean;
-  previous_preterm?: boolean;
-  previous_vte?: boolean;
-  thrombophilia_high?: boolean;
-  thrombophilia_low?: boolean;
-  chronic_kidney_disease?: boolean;
+  previous_pe?: boolean | null;
+  chronic_hypertension?: boolean | null;
+  diabetes_type1?: boolean | null;
+  diabetes_type2?: boolean | null;
+  sle?: boolean | null;
+  antiphospholipid?: boolean | null;
+  previous_preterm?: boolean | null;
+  previous_vte?: boolean | null;
+  thrombophilia_high?: boolean | null;
+  thrombophilia_low?: boolean | null;
+  chronic_kidney_disease?: boolean | null;
 
   sbp_mmhg: number | null;
   dbp_mmhg: number | null;
   map_mmhg: number | null;
   dipstick_protein: string | null;
-  headache_visual?: boolean;
-  epigastric_pain?: boolean;
+  headache_visual?: boolean | null;
+  epigastric_pain?: boolean | null;
+  chest_pain_dyspnoea?: boolean | null;
+  vaginal_bleeding_abdominal_pain?: boolean | null;
 
   nt_mm: number | null;
   papp_a_mom: number | null;
@@ -136,7 +147,7 @@ export interface AssistProfile {
   plgf_mom: number | null;
   nasal_bone: boolean | null;
   ductus_venosus: string | null;
-  tricuspid_regurgitation?: boolean;
+  tricuspid_regurgitation?: boolean | null;
   uterine_artery_pi_left: number | null;
   uterine_artery_pi_right: number | null;
 
@@ -172,17 +183,18 @@ export interface AssistProfile {
   cyst_max_diameter_mm: number | null;
   cyst_solid_pct?: number | null;
   cyst_papillary_projections?: number | null;
-  cyst_acoustic_shadows?: boolean;
-  cyst_ascites?: boolean;
-  oncology_center?: boolean;
+  cyst_acoustic_shadows?: boolean | null;
+  cyst_ascites?: boolean | null;
+  oncology_center?: boolean | null;
 
-  vte_current_infection?: boolean;
-  vte_immobility?: boolean;
-  vte_surgical?: boolean;
+  vte_current_infection?: boolean | null;
+  vte_immobility?: boolean | null;
+  vte_surgical?: boolean | null;
 
   previous_ivf_attempts: number | null;
-  previous_poor_response?: boolean;
-  previous_ohss?: boolean;
+  previous_oocytes?: number | null;
+  previous_poor_response?: boolean | null;
+  previous_ohss?: boolean | null;
   sperm_quality?: string | null;
   infertility_cause?: string | null;
 

@@ -4,14 +4,17 @@ import {
   type Specialty,
 } from "@/types/domain";
 import { buildAssistContextBlock } from "@/lib/assist/context-block";
-import type { AssistRunResult } from "@/lib/assist";
-
-const MAX_LEN = 18_000;
+import { profileFromSnapshot } from "@/lib/assist/profile";
+import { runAssist } from "@/lib/assist/run";
+import { ageYears as parsedAge } from "@/lib/clinical/parse";
+import { clinicalProjection } from "./clinical-revision";
+export { stableClinicalDataKey } from "./clinical-revision";
+import { stableClinicalDataKey } from "./clinical-revision";
 
 function add(label: string, value: string | undefined): string | null {
   const v = (value ?? "").trim();
   if (!v) return null;
-  return `${label}: ${v}`;
+  return `${label}: ${v.length > 600 ? v.slice(0, 600) + " [champ tronqué]" : v}`;
 }
 
 function formatOrdonnanceBlock(d: PatientSnapshot): string {
@@ -46,16 +49,8 @@ function formatOrdonnanceBlock(d: PatientSnapshot): string {
 }
 
 function ageYears(ddn?: string): string | undefined {
-  if (!ddn) return undefined;
-  const birth = new Date(ddn);
-  if (!Number.isFinite(birth.getTime())) return undefined;
-  const now = new Date();
-  let age = now.getFullYear() - birth.getFullYear();
-  if (
-    now.getMonth() < birth.getMonth() ||
-    (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())
-  ) age--;
-  return age >= 0 && age <= 120 ? String(age) : undefined;
+  const age = parsedAge(ddn);
+  return age == null ? undefined : String(age);
 }
 
 /**
@@ -131,7 +126,7 @@ export function buildDossierContextForIa(d: PatientSnapshot | null): string {
     add("BCF", d.o_bcf),
     add("TA grossesse", d.o_ta),
     add("Poids (suivi)", d.o_poids),
-    add("Nombre de CPN", d.o_ncs),
+    add("Césariennes antérieures", d.o_ncs),
     add("Indications / projet", d.o_indcs),
     add("ATCD obstétricaux", d.o_atcd_gross),
     add("Complications", d.o_complic),
@@ -174,36 +169,31 @@ export function buildDossierContextForIa(d: PatientSnapshot | null): string {
     add("HGPO T2", d.bio_hgpo2),
   ].filter((x): x is string => x != null && x.length > 0);
 
-  let assistBlock = "";
-  if (d.hawaeAssistResultJson) {
-    try {
-      const ar = JSON.parse(d.hawaeAssistResultJson) as AssistRunResult;
-      assistBlock = buildAssistContextBlock(ar);
-    } catch {
-      assistBlock = "";
-    }
-  }
+  // Never trust persisted/client-generated score JSON for inference.
+  const profile = profileFromSnapshot(d);
+  const assistBlock = buildAssistContextBlock(runAssist(profile));
 
   const clinical = lines.join("\n");
   const ordo = formatOrdonnanceBlock(d);
-  let text = [clinical, assistBlock, ordo].filter(Boolean).join("\n\n");
-  if (text.length > MAX_LEN) {
-    text = text.slice(0, MAX_LEN) + "\n[… contexte global tronqué]";
+  const normalized = `--- Mesures normalisées (mmHg, mm, g, AMH ng/mL ou pmol/L, glucose mmol/L ; null = inconnu) ---\n${JSON.stringify(profile)}`;
+  const rawFields = Object.entries(clinicalProjection(d)).map(([key, value]) => {
+    const entry = JSON.stringify(value, (_k, v) => typeof v === "string" && v.length > 400 ? v.slice(0, 400) + " [champ tronqué]" : v);
+    return `${key}: ${entry}`;
+  });
+  const raw: string[] = [];
+  let remaining = 6000;
+  for (const line of rawFields) {
+    if (line.length + 1 > remaining) { raw.push("[autres données complémentaires omises]"); break; }
+    raw.push(line); remaining -= line.length + 1;
+  }
+  // Reserve independent budgets: a long narrative cannot remove scores/allergies/medications.
+  const safety = `Allergies: ${(d.allergies ?? "inconnues").slice(0, 1000)}\nTraitements: ${(d.traitements ?? "inconnus").slice(0, 1500)}`;
+  let text = [safety, normalized, assistBlock, ordo.length > 3000 ? ordo.slice(0, 3000) + " [ordonnance tronquée]" : ordo, clinical.length > 7000 ? clinical.slice(0, 7000) + " [export descriptif tronqué]" : clinical, `--- Autres données saisies ---\n${raw.join("\n")}`].filter(Boolean).join("\n\n");
+  // Remove known identity strings even if they were pasted into narrative fields.
+  for (const identifier of [d.nom, d.prenom, d.cin, d.tel, d.ddn]) {
+    if (identifier && identifier.trim().length >= 3) text = text.replace(new RegExp(identifier.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), "[identité retirée]");
   }
   return text;
-}
-
-/**
- * Empreinte stable des données « médecin » (sans timestamps ni historique IA).
- * Les réponses IA ne doivent pas modifier cette clé, sinon relance en boucle de l’analyse auto.
- */
-export function stableClinicalDataKey(d: PatientSnapshot | null): string {
-  if (!d) return "";
-  const clinical: Record<string, unknown> = { ...d };
-  delete clinical.updatedAt;
-  delete clinical.lastSaved;
-  delete clinical.hawaeIaHistory;
-  return JSON.stringify(clinical);
 }
 
 /** @deprecated préférer stableClinicalDataKey — alias historique */
