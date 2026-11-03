@@ -45,16 +45,11 @@ function ragQueryFor(patient: PatientSnapshot, question: string): string {
     .slice(0, 1_500);
 }
 
-export async function buildAuthorizedAiContext(input: {
-  doctorId: string;
-  patientId: string;
-  question?: string;
-  expectedRevision?: string;
-}): Promise<{ patient: PatientSnapshot; context: string; evidence: RagHit[]; revision: string }> {
-  const patientId = input.patientId.trim();
+export async function loadAuthorizedAiPatient(doctorId: string, requestedPatientId: string): Promise<PatientSnapshot> {
+  const patientId = requestedPatientId.trim();
   if (!patientId) throw new AiPatientContextError("Dossier manquant", 400);
 
-  const workspace = await getWorkspaceByDoctorId(input.doctorId);
+  const workspace = await getWorkspaceByDoctorId(doctorId);
   const patient = workspace
     ? findPatient(workspace.workspace.patientsByUser, patientId)
     : null;
@@ -64,6 +59,16 @@ export async function buildAuthorizedAiContext(input: {
       404,
     );
   }
+  return patient;
+}
+
+export async function buildAuthorizedAiContext(input: {
+  doctorId: string;
+  patientId: string;
+  question?: string;
+  expectedRevision?: string;
+}): Promise<{ patient: PatientSnapshot; context: string; evidence: RagHit[]; revision: string }> {
+  const patient = await loadAuthorizedAiPatient(input.doctorId, input.patientId);
 
   const revision = await clinicalRevision(patient);
   if (!input.expectedRevision || input.expectedRevision !== revision) {

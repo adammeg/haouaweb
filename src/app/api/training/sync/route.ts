@@ -27,7 +27,8 @@ export async function POST(req: Request) {
         req,
       );
     }
-    const stats = await ingestAllFullTrainingData(session.sub);
+    if (session.role === "secretary") return withCors(NextResponse.json({ error: "forbidden" }, { status: 403 }), req);
+    const stats = await ingestAllFullTrainingData(session.doctorId);
     return withCors(NextResponse.json({ ok: true, stats }), req);
   } catch (e) {
     return withCors(dbError("training.sync.POST", e), req);

@@ -9,6 +9,8 @@ import {
 import { AI_TRAINING_CONSENT_VERSION } from "@/types/training";
 import { dbError } from "@/lib/api/error-response";
 import { deleteFullTrainingRecordsForDoctor } from "@/lib/db/full-training-repository";
+import { deleteLearningRecordsForDoctor } from "@/lib/db/ai-learning-repository";
+import { getDb } from "@/lib/db/mongo";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +33,8 @@ export async function GET(req: Request) {
         req,
       );
     }
-    const settings = await getDoctorAiTrainingSettings(session.sub);
+    if (session.role === "secretary") return withCors(NextResponse.json({ error: "forbidden" }, { status: 403 }), req);
+    const settings = await getDoctorAiTrainingSettings(session.doctorId);
     return withCors(
       NextResponse.json({
         settings,
@@ -59,7 +62,8 @@ export async function PATCH(req: Request) {
         req,
       );
     }
-    let body: { enabled?: boolean };
+    if (session.role === "secretary") return withCors(NextResponse.json({ error: "forbidden" }, { status: 403 }), req);
+    let body: { enabled?: boolean } | null;
     try {
       body = await req.json();
     } catch {
@@ -68,24 +72,31 @@ export async function PATCH(req: Request) {
         req,
       );
     }
-    if (typeof body.enabled !== "boolean") {
+    if (!body || typeof body.enabled !== "boolean") {
       return withCors(
         NextResponse.json({ error: "missing_enabled" }, { status: 400 }),
         req,
       );
     }
     const settings = await setDoctorAiTrainingConsent(
-      session.sub,
+      session.doctorId,
       body.enabled,
     );
     const deletedRecords = body.enabled
       ? 0
-      : await deleteFullTrainingRecordsForDoctor(session.sub);
+      : await deleteFullTrainingRecordsForDoctor(session.doctorId);
+    let deletedLearningRecords = 0;
+    if (!body.enabled) {
+      deletedLearningRecords = await deleteLearningRecordsForDoctor(session.doctorId);
+      const db = await getDb();
+      await db.collection("clinical_training_samples").deleteMany({ doctorId: session.doctorId });
+    }
     return withCors(
       NextResponse.json({
         settings,
         consentVersion: AI_TRAINING_CONSENT_VERSION,
         deletedRecords,
+        deletedLearningRecords,
       }),
       req,
     );

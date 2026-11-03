@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "test:ai": "node --import ./scripts/register-ts.mjs --test tests/ai-*.test.mjs",
+    "eval:ai": "node --import ./scripts/register-ts.mjs scripts/evaluate-ai-learning.mjs",
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
     "dev": "next dev",
     "dev:clean": "npm run clean && next dev",

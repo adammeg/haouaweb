@@ -95,6 +95,7 @@ export async function ingestAllFullTrainingData(
         record: payload,
         contentHash: hash,
         consentVersion,
+        consentToken: settings.learningEpoch ?? settings.consentedAt,
         sourceUpdatedAt,
       });
 
@@ -176,6 +177,7 @@ export async function ingestSinglePatientFullTraining(
     record: payload,
     contentHash: fullTrainingContentHash(payload),
     consentVersion: settings.consentVersion ?? AI_TRAINING_CONSENT_VERSION,
+    consentToken: settings.learningEpoch ?? settings.consentedAt,
     sourceUpdatedAt: workspaceRow.updatedAt,
   });
 }

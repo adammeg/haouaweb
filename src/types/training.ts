@@ -19,6 +19,7 @@ export interface DoctorAiTrainingSettings {
   enabled: boolean;
   consentedAt: string | null;
   consentVersion: string | null;
+  learningEpoch?: string | null;
 }
 
 export type AgeBand =
@@ -90,6 +91,7 @@ export interface FullPatientTrainingRecord {
   workspaceUserId: string;
   contentHash: string;
   consentVersion: string;
+  consentEpoch?: string;
   sourceUpdatedAt: string;
   ingestedAt: string;
   patient: PatientSnapshot;

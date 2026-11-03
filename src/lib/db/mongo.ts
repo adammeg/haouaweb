@@ -57,6 +57,8 @@ async function ensureIndexes(db: Db): Promise<void> {
       .createIndex({ doctorId: 1, patientId: 1 }, { unique: true }),
     db.collection("ai_training_full_records").createIndex({ ingestedAt: -1 }),
     db.collection("doctor_settings").createIndex({ doctorId: 1 }, { unique: true }),
+    db.collection("ai_reviewed_learning").createIndex({ doctorId: 1, id: 1 }, { unique: true }),
+    db.collection("ai_reviewed_learning").createIndex({ doctorId: 1, consentToken: 1, split: 1, "review.outcome": 1, createdAt: -1 }),
     db.collection("admin_protocols").createIndex({ id: 1 }, { unique: true }),
     db.collection("admin_protocols").createIndex({ active: 1, category: 1 }),
   ]);

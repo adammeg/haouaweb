@@ -63,6 +63,9 @@ export interface HawaeIaExchange {
   knowledgeVersion?: string;
   engineVersion?: string;
   evidenceIds?: string[];
+  learningGenerationId?: string;
+  learningCaseIds?: string[];
+  learningVersion?: string;
   structuredAnalysisJson?: string;
 }
 

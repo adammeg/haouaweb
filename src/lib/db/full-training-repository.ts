@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import { getDb } from "./mongo";
+import { getDoctorAiTrainingSettings } from "./doctor-settings-repository";
 import type {
   FullPatientTrainingRecord,
   TrainingDatasetStats,
@@ -24,15 +25,19 @@ export async function upsertFullTrainingRecord(input: {
   >;
   contentHash: string;
   consentVersion: string;
+  consentToken?: string | null;
   sourceUpdatedAt: string;
 }): Promise<"inserted" | "updated" | "unchanged"> {
+  const consent = await getDoctorAiTrainingSettings(input.doctorId);
+  const epoch = consent.learningEpoch ?? consent.consentedAt;
+  if (!consent.enabled || !epoch || (input.consentToken != null && input.consentToken !== epoch)) return "unchanged";
   const db = await getDb();
   const existing = await db.collection(COL).findOne({
     doctorId: input.doctorId,
     patientId: input.patientId,
   });
 
-  if (existing && existing.contentHash === input.contentHash) {
+  if (existing && existing.contentHash === input.contentHash && existing.consentEpoch === epoch) {
     return "unchanged";
   }
 
@@ -44,6 +49,7 @@ export async function upsertFullTrainingRecord(input: {
     workspaceUserId: input.workspaceUserId,
     contentHash: input.contentHash,
     consentVersion: input.consentVersion,
+    consentEpoch: epoch,
     sourceUpdatedAt: input.sourceUpdatedAt,
     ingestedAt: now,
     ...input.record,
@@ -54,6 +60,11 @@ export async function upsertFullTrainingRecord(input: {
     { $set: doc },
     { upsert: true },
   );
+  const latestConsent = await getDoctorAiTrainingSettings(input.doctorId);
+  if (!latestConsent.enabled || (latestConsent.learningEpoch ?? latestConsent.consentedAt) !== epoch) {
+    await db.collection(COL).deleteMany({ doctorId: input.doctorId, patientId: input.patientId, consentEpoch: epoch });
+    return "unchanged";
+  }
 
   return existing ? "updated" : "inserted";
 }

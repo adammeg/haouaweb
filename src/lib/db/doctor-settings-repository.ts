@@ -1,6 +1,7 @@
 import { getDb } from "./mongo";
 import type { DoctorAiTrainingSettings } from "@/types/training";
 import { AI_TRAINING_CONSENT_VERSION } from "@/types/training";
+import { nanoid } from "nanoid";
 
 const COL = "doctor_settings";
 
@@ -23,6 +24,7 @@ export async function getDoctorAiTrainingSettings(
       typeof t.consentedAt === "string" ? t.consentedAt : null,
     consentVersion:
       typeof t.consentVersion === "string" ? t.consentVersion : null,
+    learningEpoch: typeof t.learningEpoch === "string" ? t.learningEpoch : null,
   };
 }
 
@@ -37,11 +39,13 @@ export async function setDoctorAiTrainingConsent(
         enabled: true,
         consentedAt: now,
         consentVersion: AI_TRAINING_CONSENT_VERSION,
+        learningEpoch: `consent_${nanoid(18)}`,
       }
     : {
         enabled: false,
         consentedAt: null,
         consentVersion: null,
+        learningEpoch: null,
       };
 
   await db.collection(COL).updateOne(

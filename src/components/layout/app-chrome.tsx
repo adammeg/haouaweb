@@ -537,7 +537,7 @@ export function AppChrome({
       </div>
 
       <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} secretary={doctor.role === "secretary"} />
-      {doctor.role === "doctor" || doctor.role === "clinic_admin" ? <QuickAiBubble /> : null}
+      {doctor.role === "doctor" || doctor.role === "clinic_admin" ? <QuickAiBubble key={doctor.email} /> : null}
 
       <NewPatientModal
         open={newPatientOpen}

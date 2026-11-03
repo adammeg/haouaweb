@@ -9,6 +9,7 @@ import {
   type AssistRunResult,
 } from "@/lib/assist";
 import { AssistPanel } from "@/components/assist/assist-panel";
+import { AiLearningFeedback } from "./ai-learning-feedback";
 import {
   buildDossierContextForIa,
   stableClinicalDataKey,
@@ -80,20 +81,21 @@ function generationMeta(res: Response) {
     promptVersion: res.headers.get("X-Hawae-Prompt-Version") ?? undefined,
     revision: res.headers.get("X-Hawae-Patient-Revision") ?? undefined,
     cacheVersion: res.headers.get("X-Hawae-Cache-Version") ?? undefined,
+    learningGenerationId: res.headers.get("X-Hawae-Learning-Generation") || undefined,
   };
 }
 
 async function consumeDiagnosticResponse(res: Response): Promise<{
   reply: string;
   analysis: ClinicalAiAnalysis;
-  meta: { provider?: string; model?: string; promptVersion?: string; revision?: string; cacheVersion?: string; evidenceIds?: string[] };
+  meta: { provider?: string; model?: string; promptVersion?: string; revision?: string; cacheVersion?: string; evidenceIds?: string[]; learningGenerationId?: string; learningCaseIds?: string[]; learningVersion?: string };
 }> {
   const data = (await res.json().catch(() => ({}))) as {
     reply?: string;
     analysis?: ClinicalAiAnalysis;
     error?: string;
     detail?: string;
-    meta?: { provider?: string; model?: string; promptVersion?: string; revision?: string; cacheVersion?: string; evidenceIds?: string[] };
+    meta?: { provider?: string; model?: string; promptVersion?: string; revision?: string; cacheVersion?: string; evidenceIds?: string[]; learningGenerationId?: string; learningCaseIds?: string[]; learningVersion?: string };
   };
   if (!res.ok) {
     throw new Error([data.error, data.detail].filter(Boolean).join(" — ") || res.statusText);
@@ -222,6 +224,9 @@ export function HawaeUnifiedPanel({
 }) {
   const patchDraft = useHawaeStore((s) => s.patchDraft);
   const dataKey = draft ? stableClinicalDataKey(draft) : "";
+  const reviewableHistory = [...(draft?.hawaeIaHistory ?? [])].reverse();
+  const lastReviewableDiagnostic = reviewableHistory.find((entry) => entry.mode === "diagnostic" && entry.learningGenerationId && entry.revision);
+  const lastReviewableQuestion = reviewableHistory.find((entry) => entry.mode === "question" && entry.learningGenerationId && entry.revision);
 
   /* ── Scores engine (client-side) ── */
   const scoresResult = useMemo<AssistRunResult | null>(() => draft ? runAssist(profileFromSnapshot(draft)) : null, [draft]);
@@ -525,6 +530,10 @@ export function HawaeUnifiedPanel({
       </div>
 
       {/* Contexte envoyé (détails repliables) */}
+      {!diagLoading && draft && lastReviewableDiagnostic?.learningGenerationId && lastReviewableDiagnostic.revision ? <div>
+        {!diagnosticText ? <details className="rounded-xl border p-3 text-xs"><summary>Dernière analyse à évaluer</summary><pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap font-sans">{lastReviewableDiagnostic.reply}</pre></details> : null}
+        <AiLearningFeedback key={lastReviewableDiagnostic.learningGenerationId} generationId={lastReviewableDiagnostic.learningGenerationId} patientId={draft.id} revision={lastReviewableDiagnostic.revision} />
+      </div> : null}
       <details className="rounded-xl border border-[var(--border)] bg-[var(--teal-pale)]/30 p-4">
         <summary className="cursor-pointer text-xs font-semibold text-[var(--ink-mid)]">
           Aperçu pseudonymisé du contexte clinique (le serveur vérifie et reconstruit le dossier)
@@ -595,6 +604,10 @@ export function HawaeUnifiedPanel({
             </pre>
           </div>
         )}
+        {!followLoading && draft && lastReviewableQuestion?.learningGenerationId && lastReviewableQuestion.revision ? <div>
+          {!followUpText ? <details className="rounded-xl border p-3 text-xs"><summary>Dernière réponse à évaluer : {lastReviewableQuestion.question}</summary><pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap font-sans">{lastReviewableQuestion.reply}</pre></details> : null}
+          <AiLearningFeedback key={lastReviewableQuestion.learningGenerationId} generationId={lastReviewableQuestion.learningGenerationId} patientId={draft.id} revision={lastReviewableQuestion.revision} />
+        </div> : null}
       </section>
 
       <p className="text-center text-[10px] text-[var(--muted)]">

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { DoctorAiTrainingSettings } from "@/types/training";
+import type { LearningStatus } from "@/types/ai-learning";
 
 export function AiTrainingConsentPanel() {
   const [settings, setSettings] = useState<DoctorAiTrainingSettings | null>(
@@ -13,6 +14,14 @@ export function AiTrainingConsentPanel() {
   const [syncing, setSyncing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [learning, setLearning] = useState<LearningStatus | null>(null);
+
+  const loadLearning = useCallback(async () => {
+    try {
+      const res = await fetch("/api/training/learning");
+      if (res.ok) setLearning((await res.json()).status);
+    } catch { /* Contribution preferences remain usable if statistics are unavailable. */ }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -23,12 +32,13 @@ export function AiTrainingConsentPanel() {
       const data = await res.json();
       setSettings(data.settings);
       setConsentVersion(data.consentVersion ?? "");
+      await loadLearning();
     } catch {
       setError("Impossible de charger les préférences.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadLearning]);
 
   useEffect(() => {
     void load();
@@ -55,9 +65,10 @@ export function AiTrainingConsentPanel() {
         await runSync();
       } else {
         setMessage(
-          `Contribution désactivée. ${data.deletedRecords ?? 0} copie(s) d'entraînement supprimée(s).`,
+          `Contribution désactivée. ${data.deletedRecords ?? 0} copie(s) de dossier et ${data.deletedLearningRecords ?? 0} interaction(s) d'apprentissage supprimées.`,
         );
       }
+      await loadLearning();
     } catch {
       setError("Échec de l'enregistrement.");
     } finally {
@@ -102,6 +113,7 @@ export function AiTrainingConsentPanel() {
             pour l&apos;entraînement du modèle Hawae. Vous pouvez désactiver à
             tout moment.
           </p>
+          <p className="mt-2 max-w-2xl text-xs leading-relaxed text-[var(--muted)]">Les nouvelles réponses et vos corrections alimentent aussi une mémoire de cas revue par le praticien, limitée à votre espace. Un avis « utile » ne confirme pas un diagnostic. Seules vos corrections avec un résultat confirmé peuvent être réutilisées ; les autres restent hors mémoire clinique. Cette fonction ne modifie pas automatiquement les paramètres du modèle.</p>
         </div>
         <span
           className={
@@ -129,6 +141,13 @@ export function AiTrainingConsentPanel() {
           Synchronisation automatique à chaque sauvegarde (dossier, modules, agenda).
         </li>
       </ul>
+
+      {enabled && learning ? <div className="mt-4 rounded-xl bg-[var(--teal-pale)]/30 p-4 text-xs">
+        <p className="font-semibold">Apprentissage à partir des cas revus</p>
+        <p className="mt-2">{learning.captured} réponses conservées · {learning.reviewed} revues · {learning.confirmed} cas confirmés · {learning.memoryEligible} cas confirmés dans le lot mémoire</p>
+        <p className="mt-1">{learning.validationCases} patientes réservées à la validation · {learning.testCases} au test. Ces nombres ne mesurent pas la justesse diagnostique.</p>
+        <div className="mt-3 flex flex-wrap gap-3"><button type="button" onClick={() => void loadLearning()} className="underline">Actualiser les statistiques</button><a className="underline" href="/api/training/learning?format=dataset" download>Exporter les cas confirmés pour évaluation</a></div>
+      </div> : null}
 
       {consentVersion ? (
         <p className="mt-3 text-[11px] text-[var(--muted)]">
