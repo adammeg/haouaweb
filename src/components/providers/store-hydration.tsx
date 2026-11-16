@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useHawaeStore } from "@/stores/hawae-store";
 import { ClinicalDataSync } from "@/components/providers/clinical-data-sync";
 import { WorkspaceSync } from "@/components/providers/workspace-sync";
+import { useAssistantDataStatus } from "@/stores/assistant-data-status";
 
 /**
  * Must run only under an authenticated (app) layout with a stable doctor id.
@@ -20,6 +21,7 @@ export function StoreHydration({
 
   useEffect(() => {
     window.__HAWAE_DOCTOR_ID__ = doctorId;
+    useAssistantDataStatus.setState({ doctorId, patients: "loading", clinical: "loading" });
 
     const finish = () => {
       useHawaeStore.getState().ensureDefaultUser();
@@ -44,8 +46,8 @@ export function StoreHydration({
   return (
     <>
       {children}
-      <WorkspaceSync />
-      <ClinicalDataSync />
+      <WorkspaceSync doctorId={doctorId} />
+      <ClinicalDataSync doctorId={doctorId} />
     </>
   );
 }

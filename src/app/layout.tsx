@@ -62,6 +62,7 @@ export default async function RootLayout({
         <VoiceAssistant
           key={session ? `${session.sub}:${session.role}` : "guest"}
           accountId={session?.sub ?? "guest"}
+          workspaceDoctorId={session?.doctorId ?? "guest"}
           access={!session ? "sign-in" : session.role === "secretary" ? "restricted" : "enabled"}
         />
       </body>

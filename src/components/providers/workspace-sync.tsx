@@ -3,6 +3,7 @@ import { pushWorkspaceNow } from "@/lib/storage/workspace-sync-client";
 
 import { useEffect, useRef } from "react";
 import { useHawaeStore } from "@/stores/hawae-store";
+import { markAssistantData } from "@/stores/assistant-data-status";
 import type {
   ConsultationEntry,
   PatientSnapshot,
@@ -38,7 +39,7 @@ function snapshotForSync(s: ReturnType<typeof useHawaeStore.getState>) {
  * Synchronise le store clinique avec MongoDB (collection `workspaces`).
  * localStorage reste le cache instantané ; le serveur fait foi si plus récent.
  */
-export function WorkspaceSync() {
+export function WorkspaceSync({ doctorId: requestedDoctorId }: { doctorId?: string } = {}) {
   const initialDone = useRef(false);
   const applyingRemote = useRef(false);
   const lastPushed = useRef("");
@@ -46,18 +47,22 @@ export function WorkspaceSync() {
 
   useEffect(() => {
     let cancelled = false;
+    const doctorId = requestedDoctorId ?? window.__HAWAE_DOCTOR_ID__;
+    initialDone.current = false; applyingRemote.current = false; lastPushed.current = "";
+    markAssistantData(doctorId, "patients", "loading");
 
     async function push() {
       if (cancelled || applyingRemote.current) return;
       try {
         const result = await pushWorkspaceNow();
-        if (!cancelled) lastPushed.current = result.snapshot;
+        if (!cancelled) { lastPushed.current = result.snapshot; markAssistantData(doctorId, "patients", "ready"); }
       } catch {
         /* Explicit AI saves surface errors; background synchronization retries on subsequent changes. */
       }
     }
 
     async function pull() {
+      let verified = false;
       try {
         const res = await fetch("/api/workspace/state", {
           credentials: "same-origin",
@@ -67,12 +72,14 @@ export function WorkspaceSync() {
           return;
         }
         const raw = (await res.json()) as Record<string, unknown>;
+        if (cancelled || window.__HAWAE_DOCTOR_ID__ !== doctorId) return;
         if (typeof raw.error === "string" && raw.error) {
           initialDone.current = true;
           return;
         }
         const data = raw as PullResponse;
         if (data.empty === true) {
+          verified = true;
           await push();
           initialDone.current = true;
           return;
@@ -82,6 +89,7 @@ export function WorkspaceSync() {
           return;
         }
         const remote = data;
+        verified = true;
         const localSaved = useHawaeStore.getState().workspaceSavedAt;
         if (localSaved == null || remote.updatedAt > localSaved) {
           applyingRemote.current = true;
@@ -102,6 +110,8 @@ export function WorkspaceSync() {
         initialDone.current = true;
       } catch {
         initialDone.current = true;
+      } finally {
+        if (!cancelled) markAssistantData(doctorId, "patients", verified ? "ready" : "error");
       }
     }
 
@@ -123,7 +133,7 @@ export function WorkspaceSync() {
       unsub();
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, []);
+  }, [requestedDoctorId]);
 
   return null;
 }

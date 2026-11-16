@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useRouter } from "next/navigation";
 import { useHawaeStore } from "@/stores/hawae-store";
 import { quickChatHistory } from "@/lib/ia/quick-chat";
@@ -11,6 +12,13 @@ import { stageVoiceEdit, voiceEditIsCurrent, type PendingVoiceEdit } from "@/lib
 import { VOICE_SESSION_END_EVENT } from "@/lib/voice/preferences";
 import type { HawaeIaExchange } from "@/types/domain";
 import { useVoiceSession } from "./use-voice-session";
+import { useRdvStore } from "@/stores/rdv-store";
+import { useRappelsStore } from "@/stores/rappels-store";
+import { useModulesStore } from "@/stores/modules-store";
+import { useAssistantDataStatus } from "@/stores/assistant-data-status";
+import { RdvModal } from "@/components/agenda/rdv-modal";
+import { pushWorkspaceNow } from "@/lib/storage/workspace-sync-client";
+import { appointmentDate, appointmentTime, calendarReply, fieldReply, findPatients, patientName, remindersReply, waitingReply, workspaceIntent, type PatientMatch, type WorkspaceIntent } from "@/lib/voice/workspace-tools";
 
 type CompletedTurn = { role: "user" | "assistant"; text: string; status: "complete" };
 
@@ -19,11 +27,11 @@ function activeVoiceIdentity() {
   return JSON.stringify([state.currentUserId, state.draft?.id, stableClinicalDataKey(state.draft)]);
 }
 
-export function VoiceAssistant({ access, accountId }: { access: "enabled" | "sign-in" | "restricted"; accountId: string }) {
-  return access === "enabled" ? <DoctorVoiceIsland key={accountId} accountId={accountId} /> : null;
+export function VoiceAssistant({ access, accountId, workspaceDoctorId = accountId }: { access: "enabled" | "sign-in" | "restricted"; accountId: string; workspaceDoctorId?: string }) {
+  return access === "enabled" ? <DoctorVoiceIsland key={accountId} accountId={accountId} workspaceDoctorId={workspaceDoctorId} /> : null;
 }
 
-function DoctorVoiceIsland({ accountId }: { accountId: string }) {
+function DoctorVoiceIsland({ accountId, workspaceDoctorId }: { accountId: string; workspaceDoctorId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const draft = useHawaeStore((state) => state.draft);
@@ -35,6 +43,11 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
   const [error, setError] = useState("");
   const [lastReply, setLastReply] = useState("");
   const [notice, setNotice] = useState("");
+  const [selection, setSelection] = useState<{ intent: Extract<WorkspaceIntent, { type: "patients" | "appointment" }>; matches: PatientMatch[] } | null>(null);
+  const [appointment, setAppointment] = useState<{ date: string; heure: string; patient: string } | null>(null);
+  const pendingSummary = useRef<{ userId: string; patientId: string; until: number } | null>(null);
+  const lastWorkspace = useRef<WorkspaceIntent | null>(null);
+  const savedAppointment = useRef<string | null>(null);
   const settingsId = useId();
   const history = useRef<CompletedTurn[]>([]);
   const abortRef = useRef<AbortController | null>(null);
@@ -46,7 +59,7 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
   const contextKey = `${accountId}:${pathname}:${userId}:${draft?.id}:${clinicalKey}:${usePatient}`;
   const contextRef = useRef(contextKey); contextRef.current = contextKey;
   const voice = useVoiceSession({
-    accountId, enabled: true, contextKey, blocked: !!pendingEdit || settingsOpen, thinking: loading,
+    accountId, enabled: true, contextKey, blocked: !!pendingEdit || !!selection || !!appointment || settingsOpen, thinking: loading,
     onInterrupt: () => cancelRequest(),
     onWake: () => { wakeContext.current = contextRef.current; wakeIdentity.current = activeVoiceIdentity(); setError(""); setNotice(""); },
     onTranscript: (text) => { if (wakeContext.current === contextRef.current && wakeIdentity.current === activeVoiceIdentity()) askRef.current(text); },
@@ -61,10 +74,18 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
 
   useEffect(() => {
     cancelRequest(); setPendingEdit(null); setError(""); setLastReply(""); setNotice(""); history.current = [];
+    setSelection(null); setAppointment(null);
+    lastWorkspace.current = null;
   }, [contextKey, cancelRequest]);
   useEffect(() => {
-    const hide = () => { if (document.visibilityState !== "visible") { cancelRequest(); setPendingEdit(null); } };
-    const endSession = () => { cancelRequest(); setPendingEdit(null); setLastReply(""); history.current = []; };
+    const task = pendingSummary.current;
+    if (!task) return;
+    if (task.until < Date.now() || task.userId !== userId || task.patientId !== draft?.id) { pendingSummary.current = null; return; }
+    if (pathname === "/dossier") { pendingSummary.current = null; askRef.current("résume le dossier"); }
+  }, [contextKey, draft?.id, pathname, userId]);
+  useEffect(() => {
+    const hide = () => { if (document.visibilityState !== "visible") { cancelRequest(); setPendingEdit(null); setSelection(null); setAppointment(null); pendingSummary.current = null; } };
+    const endSession = () => { cancelRequest(); setPendingEdit(null); setSelection(null); setAppointment(null); setLastReply(""); pendingSummary.current = null; lastWorkspace.current = null; history.current = []; };
     document.addEventListener("visibilitychange", hide); window.addEventListener(VOICE_SESSION_END_EVENT, endSession);
     return () => { document.removeEventListener("visibilitychange", hide); window.removeEventListener(VOICE_SESSION_END_EVENT, endSession); };
   }, [cancelRequest]);
@@ -78,11 +99,85 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
     return () => window.removeEventListener("keydown", escape);
   }, [cancelRequest, pauseVoice]);
 
-  function acknowledge(message: string) { setNotice(message); voice.speak(message); }
+  function acknowledge(message: string) { setNotice(message); setLastReply(message); voice.speak(message); }
+
+  function dataReady(source: "patients" | "clinical") {
+    const status = useAssistantDataStatus.getState();
+    if (status.doctorId !== workspaceDoctorId || status[source] !== "ready") {
+      acknowledge(status[source] === "error" ? "La synchronisation du cabinet n’est pas disponible. Je ne peux pas confirmer ces données pour le moment." : "Les données du cabinet sont en cours de chargement. Réessayez dans un instant.");
+      return false;
+    }
+    return true;
+  }
+
+  function choosePatient(match: PatientMatch, intent: Extract<WorkspaceIntent, { type: "patients" | "appointment" }>) {
+    const state = useHawaeStore.getState();
+    if (!dataReady("patients") || !state.patientsByUser[match.userId]?.[match.patient.id]) { setSelection(null); return; }
+    const selectedPatient = state.patientsByUser[match.userId][match.patient.id];
+    setSelection(null);
+    if (intent.type === "appointment") {
+      if (!dataReady("clinical")) return;
+      const date = appointmentDate(intent.dateText), heure = appointmentTime(intent.timeText);
+      if (!date || !heure) { acknowledge("Précisez une date et une heure valides. Par exemple : prends un rendez-vous pour la patiente actuelle demain à 14 heures."); return; }
+      setAppointment({ date, heure, patient: patientName(selectedPatient) }); return;
+    }
+    if (!state.users.some((user) => user.id === match.userId)) { acknowledge("Le profil qui contient ce dossier n’est plus disponible."); return; }
+    state.saveDraft(); state.setCurrentUser(match.userId); useHawaeStore.getState().openPatient(match.patient.id);
+    if (intent.action === "summary") {
+      if (userId === match.userId && draft?.id === match.patient.id && pathname === "/dossier") { askRef.current("résume le dossier"); return; }
+      pendingSummary.current = { userId: match.userId, patientId: match.patient.id, until: Date.now() + 10_000 };
+    }
+    router.push("/dossier");
+  }
+
+  function handleWorkspace(intent: WorkspaceIntent) {
+    lastWorkspace.current = intent;
+    const state = useHawaeStore.getState();
+    if (intent.type === "capabilities") {
+      acknowledge("J’ai accès aux données de votre cabinet : dossiers patientes, rendez-vous, salle d’attente et rappels chargés. Je peux rechercher et ouvrir un dossier, lire les informations enregistrées, analyser le dossier ouvert et préparer un rendez-vous à valider."); return;
+    }
+    if (intent.type === "field") { if (dataReady("patients")) acknowledge(fieldReply(state.draft, intent.field)); return; }
+    if (intent.type === "save") {
+      if (!dataReady("patients")) return;
+      if (!state.draft?.id) { acknowledge("Aucun dossier ouvert à sauvegarder."); return; }
+      state.saveDraft(); setLoading(true);
+      const captured = contextRef.current;
+      const run = ++requestId.current;
+      const current = () => captured === contextRef.current && run === requestId.current;
+      void pushWorkspaceNow().then(() => { if (current()) acknowledge("Le dossier a été sauvegardé sur le serveur."); })
+        .catch(() => { if (current()) acknowledge("Le dossier est conservé localement, mais la sauvegarde serveur a échoué."); })
+        .finally(() => { if (current()) setLoading(false); }); return;
+    }
+    if (intent.type === "calendar" || intent.type === "waiting" || intent.type === "reminders") {
+      if (!dataReady("clinical")) return;
+      if (intent.type === "calendar") {
+        if (intent.query === "@active" && !state.draft) { acknowledge("Ouvrez le dossier de la patiente dont vous cherchez les rendez-vous."); return; }
+        acknowledge(calendarReply(useRdvStore.getState().list, { ...intent, query: intent.query === "@active" ? patientName(state.draft!) : intent.query }));
+      }
+      else if (intent.type === "reminders") acknowledge(remindersReply(useRappelsStore.getState().list));
+      else {
+        if (!dataReady("patients")) return;
+        const uid = state.currentUserId ?? "";
+        acknowledge(waitingReply(useModulesStore.getState().workspaceByUser[uid]?.waitingQueue ?? [], state.patientsByUser[uid] ?? {}));
+      }
+      return;
+    }
+    if (!dataReady("patients")) return;
+    const current = /^(?:(?:la|ma|cette) )?patiente(?: actuelle|ouverte)?$/.test(intent.query);
+    const matches = current && state.draft && state.currentUserId ? [{ userId: state.currentUserId, patient: state.draft }] : findPatients(state.patientsByUser, intent.query);
+    if (!matches.length) { acknowledge("Aucune patiente correspondante dans les dossiers chargés. Donnez son nom complet."); return; }
+    if (intent.type === "patients" && intent.action === "search") {
+      acknowledge(`${matches.length} dossier${matches.length > 1 ? "s" : ""} trouvé${matches.length > 1 ? "s" : ""} : ${matches.slice(0, 5).map((match) => patientName(match.patient)).join(", ")}. Pour ouvrir un dossier, dites ouvre le dossier de suivi du nom complet.`); return;
+    }
+    if (intent.type === "appointment" && (!appointmentDate(intent.dateText) || !appointmentTime(intent.timeText))) { acknowledge("Précisez la patiente, la date et l’heure. Par exemple : prends un rendez-vous pour la patiente actuelle demain à 14 heures."); return; }
+    if (matches.length > 1) { setSelection({ intent, matches: matches.slice(0, 10) }); return; }
+    choosePatient(matches[0], intent);
+  }
 
   async function answer(question: string, forcePatient = false) {
     const snapshot = useHawaeStore.getState();
     const patientMode = forcePatient || (usePatient && !!snapshot.draft?.id);
+    if (patientMode && !dataReady("patients")) return;
     if (patientMode && !snapshot.draft?.id) { acknowledge("Ouvrez un dossier pour demander son résumé."); return; }
     voice.pause(); setError(""); setNotice(""); setLastReply("");
     const capturedContext = contextRef.current;
@@ -131,9 +226,15 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
 
   function handleRequest(raw: string) {
     const text = raw.trim();
-    if (!text || text.length > MAX_VOICE_CHARACTERS || abortRef.current || pendingEdit || settingsOpen) return;
+    if (!text || text.length > MAX_VOICE_CHARACTERS || abortRef.current || pendingEdit || selection || appointment || settingsOpen) return;
     voice.pause(); setError(""); setNotice("");
     const command = parseVoiceCommand(text);
+    const workspace = command.type === "unsupported" ? workspaceIntent(text, lastWorkspace.current) : null;
+    if (workspace) {
+      try { handleWorkspace(workspace); }
+      catch { acknowledge("Les données chargées ne peuvent pas être lues. Vérifiez la synchronisation du cabinet et réessayez."); }
+      return;
+    }
     const state = useHawaeStore.getState();
     switch (command.type) {
       case "stop": cancelRequest(); voice.startTalk(); return;
@@ -147,11 +248,20 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
         router.push(`/dossier?voiceTab=${command.tab}`); voice.resume(); return;
       case "summary": void answer("Résume le dossier actuel et signale les informations manquantes.", true); return;
       case "dictate":
+        if (!dataReady("patients")) return;
         if (!state.draft?.id || !state.currentUserId) { acknowledge("Ouvrez un dossier avant de dicter une modification."); return; }
         setPendingEdit(stageVoiceEdit(state.draft, state.currentUserId, command.field, command.value)); return;
       default: void answer(text);
     }
   }
+  const speak = voice.speak;
+  useEffect(() => {
+    if (appointment || !savedAppointment.current) return;
+    const id = savedAppointment.current; savedAppointment.current = null;
+    if (useAssistantDataStatus.getState().doctorId !== workspaceDoctorId) return;
+    const created = useRdvStore.getState().list.find((row) => row.id === id);
+    if (created) speak(`Rendez-vous ajouté à l’agenda pour ${created.patient}, le ${created.date}, à ${created.heure}. La synchronisation du cabinet est en cours.`);
+  }, [appointment, speak, workspaceDoctorId]);
   askRef.current = handleRequest;
 
   function applyEdit() {
@@ -178,7 +288,7 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
     <div className={`assist-island ${listening || voice.speaking ? "is-active" : ""} ${loading ? "is-thinking" : ""}`}>
       <button type="button" className="assist-island-main" onClick={toggleActive} aria-label={voice.speaking || voice.preparingSpeech || loading ? "Interrompre et parler à Assist" : needsSetup ? "Configurer Assist" : "Parler à Assist"}>
         <span className={`assist-wave ${waiting || listening || voice.speaking || loading ? "is-moving" : ""}`} aria-hidden><i /><i /><i /><i /><i /></span>
-        <span className="assist-island-label"><strong role="status">{status}</strong><small>{voice.speaking ? voice.interruptAvailable ? "« Bonjour assist » pour interrompre" : "Touchez la barre pour interrompre" : listening ? voice.interim || "Je vous écoute…" : usePatient && draft?.id ? "Dossier actif" : "Discussion générale"}</small></span>
+        <span className="assist-island-label"><strong role="status">{status}</strong><small>{voice.speaking ? voice.interruptAvailable ? "« Bonjour assist » pour interrompre" : "Touchez la barre pour interrompre" : listening ? voice.interim || "Je vous écoute…" : usePatient && draft?.id ? "Dossier actif · cabinet" : "Cabinet · dossiers et agenda"}</small></span>
       </button>
       {lastReply && !loading && <button type="button" className="assist-island-icon" onClick={() => voice.speak(lastReply)} aria-label="Réécouter la réponse" title="Réécouter">▷</button>}
       {voice.preferences.active && <button type="button" className="assist-island-icon assist-pause" onClick={() => { cancelRequest(); voice.updatePreferences({ active: false }); }} aria-label="Mettre Assist en pause" title="Mettre en pause">Ⅱ</button>}
@@ -186,6 +296,8 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
     </div>
     {problem && !settingsOpen && <div className="assist-island-message" role="alert"><span>{problem}</span><button type="button" onClick={() => setSettingsOpen(true)}>Réglages</button></div>}
     {notice && !problem && !voice.speaking && <p className="assist-island-message" role="status">{notice}</p>}
+    {selection && <section className="assist-island-card" aria-label="Choisir une patiente"><header><strong>Plusieurs dossiers correspondent</strong><button type="button" onClick={() => setSelection(null)} aria-label="Annuler le choix">×</button></header><p>Choisissez le bon dossier.</p>{selection.matches.map((match) => <button type="button" key={`${match.userId}:${match.patient.id}`} onClick={() => choosePatient(match, selection.intent)}>{patientName(match.patient)}{match.patient.ddn ? ` · ${match.patient.ddn}` : ""} · {useHawaeStore.getState().users.find((user) => user.id === match.userId)?.name ?? "profil cabinet"}</button>)}</section>}
+    {appointment && createPortal(<RdvModal mode="create" open prefillDate={appointment.date} prefillHeure={appointment.heure} prefillPatient={appointment.patient} onClose={() => setAppointment(null)} onSaved={(id) => { savedAppointment.current = id; setAppointment(null); setNotice("Rendez-vous ajouté à l’agenda. La synchronisation du cabinet est en cours."); }} />, document.body)}
     {settingsOpen && <section id={settingsId} className="assist-island-card" aria-label="Réglages vocaux">
       <header><strong>Assist · Réglages vocaux</strong><button type="button" onClick={() => setSettingsOpen(false)} aria-label="Fermer les réglages">×</button></header>
       <p>Dites <b>« bonjour assist »</b> ou <b>« bonjour assiste »</b>, puis votre demande. Après la réponse, vous avez 20 secondes pour poursuivre sans répéter le mot d’activation.</p>

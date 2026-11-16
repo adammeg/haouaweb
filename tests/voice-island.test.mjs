@@ -12,6 +12,8 @@ registerHooks({ resolve(specifier, context, next) {
 } });
 const { VoiceAssistant } = await import("../src/components/voice/voice-assistant.tsx");
 const { useHawaeStore } = await import("../src/stores/hawae-store.ts");
+const { useRdvStore } = await import("../src/stores/rdv-store.ts");
+const { useAssistantDataStatus } = await import("../src/stores/assistant-data-status.ts");
 
 async function mount(t, { access = "enabled", preferences, localSupported = true, speechStarts = true, availability } = {}) {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
@@ -38,7 +40,9 @@ async function mount(t, { access = "enabled", preferences, localSupported = true
     return Response.json({ reply: "Réponse vocale synthétique." });
   };
   if (preferences) window.localStorage.setItem("hawae:voice:doctor-test", JSON.stringify(preferences));
-  useHawaeStore.setState({ draft: null, currentPatientId: null, currentUserId: "doctor-test" });
+  useHawaeStore.setState({ draft: null, currentPatientId: null, currentUserId: "doctor-test", users: [{ id: "doctor-test", name: "Médecin test", initials: "MT", role: "medecin", color: "#000" }], patientsByUser: {}, historyByUser: {} });
+  useRdvStore.setState({ list: [] });
+  useAssistantDataStatus.setState({ doctorId: "doctor-test", patients: "ready", clinical: "ready" });
   navigation.pushed = [];
   const container = window.document.createElement("div"); window.document.body.append(container);
   const root = createRoot(container);
@@ -304,4 +308,98 @@ test("when the browser rejects simultaneous recognition, playback continues with
   assert.match(view.container.textContent, /Touchez la barre pour interrompre/);
   assert.match(view.container.textContent, /Assist vous répond/);
   assert.equal(typeof view.spoken[0].onend, "function");
+});
+
+test("the assistant reads real appointment data without asking a model to guess the agenda", async (t) => {
+  const view = await mount(t); await view.tick(500);
+  await act(async () => useRdvStore.setState({ list: [{ id: "rdv", patient: "Fatima Test", date: "2026-01-01", heure: "14:30", duree: 30, statut: "confirme", type: "consultation" }] }));
+  await act(async () => view.instances.at(-1).emit("bonjour assist, quels sont mes rendez-vous le 1 janvier 2026")); await view.tick(1500);
+  assert.equal(view.requests.length, 0);
+  assert.match(view.spoken.at(-1).text, /Fatima Test/);
+  assert.match(view.spoken.at(-1).text, /14 heures 30/);
+});
+
+test("an unloaded agenda cannot be reported as an empty agenda", async (t) => {
+  const view = await mount(t); await view.tick(500);
+  useAssistantDataStatus.setState({ clinical: "loading" });
+  await act(async () => view.instances.at(-1).emit("bonjour assist, quels sont mes rendez-vous demain")); await view.tick(1500);
+  assert.equal(view.requests.length, 0);
+  assert.match(view.spoken.at(-1).text, /en cours de chargement/);
+  assert.doesNotMatch(view.spoken.at(-1).text, /Aucun rendez-vous/);
+});
+
+test("a named patient can be found and opened without an already-open dossier", async (t) => {
+  const view = await mount(t); await view.tick(500);
+  await act(async () => useHawaeStore.setState({ patientsByUser: { "doctor-test": { p: { id: "p", prenom: "Fatima", nom: "Ben Ali", specialite: "gyn" } } } }));
+  await act(async () => view.instances.at(-1).emit("bonjour assist, ouvre le dossier de Fatima Ben Ali")); await view.tick(1500);
+  assert.equal(useHawaeStore.getState().draft.id, "p");
+  assert.deepEqual(navigation.pushed, ["/dossier"]);
+  assert.equal(view.requests.length, 0);
+});
+
+test("the assistant reads patient identity and treatments from the real draft", async (t) => {
+  const view = await mount(t);
+  await act(async () => useHawaeStore.setState({ draft: { id: "p", prenom: "Fatima", nom: "Test", specialite: "gyn", traitements: "Traitement du dossier" }, currentPatientId: "p" })); await view.tick(500);
+  await act(async () => view.instances.at(-1).emit("bonjour assist, quels sont ses traitements")); await view.tick(1500);
+  assert.match(view.spoken.at(-1).text, /Traitement du dossier/);
+  assert.equal(view.requests.length, 0);
+});
+
+test("ambiguous patient names require a choice and cannot silently open the wrong dossier", async (t) => {
+  const view = await mount(t); await view.tick(500);
+  await act(async () => useHawaeStore.setState({ patientsByUser: { "doctor-test": { a: { id: "a", prenom: "Fatima", nom: "Test A", specialite: "gyn" }, b: { id: "b", prenom: "Fatima", nom: "Test B", specialite: "gyn" } } } }));
+  await act(async () => view.instances.at(-1).emit("bonjour assist, ouvre le dossier de Fatima")); await view.tick(1500);
+  assert.equal(useHawaeStore.getState().draft, null);
+  assert.ok(view.container.querySelector('[aria-label="Choisir une patiente"]'));
+  await view.click("Fatima Test B · Médecin test");
+  assert.equal(useHawaeStore.getState().draft.id, "b");
+});
+
+test("booking a voice appointment opens a prefilled review form and does not save it silently", async (t) => {
+  const view = await mount(t);
+  const patient = { id: "p", prenom: "Fatima", nom: "Test", specialite: "gyn" };
+  await act(async () => useHawaeStore.setState({ draft: patient, currentPatientId: "p", patientsByUser: { "doctor-test": { p: patient } } })); await view.tick(500);
+  await act(async () => view.instances.at(-1).emit("bonjour assist, prends un rendez-vous pour la patiente actuelle demain à 14 heures 30")); await view.tick(1500);
+  assert.ok(view.window.document.body.querySelector('[role="dialog"]'));
+  assert.equal(view.container.querySelector('[role="dialog"]'), null);
+  const inputs = [...view.window.document.body.querySelectorAll("input")];
+  assert.ok(inputs.some((input) => input.value === "Fatima Test"));
+  assert.ok(inputs.some((input) => input.value === "14:30"));
+  assert.equal(useRdvStore.getState().list.length, 0);
+  await act(async () => view.window.document.body.querySelector("form").dispatchEvent(new view.window.Event("submit", { bubbles: true, cancelable: true })));
+  assert.equal(useRdvStore.getState().list.length, 1);
+  assert.equal(useRdvStore.getState().list[0].patient, "Fatima Test");
+  assert.equal(useRdvStore.getState().list[0].heure, "14:30");
+  assert.match(view.spoken.at(-1).text, /Rendez-vous ajouté/);
+});
+
+test("a named dossier summary saves the selected patient and sends the exact authorized revision", async (t) => {
+  const view = await mount(t); await view.tick(500);
+  const patient = { id: "named-patient", prenom: "Fatima", nom: "Ben Ali", specialite: "gyn", symptomes: "Symptômes du dossier choisi" };
+  await act(async () => useHawaeStore.setState({ patientsByUser: { "doctor-test": { [patient.id]: patient } } }));
+  const calls = [];
+  globalThis.fetch = async (url, init) => {
+    const body = JSON.parse(init.body); calls.push({ url, body });
+    if (url === "/api/workspace/state") return Response.json({ updatedAt: "2026-11-17T10:00:00Z" });
+    return Response.json({ reply: "Résumé fondé sur le dossier sélectionné.", meta: { revision: body.expectedRevision, patientId: body.patientId } });
+  };
+  await act(async () => view.instances.at(-1).emit("bonjour assist, résume le dossier de Fatima Ben Ali")); await view.tick(1500);
+  // Allow the serialized workspace synchronization and its WebCrypto revision to complete.
+  await act(async () => { await new Promise((resolve) => setImmediate(resolve)); });
+  assert.equal(calls[0]?.url, "/api/workspace/state");
+  const ai = calls.find((call) => call.url === "/api/ia");
+  assert.ok(ai);
+  assert.equal(ai.body.patientId, patient.id);
+  assert.match(ai.body.expectedRevision, /^[a-f0-9]{64}$/);
+  assert.equal(ai.body.mode, "question");
+  assert.match(view.spoken.at(-1).text, /dossier sélectionné/);
+});
+
+test("workspace data from another logged-in doctor is never read by the current assistant", async (t) => {
+  const view = await mount(t); await view.tick(500);
+  useAssistantDataStatus.setState({ doctorId: "another-doctor", clinical: "ready" });
+  await act(async () => useRdvStore.setState({ list: [{ id: "old", patient: "Secret autre compte", date: "2026-01-01", heure: "14:00", duree: 30, statut: "confirme" }] }));
+  await act(async () => view.instances.at(-1).emit("bonjour assist, quels sont mes rendez-vous le 1 janvier 2026")); await view.tick(1500);
+  assert.doesNotMatch(view.spoken.at(-1).text, /Secret autre compte/);
+  assert.match(view.spoken.at(-1).text, /chargement/);
 });

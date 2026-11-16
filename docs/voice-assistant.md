@@ -11,6 +11,8 @@ Say **“bonjour assist”** or **“bonjour assiste”**, followed by a request
 
 The open patient dossier supplies context for questions by default, as indicated by **Dossier actif** in the island. Use the settings icon to disable patient context for general questions. A dossier summary always requires an open patient. Clinical questions await workspace synchronization and use the existing authorized patient/revision checks; completed exchanges retain provenance and consent-gated learning behavior.
 
+Assist can also search/open a named dossier, read actual appointments, waiting-room entries and reminders, save the current dossier, and prepare an appointment in the standard review form. These workspace reads use the loaded application's data rather than asking the model to invent access or results. See [workspace access and example commands](voice-workspace-access.md).
+
 ## Automatic activation and permissions
 
 Assist attempts to start wake listening when the doctor opens the app. Browsers still control microphone permission and may require a first click. If recognition cannot start, the island offers setup/retry rather than claiming it is listening.
