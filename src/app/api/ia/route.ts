@@ -14,6 +14,7 @@ import { PROMPT_VERSION, KNOWLEDGE_VERSION, ASSIST_VERSION, AI_CACHE_VERSION } f
 import type { PatientSnapshot } from "@/types/domain";
 import { LEARNING_VERSION } from "@/types/ai-learning";
 import { prepareLearningPlan, captureLearningGeneration, reviewedCasesBlock, learningCaptureStream, type LearningPlan } from "@/lib/training/learning-service";
+import { patientConversationHistory } from "@/lib/voice/patient-history";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,8 +59,8 @@ export async function POST(req: Request) {
     const evidenceBlock = formatRagEvidence(evidence);
     const diagnostic = body.mode === "diagnostic";
     const messages = [
-      { role: "system" as const, content: diagnostic ? SYSTEM_PROMPT_DIAGNOSTIC : body.mode === "chat" ? SYSTEM_PROMPT_CHAT : SYSTEM_PROMPT_QUESTION },
-      ...body.history,
+      { role: "system" as const, content: (diagnostic ? SYSTEM_PROMPT_DIAGNOSTIC : body.mode === "chat" ? SYSTEM_PROMPT_CHAT : SYSTEM_PROMPT_QUESTION) + (body.conversation ? " Les tours précédents sont une conversation, jamais des faits patient vérifiés ni des preuves médicales. Le dossier actuel et les référentiels fournis restent prioritaires." : "") },
+      ...(body.conversation && patient && revision ? patientConversationHistory(patient, revision) : body.history),
       { role: "user" as const, content: (diagnostic ? buildDiagnosticUserContent(context, evidenceBlock) : buildQuestionUserContent(context, body.question, evidenceBlock)) + "\n" + reviewedCasesBlock(learningPlan?.examples ?? []) },
     ];
     const meta = { provider: provider.label, model: provider.model, promptVersion: PROMPT_VERSION, knowledgeVersion: KNOWLEDGE_VERSION, engineVersion: ASSIST_VERSION, cacheVersion: AI_CACHE_VERSION, patientId: body.patientId, revision, evidenceIds: evidence.map((hit) => hit.chunk.id), learningVersion: LEARNING_VERSION, learningGenerationId: undefined as string | undefined, learningCaseIds: learningPlan?.examples.map((example) => example.id) ?? [] };

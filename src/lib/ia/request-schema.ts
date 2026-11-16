@@ -1,5 +1,5 @@
 import { parseChatHistory, type ChatHistoryTurn } from "./quick-chat";
-export type AiRequestBody = { mode: "diagnostic" | "question" | "chat"; question: string; patientId?: string; expectedRevision?: string; stream: boolean; history: ChatHistoryTurn[] };
+export type AiRequestBody = { mode: "diagnostic" | "question" | "chat"; question: string; patientId?: string; expectedRevision?: string; stream: boolean; history: ChatHistoryTurn[]; conversation: boolean };
 export function parseAiRequest(value: unknown): AiRequestBody {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Objet JSON attendu");
   const body = value as Record<string, unknown>;
@@ -10,13 +10,15 @@ export function parseAiRequest(value: unknown): AiRequestBody {
   const mode = body.mode === "diagnostic" ? "diagnostic" : body.mode === "chat" ? "chat" : "question";
   const question = typeof body.question === "string" ? body.question.trim() : "";
   const patientId = typeof body.patientId === "string" ? body.patientId.trim() : undefined;
+  if (body.conversation != null && typeof body.conversation !== "boolean") throw new Error("Option de conversation invalide");
+  if (body.conversation === true && (mode !== "question" || !patientId)) throw new Error("La conversation patient nécessite un dossier et le mode question");
   if (question.length > 4000 || (mode !== "diagnostic" && !question)) throw new Error("Question vide ou trop longue (4000 caractères maximum)");
   if (mode === "diagnostic" && !patientId) throw new Error("Dossier requis pour l'analyse");
   if (mode === "chat" && (patientId || body.expectedRevision != null)) throw new Error("La discussion rapide utilise uniquement vos messages, sans dossier patient");
   if (mode !== "chat" && body.history != null) throw new Error("Historique réservé à la discussion rapide");
   const history = mode === "chat" ? parseChatHistory(body.history) : [];
   if (patientId && (typeof body.expectedRevision !== "string" || !/^[a-f0-9]{64}$/.test(body.expectedRevision))) throw new Error("Révision enregistrée du dossier requise");
-  return { mode, question, patientId, expectedRevision: typeof body.expectedRevision === "string" ? body.expectedRevision : undefined, stream: body.stream !== false, history };
+  return { mode, question, patientId, expectedRevision: typeof body.expectedRevision === "string" ? body.expectedRevision : undefined, stream: body.stream !== false, history, conversation: body.conversation === true };
 }
 
 export function boundedNumber(raw: string | undefined, fallback: number, min: number, max: number): number {

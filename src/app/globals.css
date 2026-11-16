@@ -372,6 +372,33 @@ html {
 .quick-ai-stop { display: block; width: 11px; height: 11px; margin: auto; border-radius: 2px; background: currentColor; }
 .quick-ai-disclaimer { padding: 0 .9rem .6rem; color: var(--muted); text-align: center; font-size: .58rem; }
 
+/* Doctor voice controls: bounded scrolling preserves the send/stop actions on small screens. */
+.quick-ai-panel { height: min(740px, calc(100dvh - env(safe-area-inset-bottom, 0px) - var(--quick-ai-nav-h) - 6rem)); overflow-y: auto; }
+.quick-ai-header, .voice-mode-bar, .quick-ai-disclaimer { flex-shrink: 0; }
+.quick-ai-messages { min-height: 80px; }
+.voice-mode-bar { display: flex; align-items: center; gap: .6rem; padding: .5rem 1rem; font-size: .72rem; border-bottom: 1px solid var(--border-light); }
+.voice-mode-bar select { flex: 1; min-width: 0; padding: .3rem .5rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.voice-controls { flex: none; max-height: 230px; overflow-y: auto; padding: .6rem .85rem; border-top: 1px solid var(--border-light); font-size: .7rem; color: var(--ink-mid); background: var(--teal-pale); }
+.voice-status { display: flex; align-items: center; gap: .4rem; margin-bottom: .45rem; font-weight: 650; }
+.voice-dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--muted); }
+.voice-dot.active { background: #c02e42; box-shadow: 0 0 0 3px rgba(192,46,66,.12); }
+.voice-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+.voice-actions button, .voice-controls details > button { padding: .45rem .6rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--teal); font-weight: 700; }
+.voice-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.voice-controls details { margin-top: .5rem; }
+.voice-controls summary { cursor: pointer; color: var(--teal); }
+.voice-controls details > label { display: flex; gap: .4rem; align-items: flex-start; margin-top: .5rem; }
+.voice-controls select { max-width: 65%; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; }
+.voice-controls p { margin-top: .35rem; }
+.voice-check input { flex: none; margin-top: .2rem; accent-color: var(--teal); }
+.voice-error { color: #a12838; }
+.voice-interim { max-height: 50px; overflow: auto; font-style: italic; }
+.voice-hint { flex: none; padding: .45rem .85rem; color: var(--muted); font-size: .7rem; }
+.voice-edit { flex: none; max-height: 180px; overflow: auto; margin: .4rem .8rem; padding: .7rem; border: 1px solid var(--teal); border-radius: 10px; background: var(--cream); font-size: .72rem; }
+.voice-edit p { margin: .5rem 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.voice-read { display: block; margin-top: .5rem; color: var(--teal); font-size: .68rem; font-weight: 700; text-decoration: underline; }
+.quick-ai :is(select, summary, input):focus-visible { outline: 2px solid var(--teal-light); outline-offset: 2px; }
+
 .quick-ai-typing { display: inline-flex; gap: 3px; padding: .3rem; }
 .quick-ai-typing i {
   width: 5px;

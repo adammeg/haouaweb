@@ -18,6 +18,7 @@ import {
 } from "@/components/dossier/dossier-form-view";
 import { DossierListView } from "@/components/dossier/dossier-list-view";
 import { NewPatientModal } from "@/components/patient/new-patient-modal";
+import type { VoiceTab } from "@/lib/voice/commands";
 
 export function DossierWorkspace() {
   const router = useRouter();
@@ -57,6 +58,15 @@ export function DossierWorkspace() {
   const practitioner = usePractitionerStore((s) => s.profile);
 
   const handledQueryRef = useRef<string | null>(null);
+
+  // Voice navigation uses the same tab callback as the visible dossier controls.
+  useEffect(() => {
+    const requestedTab = searchParams.get("voiceTab");
+    if (!requestedTab || !draft?.id) return;
+    const allowed: VoiceTab[] = ["anamnese", "examen", "bilans", "scores", "hawae", "docs"];
+    if (allowed.includes(requestedTab as VoiceTab)) setTab(requestedTab as VoiceTab);
+    router.replace("/dossier", { scroll: false });
+  }, [searchParams, draft?.id, router]);
 
   const startNewPatient = useCallback(() => {
     createNewPatient();
