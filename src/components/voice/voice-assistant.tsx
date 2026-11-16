@@ -1,0 +1,198 @@
+"use client";
+
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useHawaeStore } from "@/stores/hawae-store";
+import { quickChatHistory } from "@/lib/ia/quick-chat";
+import { stableClinicalDataKey } from "@/lib/ia/clinical-revision";
+import { preparePatientAiRequest, isCurrentAiRequest } from "@/lib/ia/patient-request-client";
+import { DICTATION_LABELS, MAX_VOICE_CHARACTERS, parseVoiceCommand, WAKE_PHRASE } from "@/lib/voice/commands";
+import { stageVoiceEdit, voiceEditIsCurrent, type PendingVoiceEdit } from "@/lib/voice/draft-edit";
+import { VOICE_SESSION_END_EVENT } from "@/lib/voice/preferences";
+import type { HawaeIaExchange } from "@/types/domain";
+import { useVoiceSession } from "./use-voice-session";
+
+type CompletedTurn = { role: "user" | "assistant"; text: string; status: "complete" };
+
+function activeVoiceIdentity() {
+  const state = useHawaeStore.getState();
+  return JSON.stringify([state.currentUserId, state.draft?.id, stableClinicalDataKey(state.draft)]);
+}
+
+export function VoiceAssistant({ access, accountId }: { access: "enabled" | "sign-in" | "restricted"; accountId: string }) {
+  return access === "enabled" ? <DoctorVoiceIsland key={accountId} accountId={accountId} /> : null;
+}
+
+function DoctorVoiceIsland({ accountId }: { accountId: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const draft = useHawaeStore((state) => state.draft);
+  const userId = useHawaeStore((state) => state.currentUserId);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [usePatient, setUsePatient] = useState(true);
+  const [pendingEdit, setPendingEdit] = useState<PendingVoiceEdit | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [lastReply, setLastReply] = useState("");
+  const [notice, setNotice] = useState("");
+  const settingsId = useId();
+  const history = useRef<CompletedTurn[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
+  const requestId = useRef(0);
+  const askRef = useRef<(text: string) => void>(() => {});
+  const wakeContext = useRef("");
+  const wakeIdentity = useRef("");
+  const clinicalKey = stableClinicalDataKey(draft);
+  const contextKey = `${accountId}:${pathname}:${userId}:${draft?.id}:${clinicalKey}:${usePatient}`;
+  const contextRef = useRef(contextKey); contextRef.current = contextKey;
+  const voice = useVoiceSession({
+    accountId, enabled: true, contextKey, blocked: loading || !!pendingEdit || settingsOpen,
+    onWake: () => { wakeContext.current = contextRef.current; wakeIdentity.current = activeVoiceIdentity(); setError(""); setNotice(""); },
+    onTranscript: (text) => { if (wakeContext.current === contextRef.current && wakeIdentity.current === activeVoiceIdentity()) askRef.current(text); },
+  });
+  const pauseVoice = voice.pause;
+
+  const cancelRequest = useCallback(() => {
+    requestId.current++;
+    abortRef.current?.abort(); abortRef.current = null;
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    cancelRequest(); setPendingEdit(null); setError(""); setLastReply(""); setNotice(""); history.current = [];
+  }, [contextKey, cancelRequest]);
+  useEffect(() => {
+    const hide = () => { if (document.visibilityState !== "visible") { cancelRequest(); setPendingEdit(null); } };
+    const endSession = () => { cancelRequest(); setPendingEdit(null); setLastReply(""); history.current = []; };
+    document.addEventListener("visibilitychange", hide); window.addEventListener(VOICE_SESSION_END_EVENT, endSession);
+    return () => { document.removeEventListener("visibilitychange", hide); window.removeEventListener(VOICE_SESSION_END_EVENT, endSession); };
+  }, [cancelRequest]);
+  useEffect(() => () => { requestId.current++; abortRef.current?.abort(); }, []);
+  useEffect(() => {
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      cancelRequest(); pauseVoice(); setSettingsOpen(false); setPendingEdit(null);
+    };
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
+  }, [cancelRequest, pauseVoice]);
+
+  function acknowledge(message: string) { setNotice(message); voice.speak(message); }
+
+  async function answer(question: string, forcePatient = false) {
+    const snapshot = useHawaeStore.getState();
+    const patientMode = forcePatient || (usePatient && !!snapshot.draft?.id);
+    if (patientMode && !snapshot.draft?.id) { acknowledge("Ouvrez un dossier pour demander son résumé."); return; }
+    voice.pause(); setError(""); setNotice(""); setLastReply("");
+    const capturedContext = contextRef.current;
+    const capturedUser = snapshot.currentUserId;
+    const patientId = snapshot.draft?.id;
+    const key = stableClinicalDataKey(snapshot.draft);
+    const ac = new AbortController(); abortRef.current = ac;
+    const run = ++requestId.current;
+    setLoading(true);
+    const current = () => {
+      const state = useHawaeStore.getState();
+      return !ac.signal.aborted && run === requestId.current && contextRef.current === capturedContext && state.currentUserId === capturedUser && state.draft?.id === patientId && stableClinicalDataKey(state.draft) === key;
+    };
+    try {
+      const prepared = patientMode ? await preparePatientAiRequest(patientId!, ac.signal) : null;
+      if (!current()) return;
+      const response = await fetch("/api/ia", { method: "POST", signal: ac.signal, headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(prepared
+          ? { mode: "question", question, patientId: prepared.patientId, expectedRevision: prepared.expectedRevision, conversation: true, stream: false }
+          : { mode: "chat", question, history: quickChatHistory(history.current), stream: false }),
+      });
+      const data = await response.json() as { reply?: string; error?: string; meta?: Partial<HawaeIaExchange> };
+      if (!response.ok) throw new Error(data.error || "Assist est momentanément indisponible.");
+      if (!data.reply?.trim()) throw new Error("Aucune réponse reçue. Réessayez votre demande.");
+      if (!current()) return;
+      if (prepared) {
+        if (!isCurrentAiRequest(prepared.patientId, prepared.key) || data.meta?.revision !== prepared.expectedRevision) throw new Error("Le dossier a changé. Reformulez votre demande.");
+        const state = useHawaeStore.getState();
+        const entry: HawaeIaExchange = { ...data.meta, id: crypto.randomUUID(), at: new Date().toISOString(), mode: "question", question, reply: data.reply, contextKeyAtGeneration: prepared.key };
+        state.patchDraft({ hawaeIaHistory: [...(state.draft?.hawaeIaHistory ?? []), entry].slice(-60) }); state.saveDraft();
+      } else history.current = [...history.current, { role: "user", text: question, status: "complete" }, { role: "assistant", text: data.reply, status: "complete" }].slice(-8) as CompletedTurn[];
+      setLastReply(data.reply); voice.speak(data.reply);
+    } catch (cause) {
+      if (current()) setError(cause instanceof Error ? cause.message : "Assist est indisponible.");
+    } finally {
+      if (run === requestId.current) { abortRef.current = null; setLoading(false); }
+    }
+  }
+
+  function handleRequest(raw: string) {
+    const text = raw.trim();
+    if (!text || text.length > MAX_VOICE_CHARACTERS || abortRef.current || pendingEdit || settingsOpen) return;
+    voice.pause(); setError(""); setNotice("");
+    const command = parseVoiceCommand(text);
+    const state = useHawaeStore.getState();
+    switch (command.type) {
+      case "stop": voice.updatePreferences({ active: false }); return;
+      case "navigate": router.push(command.href); voice.resume(); return;
+      case "tab":
+        if (!state.draft?.id) { acknowledge("Ouvrez un dossier pour afficher cet onglet."); return; }
+        router.push(`/dossier?voiceTab=${command.tab}`); voice.resume(); return;
+      case "summary": void answer("Résume le dossier actuel et signale les informations manquantes.", true); return;
+      case "dictate":
+        if (!state.draft?.id || !state.currentUserId) { acknowledge("Ouvrez un dossier avant de dicter une modification."); return; }
+        setPendingEdit(stageVoiceEdit(state.draft, state.currentUserId, command.field, command.value)); return;
+      default: void answer(text);
+    }
+  }
+  askRef.current = handleRequest;
+
+  function applyEdit() {
+    const state = useHawaeStore.getState();
+    if (!pendingEdit || !voiceEditIsCurrent(pendingEdit, state.draft, state.currentUserId)) {
+      setPendingEdit(null); setError("Le dossier a changé. Dictez à nouveau la modification."); return;
+    }
+    state.patchDraft({ [pendingEdit.field]: pendingEdit.proposed }); setPendingEdit(null);
+  }
+
+  const listening = voice.state === "recording";
+  const waiting = voice.state === "waiting";
+  const needsSetup = !voice.supported || (voice.preferences.processing === "local" && !voice.localSupported) || (voice.preferences.processing === "browser" && !voice.preferences.browserConsent);
+  const problem = error || voice.error;
+  const status = !voice.ready ? "Assist se prépare" : !voice.preferences.active ? "Assist en pause" : pendingEdit ? "Modification à valider" : settingsOpen ? "Réglages d’Assist" : voice.speaking ? "Assist vous répond" : loading ? "Assist réfléchit" : listening ? "Assist vous écoute" : waiting ? `Dites « ${WAKE_PHRASE} »` : voice.state === "starting" ? "Connexion au microphone" : needsSetup ? "Configurer Assist" : problem ? "Assist · réessayer" : "Activer le microphone";
+
+  function toggleActive() {
+    if (voice.speaking || loading) { cancelRequest(); voice.pause(); voice.resume(); return; }
+    if (waiting || listening || voice.state === "starting") { cancelRequest(); voice.updatePreferences({ active: false }); return; }
+    if (needsSetup) setSettingsOpen(true);
+    else voice.retry();
+  }
+
+  return <aside className="assist-island-wrap print:hidden" aria-label="Assistant vocal Assist">
+    <div className={`assist-island ${listening || voice.speaking ? "is-active" : ""} ${loading ? "is-thinking" : ""}`}>
+      <button type="button" className="assist-island-main" onClick={toggleActive} aria-label={voice.speaking || loading ? "Interrompre la réponse" : waiting || listening ? "Mettre Assist en pause" : "Activer Assist"}>
+        <span className={`assist-wave ${waiting || listening || voice.speaking || loading ? "is-moving" : ""}`} aria-hidden><i /><i /><i /><i /><i /></span>
+        <span className="assist-island-label"><strong role="status">{status}</strong><small>{listening ? voice.interim || "Je vous écoute…" : usePatient && draft?.id ? "Dossier actif" : "Discussion générale"}</small></span>
+      </button>
+      {lastReply && !loading && <button type="button" className="assist-island-icon" onClick={() => voice.speak(lastReply)} aria-label="Réécouter la réponse" title="Réécouter">▷</button>}
+      <button type="button" className="assist-island-icon" aria-label="Réglages d’Assist" aria-expanded={settingsOpen} aria-controls={settingsOpen ? settingsId : undefined} onClick={() => setSettingsOpen(!settingsOpen)}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden><path d="M4 7h16M4 17h16M8 4v6M16 14v6" strokeLinecap="round" /></svg></button>
+    </div>
+    {problem && !settingsOpen && <div className="assist-island-message" role="alert"><span>{problem}</span><button type="button" onClick={() => setSettingsOpen(true)}>Réglages</button></div>}
+    {notice && !problem && !voice.speaking && <p className="assist-island-message" role="status">{notice}</p>}
+    {settingsOpen && <section id={settingsId} className="assist-island-card" aria-label="Réglages vocaux">
+      <header><strong>Assist · Réglages vocaux</strong><button type="button" onClick={() => setSettingsOpen(false)} aria-label="Fermer les réglages">×</button></header>
+      <p>Dites <b>« bonjour assist »</b> ou <b>« bonjour assiste »</b>, puis votre demande. Les réponses sont lues à voix haute.</p>
+      <label className="assist-check"><input type="checkbox" checked={voice.preferences.active} onChange={(event) => voice.updatePreferences({ active: event.target.checked })} />Activation automatique</label>
+      <label className="assist-check"><input type="checkbox" checked={usePatient} onChange={(event) => setUsePatient(event.target.checked)} />Utiliser le dossier ouvert pour les questions</label>
+      <label className="assist-select">Reconnaissance<select value={voice.preferences.processing} onChange={(event) => voice.updatePreferences({ processing: event.target.value as "local" | "browser" })}><option value="local">Sur cet appareil</option><option value="browser">Service du navigateur</option></select></label>
+      {!voice.supported && <p>Reconnaissance indisponible : utilisez un navigateur compatible, en HTTPS ou sur localhost.</p>}
+      {voice.preferences.processing === "local" ? <>
+        <p>{voice.localSupported ? "Le français local nécessite un pack de langue disponible." : "Ce navigateur ne propose pas la reconnaissance locale. Choisissez son service vocal pour continuer."}</p>
+        {voice.canInstall && <button type="button" disabled={voice.installing} onClick={() => void voice.installLocal()}>{voice.installing ? "Installation…" : "Installer le français local"}</button>}
+      </> : <label className="assist-check"><input type="checkbox" checked={voice.preferences.browserConsent} onChange={(event) => voice.updatePreferences({ browserConsent: event.target.checked })} />J’autorise le service du navigateur. Mon audio peut lui être envoyé, y compris pendant l’attente du mot d’activation.</label>}
+      <p>Une autorisation du microphone peut être demandée au premier démarrage. La voix des réponses est générée par le navigateur.</p>
+      {problem && <p role="alert">{problem}</p>}
+      <button type="button" className="assist-primary" onClick={() => { voice.retry(); setSettingsOpen(false); }}>Activer Assist</button>
+    </section>}
+    {pendingEdit && <section className="assist-island-card" aria-label="Modification clinique à valider">
+      <header><strong>{DICTATION_LABELS[pendingEdit.field]} · ajout proposé</strong></header>
+      <p>Valeur actuelle : {pendingEdit.previous || "Vide"}</p><p className="assist-edit-value">Après ajout : {pendingEdit.proposed}</p>
+      <div className="assist-edit-actions"><button type="button" className="assist-primary" onClick={applyEdit}>Appliquer au dossier</button><button type="button" onClick={() => setPendingEdit(null)}>Annuler</button></div>
+    </section>}
+  </aside>;
+}

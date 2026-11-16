@@ -1,40 +1,36 @@
-# Doctor voice assistant
+# Assist: voice-only doctor assistant
 
-Implemented in the global **Hawae · Chat & voix** panel. Speech uses browser APIs; AI reasoning continues through the existing authenticated `/api/ia` endpoint and configured OpenRouter/OpenAI model. No additional API key is required for speech.
+Assist appears as a compact animated pill at the top of the page for signed-in doctors. There is no chat window, transcript history, text composer, or Send step. Voice activation is enabled by default.
 
-## Use
+Say **“bonjour assist”** or **“bonjour assiste”**, followed by a request. The island shows waiting, listening, thinking, or speaking. Commands execute automatically; questions receive spoken answers. Say the wake phrase before each new request. Examples:
 
-1. Sign in with a doctor account and open **Hawae · Chat & voix**.
-2. Select **Discussion générale**, **Question sur le dossier**, or **Commande vocale**. Patient mode requires an open dossier.
-3. Open **Réglages vocaux**. Local recognition is the default. Install the French language pack if supported. If the browser does not support local recognition, select **Service du navigateur** and explicitly authorize its processing; audio may leave the device, including while waiting for the wake phrase.
-4. Click **Activer « bonjour haoua »**, grant microphone permission, and say **“bonjour haoua”** followed by a request. The phrase and request can be spoken together. **Dicter** captures a request without the wake phrase.
-5. Review/edit the transcription and send it. To send automatically, explicitly enable **Mode mains libres**. Completed AI answers are read aloud unless **Lire les réponses** is disabled; **Écouter** replays a completed answer.
+- “Bonjour assist, résume le dossier.”
+- “Bonjour assiste, ouvre l’agenda.”
+- “Bonjour assist, affiche les scores.”
+- “Bonjour assist, ajoute aux symptômes : pas de fièvre depuis trois jours.”
 
-Wake listening resumes after a completed answer when it is still enabled. Say the wake phrase before each new request. Use the visible **Arrêter** control to stop listening/playback. Recognition is paused while Hawae speaks, so spoken interruption during playback is not supported in this version.
+The open patient dossier supplies context for questions by default, as indicated by **Dossier actif** in the island. Use the settings icon to disable patient context for general questions. A dossier summary always requires an open patient. Clinical questions await workspace synchronization and use the existing authorized patient/revision checks; completed exchanges retain provenance and consent-gated learning behavior.
 
-Closing the panel, hiding the page, changing route, mode, user, patient or clinical data stops listening and cancels pending generation. Wake listening is bounded to five minutes per session; request recording is bounded to thirty seconds and 2000 characters. Silence after activation never creates an AI request.
+## Automatic activation and permissions
 
-## Commands
+Assist attempts to start wake listening when the doctor opens the app. Browsers still control microphone permission and may require a first click. If recognition cannot start, the island offers setup/retry rather than claiming it is listening.
 
-Use **Commande vocale** for application actions. Examples:
+Local French recognition is the default. It requires browser support for `processLocally` and an available French language pack. In the island settings, install the language pack if supported, or select **Service du navigateur** and explicitly authorize its processing. Browser-service audio may leave the device even while waiting for the wake phrase. This choice and the active/paused preference are saved per signed-in account on the device. No raw audio, transcripts, replies or patient data are saved in these preferences.
 
-- “Bonjour haoua, ouvre l’agenda.”
-- “Bonjour haoua, affiche les scores.”
-- “Bonjour haoua, résume le dossier.”
-- “Bonjour haoua, ajoute aux symptômes : pas de fièvre, douleur depuis trois jours.”
+Once configured and permitted, activation is automatic on future visits. Tap the island to pause listening; this explicit pause persists. Settings pause capture while open. Hiding the page suspends capture and pending requests; returning resumes listening when activation is still enabled. Route, user, patient or clinical changes invalidate old requests and re-arm listening for the new context. Logout stops capture immediately and prevents automatic resumption.
 
-Navigation is restricted to known routes/tabs. Narrative dictation can append to `motif`, `symptomes`, or `atcdMed`. A preview shows the existing and proposed value. **Appliquer au dossier** commits it; speaking “oui” cannot commit it, including in hands-free mode. If the patient, user or clinical revision changes, discard the preview and dictate again.
+The recognizer renews bounded waiting sessions while automatic activation remains enabled. Request recording is bounded to thirty seconds and 2000 characters. Wake-only silence returns to waiting without sending an AI request. Repeated immediate recognition errors stop rather than looping indefinitely.
 
-## Compatibility and processing
+## Answers and clinical edits
 
-Recognition requires HTTPS (or localhost), microphone permission, and a browser exposing `SpeechRecognition` or `webkitSpeechRecognition`. Local recognition additionally requires `processLocally` support and an available French language pack. Availability depends on browser/version; use keyboard input when unsupported. Browser speech synthesis supplies the generated voice and may depend on installed voices/browser services.
+Completed answers are spoken with the browser's generated French voice; the small replay control repeats the latest answer. Tap the pill while Assist is thinking/speaking to interrupt. Recognition pauses during playback, so spoken interruption while Assist speaks is not supported.
 
-Wake activation matches the recognized phrase **“bonjour haoua”**. This implementation uses the selected speech recognizer, not a separately trained acoustic wake-word model. The local setting never silently falls back to a remote recognizer. Browser-service mode requires explicit consent each mounted session. Hawae does not store raw audio; the browser/recognition service's retention and processing are separate from application storage.
+Navigation is allowlisted. Dictation appends only to `motif`, `symptomes`, or `atcdMed`. Clinical changes open a review card with the old and proposed value. **Appliquer au dossier** commits a change; speaking “oui” does not. Switching user, patient or clinical revision discards the pending edit.
 
-The microphone Permissions-Policy permits only the app's own origin. General chat attaches no patient context. Patient questions await saved workspace synchronization and check the server revision, then load at most four recent completed question/answer pairs from that same saved revision. Client-supplied patient chat history is rejected. Completed patient exchanges retain the existing provenance and consent-gated learning behavior.
+Speech uses browser APIs; reasoning uses the existing `/api/ia` provider configuration. No additional speech API key is required. Recognition requires HTTPS (or localhost), microphone permission, and `SpeechRecognition`/`webkitSpeechRecognition`. Wake activation matches recognized words rather than a separately trained acoustic keyword model. The local mode never silently switches to a remote speech service. Actual recognition and generated voice availability depend on the browser/device.
 
 ## Validation
 
-Run `npm run test:voice`, `npm run test:ai`, and `npx tsc --noEmit`. Voice tests use a synthetic browser recognizer and simulated timers; API tests exercise the real authorization/context pipeline against synthetic in-memory records.
+Run `npm run test:voice`, `npm run test:ai`, and `npx tsc --noEmit`. DOM tests verify default activation, the absence of chat/composer UI, automatic requests, playback continuity, commands, pause/resume, background cancellation, explicit remote authorization, clinical previews and logout. Recognition tests use synthetic speech events and timers; they do not measure real microphone wake accuracy.
 
-Manual release checks still require real microphones, French pronunciation, browser language-pack installation, speech-service connectivity, generated audio playback, and supported mobile devices. Measure missed wake phrases and false activations in a consultation room; automated synthetic recognition events do not establish acoustic accuracy.
+Before release, test French pronunciation and room noise, browser permissions/language packs, spoken playback, and supported mobile devices with real microphones.

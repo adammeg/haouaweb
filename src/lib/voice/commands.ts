@@ -1,4 +1,4 @@
-export const WAKE_PHRASE = "bonjour haoua";
+export const WAKE_PHRASE = "bonjour assist";
 export const MAX_VOICE_CHARACTERS = 2000;
 
 export function normalizeVoiceText(text: string): string {
@@ -8,7 +8,7 @@ export function normalizeVoiceText(text: string): string {
 
 /** A prefix, never a substring: ordinary consultation speech must not activate Hawae. */
 export function wakeRequest(text: string): string | null {
-  const match = /^\s*bonjour[\s,;:!?.]+haoua\b[\s,;:!?.-]*/i.exec(text);
+  const match = /^\s*bonjour[\s,;:!?.]+assiste?\b[\s,;:!?.-]*/i.exec(text);
   return match ? text.slice(match[0].length).trim() : null;
 }
 

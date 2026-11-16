@@ -1,5 +1,7 @@
 # Voice commands and doctor–Hawae voice chat
 
+Current product update: the assistant now uses a voice-only top island, automatic activation, and the wake phrase **“bonjour assist”** (also **“bonjour assiste”**). This document is the historical architecture proposal; see [the current guide](voice-assistant.md) for implemented behavior.
+
 Analysis date: 2026-11-16. This document records the original implementation proposal. The browser-based first release is now implemented; see [current behavior and setup](voice-assistant.md). Server speech endpoints and a custom acoustic wake detector below remain future options. The release uses explicitly selected local/browser speech recognition with transcript-based wake activation, and browser speech synthesis.
 
 ## Recommendation

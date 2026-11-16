@@ -4,6 +4,7 @@ import { wakeRequest, parseVoiceCommand } from "../src/lib/voice/commands.ts";
 import { VoiceRecognitionSession } from "../src/lib/voice/browser-recognition.ts";
 import { stageVoiceEdit, voiceEditIsCurrent } from "../src/lib/voice/draft-edit.ts";
 import { patientConversationHistory } from "../src/lib/voice/patient-history.ts";
+import { canStartVoice, DEFAULT_VOICE_PREFERENCES, parseVoicePreferences } from "../src/lib/voice/preferences.ts";
 
 function setup() {
   const instances = [], transcripts = [], errors = [], states = [];
@@ -23,9 +24,22 @@ function setup() {
 }
 
 test("wake activation requires the complete prefix and preserves the actual request", () => {
-  assert.equal(wakeRequest("Bonjour haoua, ouvre l’agenda."), "ouvre l’agenda.");
-  assert.equal(wakeRequest(" BONJOUR   HAOUA ! "), "");
-  for (const text of ["bonjour", "bonjour haouard", "elle a dit bonjour haoua", "haoua bonjour"]) assert.equal(wakeRequest(text), null);
+  assert.equal(wakeRequest("Bonjour assist, ouvre l’agenda."), "ouvre l’agenda.");
+  assert.equal(wakeRequest("Bonjour assiste, résume le dossier."), "résume le dossier.");
+  assert.equal(wakeRequest(" BONJOUR   ASSIST ! "), "");
+  for (const text of ["bonjour", "bonjour assistant", "bonjour assistante", "bonjour haoua", "elle a dit bonjour assist", "assist bonjour"]) assert.equal(wakeRequest(text), null);
+});
+
+test("voice defaults to active, honors an explicit pause and never defaults to remote processing", () => {
+  assert.deepEqual(parseVoicePreferences(null), DEFAULT_VOICE_PREFERENCES);
+  assert.equal(parseVoicePreferences("invalid").active, true);
+  assert.equal(parseVoicePreferences('{"active":false}').active, false);
+  assert.equal(canStartVoice(DEFAULT_VOICE_PREFERENCES, true, true, false), true);
+  assert.equal(canStartVoice(DEFAULT_VOICE_PREFERENCES, false, true, false), false);
+  assert.equal(canStartVoice(DEFAULT_VOICE_PREFERENCES, true, false, false), false);
+  assert.equal(canStartVoice(DEFAULT_VOICE_PREFERENCES, true, true, true), false);
+  assert.equal(canStartVoice({ active: true, processing: "browser", browserConsent: false }, true, true, false), false);
+  assert.equal(canStartVoice({ active: true, processing: "browser", browserConsent: true }, true, true, false), true);
 });
 
 test("commands are allowlisted and never turn negated or ambiguous speech into an action", () => {
@@ -55,7 +69,7 @@ test("wake-only activation waits for the next utterance; unrelated speech is dis
   assert.equal(mic.processLocally, true);
   mic.emit("une consultation ordinaire");
   assert.equal(s.wakes(), 0);
-  mic.emit("Bonjour haoua");
+  mic.emit("Bonjour assist");
   assert.equal(s.wakes(), 1); assert.deepEqual(s.transcripts, []);
   mic.emit("Explique la ménopause.");
   t.mock.timers.tick(1500);
@@ -67,9 +81,9 @@ test("phrase and request in one utterance are retained and interim results never
   t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
   const s = setup(); await s.session.start("wake", false); t.after(() => s.session.stop());
   const mic = s.instances.at(-1);
-  mic.emit("Bonjour haoua, ouvre l’agenda", false);
+  mic.emit("Bonjour assist, ouvre l’agenda", false);
   assert.equal(s.wakes(), 0);
-  mic.emit("Bonjour haoua, ouvre l’agenda");
+  mic.emit("Bonjour assist, ouvre l’agenda");
   t.mock.timers.tick(1500);
   assert.equal(s.wakes(), 1); assert.deepEqual(s.transcripts, ["ouvre l’agenda"]);
 });
@@ -89,7 +103,7 @@ test("the browser may split the wake prefix across consecutive final results", a
   t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
   const s = setup(); await s.session.start("wake", false); t.after(() => s.session.stop());
   const mic = s.instances.at(-1);
-  mic.emit("bonjour"); mic.emit("haoua, explique l’endométriose"); t.mock.timers.tick(1500);
+  mic.emit("bonjour"); mic.emit("assiste, explique l’endométriose"); t.mock.timers.tick(1500);
   assert.equal(s.wakes(), 1); assert.deepEqual(s.transcripts, ["explique l’endométriose"]);
 });
 
@@ -108,10 +122,10 @@ test("late callbacks from an ended recognizer cannot affect its replacement", as
   old.onend(); t.mock.timers.tick(400);
   const replacement = s.instances.at(-1);
   assert.notEqual(old, replacement);
-  lateResult({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: "bonjour haoua, ancienne demande" } }] });
+  lateResult({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: "bonjour assist, ancienne demande" } }] });
   lateError({ error: "network" });
   assert.equal(s.wakes(), 0); assert.deepEqual(s.errors, []);
-  replacement.emit("bonjour haoua, nouvelle demande"); t.mock.timers.tick(1500);
+  replacement.emit("bonjour assist, nouvelle demande"); t.mock.timers.tick(1500);
   assert.deepEqual(s.transcripts, ["nouvelle demande"]);
 });
 
@@ -128,7 +142,7 @@ test("recording length is bounded and listening timeout survives browser restart
 test("silence and permission errors never submit a question", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
   const s = setup(); await s.session.start("wake", false);
-  s.instances.at(-1).emit("Bonjour haoua"); t.mock.timers.tick(10_100);
+  s.instances.at(-1).emit("Bonjour assist"); t.mock.timers.tick(10_100);
   assert.deepEqual(s.transcripts, []); assert.match(s.errors.at(-1), /Aucune demande/);
   await s.session.start("dictate", false);
   s.instances.at(-1).onerror({ error: "not-allowed" });

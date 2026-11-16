@@ -24,6 +24,7 @@ type Callbacks = {
   transcript: (text: string) => void;
   wake: () => void;
   error: (message: string) => void;
+  idle?: () => void;
 };
 
 /** One recognizer owner. Invalidating its generation makes late browser callbacks harmless. */
@@ -83,7 +84,11 @@ export class VoiceRecognitionSession {
     this.timer = setTimeout(() => {
       if (generation !== this.generation) return;
       if (this.text.trim()) this.finish();
-      else { this.stop(); this.callbacks.error("Aucune demande entendue. Réactivez le microphone pour réessayer."); }
+      else {
+        this.stop();
+        if (this.callbacks.idle) this.callbacks.idle();
+        else this.callbacks.error("Aucune demande entendue. Réactivez le microphone pour réessayer.");
+      }
     }, Math.max(0, Math.min(delay, this.deadline - Date.now())));
   }
 
@@ -98,6 +103,7 @@ export class VoiceRecognitionSession {
   private listen(generation: number) {
     if (generation !== this.generation || !this.mode) return;
     const recognition = new this.Constructor();
+    const startedAt = Date.now();
     this.recognition = recognition;
     recognition.lang = "fr-FR"; recognition.continuous = true; recognition.interimResults = true; recognition.maxAlternatives = 1;
     if ("processLocally" in recognition) recognition.processLocally = this.local;
@@ -152,6 +158,8 @@ export class VoiceRecognitionSession {
       if (generation !== this.generation || this.recognition !== recognition) return;
       this.recognition = null;
       if (this.text.trim()) { this.finish(); return; }
+      // Normal browser silence timeouts may restart; repeated immediate failures must stop.
+      if (Date.now() - startedAt > 1000) this.restartCount = 0;
       if (++this.restartCount > 6) { this.stop(); this.callbacks.error("L’écoute s’est arrêtée. Réactivez le microphone pour continuer."); return; }
       this.restartTimer = setTimeout(() => this.listen(generation), 350);
     };

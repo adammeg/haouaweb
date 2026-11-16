@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, Noto_Naskh_Arabic, Poppins } from "next/font/google";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa/pwa-register";
-import { QuickAiBubble } from "@/components/assist/quick-ai-bubble";
+import { VoiceAssistant } from "@/components/voice/voice-assistant";
 import { getSession } from "@/lib/auth/session";
 
 const display = Poppins({
@@ -59,8 +59,9 @@ export default async function RootLayout({
       >
         <PwaRegister />
         {children}
-        <QuickAiBubble
+        <VoiceAssistant
           key={session ? `${session.sub}:${session.role}` : "guest"}
+          accountId={session?.sub ?? "guest"}
           access={!session ? "sign-in" : session.role === "secretary" ? "restricted" : "enabled"}
         />
       </body>

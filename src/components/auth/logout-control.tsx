@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { VOICE_SESSION_END_EVENT } from "@/lib/voice/preferences";
 
 export function LogoutControl({ email, name }: { email: string; name: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function logout() {
+    window.dispatchEvent(new Event(VOICE_SESSION_END_EVENT));
     setLoading(true);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
