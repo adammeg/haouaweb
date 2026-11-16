@@ -5,6 +5,7 @@ import { VoiceRecognitionSession } from "../src/lib/voice/browser-recognition.ts
 import { stageVoiceEdit, voiceEditIsCurrent } from "../src/lib/voice/draft-edit.ts";
 import { patientConversationHistory } from "../src/lib/voice/patient-history.ts";
 import { canStartVoice, DEFAULT_VOICE_PREFERENCES, parseVoicePreferences } from "../src/lib/voice/preferences.ts";
+import { spokenText } from "../src/lib/voice/spoken-text.ts";
 
 function setup() {
   const instances = [], transcripts = [], errors = [], states = [];
@@ -44,6 +45,9 @@ test("voice defaults to active, honors an explicit pause and never defaults to r
 
 test("commands are allowlisted and never turn negated or ambiguous speech into an action", () => {
   assert.deepEqual(parseVoiceCommand("Ouvre l’agenda !"), { type: "navigate", href: "/agenda" });
+  assert.deepEqual(parseVoiceCommand("Peux-tu ouvrir l’agenda, s’il te plaît ?"), { type: "navigate", href: "/agenda" });
+  assert.deepEqual(parseVoiceCommand("Est-ce que tu peux résumer le dossier ?"), { type: "summary" });
+  assert.deepEqual(parseVoiceCommand("Pourrais-tu afficher les scores ?"), { type: "tab", tab: "scores" });
   assert.deepEqual(parseVoiceCommand("Affiche les scores"), { type: "tab", tab: "scores" });
   assert.deepEqual(parseVoiceCommand("ajoute aux symptômes : Pas de fièvre, douleur 3/10."), { type: "dictate", field: "symptomes", value: "Pas de fièvre, douleur 3/10." });
   assert.deepEqual(parseVoiceCommand("ajoute aux symptômes pas de fièvre"), { type: "dictate", field: "symptomes", value: "pas de fièvre" });
@@ -165,4 +169,21 @@ test("patient history uses bounded complete exchanges from the latest saved revi
   assert.deepEqual(patientConversationHistory(patient, "another"), []);
   assert.deepEqual(patientConversationHistory({ hawaeIaHistory: [entry("current"), entry("old")] }, "current"), []);
   assert.deepEqual(patientConversationHistory({ hawaeIaHistory: [entry("current", "", "")] }, "current"), []);
+});
+
+test("speech formatting preserves clinical values and negation while removing markdown", () => {
+  assert.equal(spokenText("## Synthèse\n- **Pas de fièvre**, TA 120/80 mmHg ; 12+3 SA.\n[Source](https://example.test/ref)"), "Synthèse\nPas de fièvre, TA 120/80 mmHg ; 12+3 SA.\nSource");
+  assert.deepEqual(parseVoiceCommand("mets-toi en pause"), { type: "pause" });
+  assert.deepEqual(parseVoiceCommand("c’est tout"), { type: "end" });
+  assert.deepEqual(parseVoiceCommand("répète"), { type: "repeat" });
+});
+
+test("a finalized fragment with an unfinished continuation cannot become a partial clinical request", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const s = setup(); await s.session.start("dictate", false); t.after(() => s.session.stop());
+  s.instances.at(-1).emit("ajoute aux symptômes : ne");
+  s.instances.at(-1).emit("présente pas de fièvre", false);
+  t.mock.timers.tick(5100);
+  assert.deepEqual(s.transcripts, []);
+  assert.match(s.errors.at(-1), /fin de la phrase/);
 });

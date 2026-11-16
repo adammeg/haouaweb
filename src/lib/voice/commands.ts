@@ -21,15 +21,25 @@ export type VoiceCommand =
   | { type: "navigate"; href: "/agenda" | "/dossier" | "/salle-attente" | "/dashboard" }
   | { type: "tab"; tab: VoiceTab }
   | { type: "stop" }
+  | { type: "pause" }
+  | { type: "end" }
+  | { type: "repeat" }
   | { type: "summary" }
   | { type: "dictate"; field: DictationField; value: string }
   | { type: "unsupported" };
 
 export function parseVoiceCommand(raw: string): VoiceCommand {
   if (!raw.trim() || raw.length > MAX_VOICE_CHARACTERS) return { type: "unsupported" };
-  const text = normalizeVoiceText(raw);
-  if (/^(arrete de parler|stop|silence)$/.test(text)) return { type: "stop" };
-  if (/^(resume le dossier|fais un resume du dossier)$/.test(text)) return { type: "summary" };
+  const text = normalizeVoiceText(raw)
+    .replace(/^(?:s il te plait |s il vous plait )/, "")
+    .replace(/^(?:est ce que tu peux |peux tu |pourrais tu |pouvez vous |pourriez vous )/, "")
+    .replace(/ (?:s il te plait|s il vous plait)$/, "")
+    .replace(/^ouvrir /, "ouvre ").replace(/^afficher /, "affiche ").replace(/^resumer /, "resume ");
+  if (/^(arrete|arrete de parler|stop|silence)$/.test(text)) return { type: "stop" };
+  if (/^(mets toi en pause|desactive l ecoute|arrete l ecoute)$/.test(text)) return { type: "pause" };
+  if (/^(merci|merci au revoir|au revoir|c est tout|termine la conversation)$/.test(text)) return { type: "end" };
+  if (/^(repete|repete la reponse|redis le dernier point|relis la reponse)$/.test(text)) return { type: "repeat" };
+  if (/^(resume (?:le )?dossier|fais (?:moi )?un resume du dossier)$/.test(text)) return { type: "summary" };
   const navigate = /^(?:ouvre|affiche) (?:l |le |la )?(agenda|dossier|salle d attente|tableau de bord)$/.exec(text);
   if (navigate) {
     const routes = { agenda: "/agenda", dossier: "/dossier", "salle d attente": "/salle-attente", "tableau de bord": "/dashboard" } as const;

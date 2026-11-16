@@ -18,11 +18,13 @@ export interface RecognitionConstructor {
 }
 
 export type CaptureState = "idle" | "starting" | "waiting" | "recording" | "reviewing";
+export type CaptureMode = "wake" | "dictate" | "followup" | "interrupt";
 type Callbacks = {
   state: (state: CaptureState) => void;
   interim: (text: string) => void;
   transcript: (text: string) => void;
   wake: () => void;
+  capture?: () => void;
   error: (message: string) => void;
   idle?: () => void;
 };
@@ -33,7 +35,7 @@ export class VoiceRecognitionSession {
   private generation = 0;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private restartTimer: ReturnType<typeof setTimeout> | undefined;
-  private mode: "wake" | "dictate" | null = null;
+  private mode: CaptureMode | null = null;
   private local = true;
   private activated = false;
   private text = "";
@@ -41,6 +43,8 @@ export class VoiceRecognitionSession {
   private deadline = 0;
   private wakeFragment = "";
   private wakeFragmentAt = 0;
+  private pendingInterim = false;
+  private requestStarted = false;
 
   constructor(private readonly Constructor: RecognitionConstructor, private readonly callbacks: Callbacks) {}
 
@@ -58,10 +62,11 @@ export class VoiceRecognitionSession {
     this.callbacks.state("idle");
   }
 
-  async start(mode: "wake" | "dictate", local: boolean) {
+  async start(mode: CaptureMode, local: boolean) {
     this.stop();
-    this.mode = mode; this.local = local; this.activated = mode === "dictate"; this.text = ""; this.wakeFragment = ""; this.restartCount = 0;
-    this.deadline = Date.now() + (mode === "dictate" ? 30_000 : 5 * 60_000);
+    this.mode = mode; this.local = local; this.activated = mode === "dictate" || mode === "followup"; this.text = ""; this.wakeFragment = ""; this.restartCount = 0;
+    this.pendingInterim = false; this.requestStarted = mode === "dictate";
+    this.deadline = Date.now() + (mode === "dictate" ? 30_000 : mode === "followup" ? 20_000 : 5 * 60_000);
     const generation = this.generation;
     this.callbacks.error(""); this.callbacks.state("starting");
     try {
@@ -72,7 +77,10 @@ export class VoiceRecognitionSession {
           throw new Error("Le français local n’est pas installé. Installez le pack français ou choisissez le service du navigateur.");
         }
       }
-      if (generation === this.generation) this.listen(generation);
+      if (generation === this.generation) {
+        if (this.activated) this.callbacks.capture?.();
+        this.listen(generation);
+      }
     } catch (error) {
       if (generation !== this.generation) return;
       this.stop(); this.callbacks.error(error instanceof Error ? error.message : "Impossible de démarrer le microphone.");
@@ -94,7 +102,9 @@ export class VoiceRecognitionSession {
 
   private finish() {
     const text = this.text.trim();
+    const incomplete = this.pendingInterim;
     this.stop();
+    if (incomplete) { this.callbacks.error("La fin de la phrase n’a pas été reconnue. Répétez votre demande."); return; }
     if (!text) return;
     if (text.length > MAX_VOICE_CHARACTERS) { this.callbacks.error("Demande trop longue (2000 caractères maximum). Dictez une demande plus courte."); return; }
     this.callbacks.state("reviewing"); this.callbacks.transcript(text);
@@ -120,7 +130,13 @@ export class VoiceRecognitionSession {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         const raw = result[0].transcript.trim();
-        if (!result.isFinal) { if (this.activated) interim += raw; continue; }
+        if (!result.isFinal) {
+          if (this.activated) {
+            if (!this.requestStarted && raw) { this.requestStarted = true; this.deadline = Date.now() + 30_000; }
+            interim += raw;
+          }
+          continue;
+        }
         if (!this.activated) {
           const candidate = this.wakeFragment && Date.now() - this.wakeFragmentAt < 3000 ? `${this.wakeFragment} ${raw}` : raw;
           const request = wakeRequest(candidate) ?? wakeRequest(raw);
@@ -129,15 +145,18 @@ export class VoiceRecognitionSession {
           if (request === null) continue;
           this.wakeFragment = "";
           this.activated = true; this.callbacks.wake(); this.callbacks.state("recording");
+          this.requestStarted = true;
           this.deadline = Date.now() + 30_000;
           this.text = request;
-          this.armTimeout(generation, request ? 1400 : 10_000);
+          this.armTimeout(generation, request ? 900 : 10_000);
         } else {
+          if (!this.requestStarted) { this.requestStarted = true; this.deadline = Date.now() + 30_000; }
           this.text = [this.text, wakeRequest(raw) ?? raw].filter(Boolean).join(" ");
-          this.armTimeout(generation, 1400);
+          this.armTimeout(generation, 900);
         }
         if (this.text.length > MAX_VOICE_CHARACTERS) { this.finish(); return; }
       }
+      this.pendingInterim = !!interim;
       this.callbacks.interim([this.text, interim].filter(Boolean).join(" "));
       if (interim) this.armTimeout(generation, 5000);
     };

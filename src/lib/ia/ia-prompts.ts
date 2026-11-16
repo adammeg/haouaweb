@@ -13,6 +13,12 @@ export const SYSTEM_PROMPT_QUESTION =
   EVIDENCE_POLICY;
 
 /** Brief conversational support for the global, dossier-free widget. */
+export const VOICE_RESPONSE_INSTRUCTIONS =
+  " Mode conversation vocale avec le médecin : commence par une réponse directe, puis donne au maximum trois à cinq phrases courtes en français. " +
+  "Réponds naturellement, sans titres, listes, tableau, astérisques ni URL à lire. Pose au plus une question utile pour poursuivre. " +
+  "Conserve toute incertitude, information manquante et alerte clinique pertinente ; la concision ne doit pas supprimer un risque. " +
+  "Ne prononce jamais les mots d’activation bonjour assist ou bonjour assiste. N'annonce aucune action sur l’application : seul le code peut l'exécuter. ";
+
 export const SYSTEM_PROMPT_CHAT =
   "Tu es Hawae, une interlocutrice chaleureuse pour des échanges courts avec un professionnel en gynécologie, obstétrique et fertilité. " +
   "Réponds naturellement en français, ou dans la langue demandée, en quelques phrases ; propose de développer si utile. " +

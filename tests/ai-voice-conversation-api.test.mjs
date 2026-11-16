@@ -48,3 +48,13 @@ test("normal patient questions remain stateless; history from another revision i
   assert.equal((await send(request)).status, 200);
   assert.equal(sent.messages.length, 2);
 });
+
+test("voice requests use concise spoken instructions without weakening authorization", async () => {
+  const response = await send({ ...request, voice: true });
+  assert.equal(response.status, 200);
+  assert.match(sent.messages[0].content, /conversation vocale/);
+  assert.match(sent.messages[0].content, /alerte clinique/);
+  assert.equal(sent.max_tokens <= 600, true);
+  assert.equal((await send({ ...request, voice: "yes" })).status, 400);
+  assert.equal((await send({ ...request, voice: true, mode: "diagnostic", conversation: false })).status, 400);
+});

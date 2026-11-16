@@ -46,7 +46,8 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
   const contextKey = `${accountId}:${pathname}:${userId}:${draft?.id}:${clinicalKey}:${usePatient}`;
   const contextRef = useRef(contextKey); contextRef.current = contextKey;
   const voice = useVoiceSession({
-    accountId, enabled: true, contextKey, blocked: loading || !!pendingEdit || settingsOpen,
+    accountId, enabled: true, contextKey, blocked: !!pendingEdit || settingsOpen, thinking: loading,
+    onInterrupt: () => cancelRequest(),
     onWake: () => { wakeContext.current = contextRef.current; wakeIdentity.current = activeVoiceIdentity(); setError(""); setNotice(""); },
     onTranscript: (text) => { if (wakeContext.current === contextRef.current && wakeIdentity.current === activeVoiceIdentity()) askRef.current(text); },
   });
@@ -90,18 +91,21 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
     const key = stableClinicalDataKey(snapshot.draft);
     const ac = new AbortController(); abortRef.current = ac;
     const run = ++requestId.current;
+    let timedOut = false;
+    const timeout = setTimeout(() => { timedOut = true; ac.abort(); }, 45_000);
     setLoading(true);
-    const current = () => {
+    const sameContext = () => {
       const state = useHawaeStore.getState();
-      return !ac.signal.aborted && run === requestId.current && contextRef.current === capturedContext && state.currentUserId === capturedUser && state.draft?.id === patientId && stableClinicalDataKey(state.draft) === key;
+      return run === requestId.current && contextRef.current === capturedContext && state.currentUserId === capturedUser && state.draft?.id === patientId && stableClinicalDataKey(state.draft) === key;
     };
+    const current = () => !ac.signal.aborted && sameContext();
     try {
       const prepared = patientMode ? await preparePatientAiRequest(patientId!, ac.signal) : null;
       if (!current()) return;
       const response = await fetch("/api/ia", { method: "POST", signal: ac.signal, headers: { "Content-Type": "application/json" },
         body: JSON.stringify(prepared
-          ? { mode: "question", question, patientId: prepared.patientId, expectedRevision: prepared.expectedRevision, conversation: true, stream: false }
-          : { mode: "chat", question, history: quickChatHistory(history.current), stream: false }),
+          ? { mode: "question", question, patientId: prepared.patientId, expectedRevision: prepared.expectedRevision, conversation: true, voice: true, stream: false }
+          : { mode: "chat", question, history: quickChatHistory(history.current), voice: true, stream: false }),
       });
       const data = await response.json() as { reply?: string; error?: string; meta?: Partial<HawaeIaExchange> };
       if (!response.ok) throw new Error(data.error || "Assist est momentanément indisponible.");
@@ -115,8 +119,12 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
       } else history.current = [...history.current, { role: "user", text: question, status: "complete" }, { role: "assistant", text: data.reply, status: "complete" }].slice(-8) as CompletedTurn[];
       setLastReply(data.reply); voice.speak(data.reply);
     } catch (cause) {
-      if (current()) setError(cause instanceof Error ? cause.message : "Assist est indisponible.");
+      if (current() || (timedOut && sameContext())) {
+        const message = timedOut ? "La réponse prend trop de temps. Réessayez ou posez une question plus courte." : cause instanceof Error ? cause.message : "Assist est indisponible.";
+        setError(message); voice.speak(message);
+      }
     } finally {
+      clearTimeout(timeout);
       if (run === requestId.current) { abortRef.current = null; setLoading(false); }
     }
   }
@@ -128,7 +136,11 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
     const command = parseVoiceCommand(text);
     const state = useHawaeStore.getState();
     switch (command.type) {
-      case "stop": voice.updatePreferences({ active: false }); return;
+      case "stop": cancelRequest(); voice.startTalk(); return;
+      case "pause": voice.updatePreferences({ active: false }); return;
+      case "end": voice.endConversation(); return;
+      case "repeat":
+        if (lastReply) voice.speak(lastReply); else acknowledge("Je n’ai pas encore de réponse à répéter."); return;
       case "navigate": router.push(command.href); voice.resume(); return;
       case "tab":
         if (!state.draft?.id) { acknowledge("Ouvrez un dossier pour afficher cet onglet."); return; }
@@ -152,31 +164,32 @@ function DoctorVoiceIsland({ accountId }: { accountId: string }) {
 
   const listening = voice.state === "recording";
   const waiting = voice.state === "waiting";
-  const needsSetup = !voice.supported || (voice.preferences.processing === "local" && !voice.localSupported) || (voice.preferences.processing === "browser" && !voice.preferences.browserConsent);
+  const needsSetup = !voice.supported || (voice.preferences.processing === "local" && (!voice.localSupported || !voice.localAvailable)) || (voice.preferences.processing === "browser" && !voice.preferences.browserConsent);
   const problem = error || voice.error;
-  const status = !voice.ready ? "Assist se prépare" : !voice.preferences.active ? "Assist en pause" : pendingEdit ? "Modification à valider" : settingsOpen ? "Réglages d’Assist" : voice.speaking ? "Assist vous répond" : loading ? "Assist réfléchit" : listening ? "Assist vous écoute" : waiting ? `Dites « ${WAKE_PHRASE} »` : voice.state === "starting" ? "Connexion au microphone" : needsSetup ? "Configurer Assist" : problem ? "Assist · réessayer" : "Activer le microphone";
+  const status = !voice.ready ? "Assist se prépare" : !voice.preferences.active ? "Assist en pause" : pendingEdit ? "Modification à valider" : settingsOpen ? "Réglages d’Assist" : voice.speaking ? "Assist vous répond" : voice.preparingSpeech ? "Préparation de la voix…" : loading ? "Assist réfléchit" : listening ? voice.conversation && !voice.interim ? "À vous · je vous écoute" : "Assist vous écoute" : waiting ? `Dites « ${WAKE_PHRASE} »` : voice.state === "starting" ? "Connexion au microphone" : needsSetup ? "Configurer Assist" : problem ? "Assist · réessayer" : "Parler à Assist";
 
   function toggleActive() {
-    if (voice.speaking || loading) { cancelRequest(); voice.pause(); voice.resume(); return; }
-    if (waiting || listening || voice.state === "starting") { cancelRequest(); voice.updatePreferences({ active: false }); return; }
     if (needsSetup) setSettingsOpen(true);
-    else voice.retry();
+    else if (!voice.preferences.active) voice.retry();
+    else voice.startTalk();
   }
 
   return <aside className="assist-island-wrap print:hidden" aria-label="Assistant vocal Assist">
     <div className={`assist-island ${listening || voice.speaking ? "is-active" : ""} ${loading ? "is-thinking" : ""}`}>
-      <button type="button" className="assist-island-main" onClick={toggleActive} aria-label={voice.speaking || loading ? "Interrompre la réponse" : waiting || listening ? "Mettre Assist en pause" : "Activer Assist"}>
+      <button type="button" className="assist-island-main" onClick={toggleActive} aria-label={voice.speaking || voice.preparingSpeech || loading ? "Interrompre et parler à Assist" : needsSetup ? "Configurer Assist" : "Parler à Assist"}>
         <span className={`assist-wave ${waiting || listening || voice.speaking || loading ? "is-moving" : ""}`} aria-hidden><i /><i /><i /><i /><i /></span>
-        <span className="assist-island-label"><strong role="status">{status}</strong><small>{listening ? voice.interim || "Je vous écoute…" : usePatient && draft?.id ? "Dossier actif" : "Discussion générale"}</small></span>
+        <span className="assist-island-label"><strong role="status">{status}</strong><small>{voice.speaking ? voice.interruptAvailable ? "« Bonjour assist » pour interrompre" : "Touchez la barre pour interrompre" : listening ? voice.interim || "Je vous écoute…" : usePatient && draft?.id ? "Dossier actif" : "Discussion générale"}</small></span>
       </button>
       {lastReply && !loading && <button type="button" className="assist-island-icon" onClick={() => voice.speak(lastReply)} aria-label="Réécouter la réponse" title="Réécouter">▷</button>}
+      {voice.preferences.active && <button type="button" className="assist-island-icon assist-pause" onClick={() => { cancelRequest(); voice.updatePreferences({ active: false }); }} aria-label="Mettre Assist en pause" title="Mettre en pause">Ⅱ</button>}
       <button type="button" className="assist-island-icon" aria-label="Réglages d’Assist" aria-expanded={settingsOpen} aria-controls={settingsOpen ? settingsId : undefined} onClick={() => setSettingsOpen(!settingsOpen)}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden><path d="M4 7h16M4 17h16M8 4v6M16 14v6" strokeLinecap="round" /></svg></button>
     </div>
     {problem && !settingsOpen && <div className="assist-island-message" role="alert"><span>{problem}</span><button type="button" onClick={() => setSettingsOpen(true)}>Réglages</button></div>}
     {notice && !problem && !voice.speaking && <p className="assist-island-message" role="status">{notice}</p>}
     {settingsOpen && <section id={settingsId} className="assist-island-card" aria-label="Réglages vocaux">
       <header><strong>Assist · Réglages vocaux</strong><button type="button" onClick={() => setSettingsOpen(false)} aria-label="Fermer les réglages">×</button></header>
-      <p>Dites <b>« bonjour assist »</b> ou <b>« bonjour assiste »</b>, puis votre demande. Les réponses sont lues à voix haute.</p>
+      <p>Dites <b>« bonjour assist »</b> ou <b>« bonjour assiste »</b>, puis votre demande. Après la réponse, vous avez 20 secondes pour poursuivre sans répéter le mot d’activation.</p>
+      <p>Pour interrompre une réponse, dites de nouveau « bonjour assist », ou touchez la barre. « C’est tout » termine l’échange ; « mets-toi en pause » désactive l’écoute.</p>
       <label className="assist-check"><input type="checkbox" checked={voice.preferences.active} onChange={(event) => voice.updatePreferences({ active: event.target.checked })} />Activation automatique</label>
       <label className="assist-check"><input type="checkbox" checked={usePatient} onChange={(event) => setUsePatient(event.target.checked)} />Utiliser le dossier ouvert pour les questions</label>
       <label className="assist-select">Reconnaissance<select value={voice.preferences.processing} onChange={(event) => voice.updatePreferences({ processing: event.target.value as "local" | "browser" })}><option value="local">Sur cet appareil</option><option value="browser">Service du navigateur</option></select></label>

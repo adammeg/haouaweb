@@ -1,5 +1,5 @@
 import { parseChatHistory, type ChatHistoryTurn } from "./quick-chat";
-export type AiRequestBody = { mode: "diagnostic" | "question" | "chat"; question: string; patientId?: string; expectedRevision?: string; stream: boolean; history: ChatHistoryTurn[]; conversation: boolean };
+export type AiRequestBody = { mode: "diagnostic" | "question" | "chat"; question: string; patientId?: string; expectedRevision?: string; stream: boolean; history: ChatHistoryTurn[]; conversation: boolean; voice: boolean };
 export function parseAiRequest(value: unknown): AiRequestBody {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Objet JSON attendu");
   const body = value as Record<string, unknown>;
@@ -8,6 +8,8 @@ export function parseAiRequest(value: unknown): AiRequestBody {
   if (body.patientId != null && (typeof body.patientId !== "string" || !body.patientId.trim() || body.patientId.length > 160)) throw new Error("Dossier invalide");
   if (body.stream != null && typeof body.stream !== "boolean") throw new Error("Option de flux invalide");
   const mode = body.mode === "diagnostic" ? "diagnostic" : body.mode === "chat" ? "chat" : "question";
+  if (body.voice != null && typeof body.voice !== "boolean") throw new Error("Option vocale invalide");
+  if (body.voice === true && mode === "diagnostic") throw new Error("Le mode vocal est réservé à la conversation");
   const question = typeof body.question === "string" ? body.question.trim() : "";
   const patientId = typeof body.patientId === "string" ? body.patientId.trim() : undefined;
   if (body.conversation != null && typeof body.conversation !== "boolean") throw new Error("Option de conversation invalide");
@@ -18,7 +20,7 @@ export function parseAiRequest(value: unknown): AiRequestBody {
   if (mode !== "chat" && body.history != null) throw new Error("Historique réservé à la discussion rapide");
   const history = mode === "chat" ? parseChatHistory(body.history) : [];
   if (patientId && (typeof body.expectedRevision !== "string" || !/^[a-f0-9]{64}$/.test(body.expectedRevision))) throw new Error("Révision enregistrée du dossier requise");
-  return { mode, question, patientId, expectedRevision: typeof body.expectedRevision === "string" ? body.expectedRevision : undefined, stream: body.stream !== false, history, conversation: body.conversation === true };
+  return { mode, question, patientId, expectedRevision: typeof body.expectedRevision === "string" ? body.expectedRevision : undefined, stream: body.stream !== false, history, conversation: body.conversation === true, voice: body.voice === true };
 }
 
 export function boundedNumber(raw: string | undefined, fallback: number, min: number, max: number): number {

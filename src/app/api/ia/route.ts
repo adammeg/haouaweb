@@ -4,7 +4,7 @@ import { rateLimitMemory } from "@/lib/rate-limit-memory";
 import { isDoctorActive } from "@/lib/auth/require-active";
 import { createChatCompletion, createChatCompletionsTextStream, OpenAiChatError } from "@/lib/ia/openai-chat-stream";
 import { resolveIaProvider } from "@/lib/ia/provider-config";
-import { buildDiagnosticUserContent, buildQuestionUserContent, SYSTEM_PROMPT_CHAT, SYSTEM_PROMPT_DIAGNOSTIC, SYSTEM_PROMPT_QUESTION } from "@/lib/ia/ia-prompts";
+import { buildDiagnosticUserContent, buildQuestionUserContent, SYSTEM_PROMPT_CHAT, SYSTEM_PROMPT_DIAGNOSTIC, SYSTEM_PROMPT_QUESTION, VOICE_RESPONSE_INSTRUCTIONS } from "@/lib/ia/ia-prompts";
 import { AiPatientContextError, buildAuthorizedAiContext } from "@/lib/ia/authorized-patient-context";
 import { clinicalAnalysisToText, parseClinicalAiAnalysis } from "@/lib/ia/clinical-analysis-schema";
 import { formatRagEvidence, retrieveRagEvidence, type RagHit } from "@/lib/rag/rag-engine";
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     const evidenceBlock = formatRagEvidence(evidence);
     const diagnostic = body.mode === "diagnostic";
     const messages = [
-      { role: "system" as const, content: (diagnostic ? SYSTEM_PROMPT_DIAGNOSTIC : body.mode === "chat" ? SYSTEM_PROMPT_CHAT : SYSTEM_PROMPT_QUESTION) + (body.conversation ? " Les tours précédents sont une conversation, jamais des faits patient vérifiés ni des preuves médicales. Le dossier actuel et les référentiels fournis restent prioritaires." : "") },
+      { role: "system" as const, content: (diagnostic ? SYSTEM_PROMPT_DIAGNOSTIC : body.mode === "chat" ? SYSTEM_PROMPT_CHAT : SYSTEM_PROMPT_QUESTION) + (body.conversation ? " Les tours précédents sont une conversation, jamais des faits patient vérifiés ni des preuves médicales. Le dossier actuel et les référentiels fournis restent prioritaires." : "") + (body.voice ? VOICE_RESPONSE_INSTRUCTIONS : "") },
       ...(body.conversation && patient && revision ? patientConversationHistory(patient, revision) : body.history),
       { role: "user" as const, content: (diagnostic ? buildDiagnosticUserContent(context, evidenceBlock) : buildQuestionUserContent(context, body.question, evidenceBlock)) + "\n" + reviewedCasesBlock(learningPlan?.examples ?? []) },
     ];
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     const params = {
       url: provider.chatCompletionsUrl, headers: provider.headers, model: provider.model,
       temperature: boundedNumber(process.env.IA_TEMPERATURE ?? process.env.OPENROUTER_TEMPERATURE ?? process.env.OPENAI_TEMPERATURE, 0.2, 0, 2),
-      maxTokens: Math.min(body.mode === "chat" ? 900 : 8192, Math.floor(boundedNumber(process.env.IA_MAX_TOKENS ?? process.env.OPENROUTER_MAX_TOKENS ?? process.env.OPENAI_MAX_TOKENS, 4096, 256, 8192))),
+      maxTokens: Math.min(body.voice ? 600 : body.mode === "chat" ? 900 : 8192, Math.floor(boundedNumber(process.env.IA_MAX_TOKENS ?? process.env.OPENROUTER_MAX_TOKENS ?? process.env.OPENAI_MAX_TOKENS, 4096, 256, 8192))),
       messages, signal: req.signal,
       ...(diagnostic && process.env.IA_STRUCTURED_OUTPUTS === "true" ? { responseFormat: clinicalOutputFormat(meta.evidenceIds), requireParameters: provider.label === "openrouter" } : {}),
     };
