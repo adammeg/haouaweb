@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { useModulesStore, useModulesWorkspace } from "@/stores/modules-store";
 import {
   downloadCabinetBackup,
@@ -110,11 +111,15 @@ export function DocumentsClient({
             className="overflow-hidden rounded-2xl border bg-white shadow-sm"
           >
             {d.mimeType.startsWith("image/") ? (
-              <img
-                src={d.dataUrl}
-                alt={d.name}
-                className="h-40 w-full object-cover"
-              />
+              <div className="relative h-40 w-full">
+                <Image
+                  src={d.dataUrl}
+                  alt={d.name}
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              </div>
             ) : (
               <div className="flex h-40 items-center justify-center bg-[var(--cream)] text-4xl">
                 📄

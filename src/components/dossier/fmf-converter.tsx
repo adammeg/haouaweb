@@ -79,7 +79,7 @@ export function FmfConverterPanel({
     <div className="rounded-xl border border-[var(--border)] bg-[var(--teal-pale)]/20 p-4">
       <SectionTitle>FMF Converter — MoM T1 (11–14 SA)</SectionTitle>
       <p className="mb-3 text-xs text-[var(--muted)]">
-        Terme : {draft.o_terme || "—"} · Les MoM à utiliser sont ceux du compte rendu du laboratoire (médianes propres à l'automate). L'estimation locale ci-dessous repose sur des médianes génériques : elle est indicative et ne permet pas un calcul de risque.
+        Terme : {draft.o_terme || "—"} · Les MoM à utiliser sont ceux du compte rendu du laboratoire (médianes propres à l&apos;automate). L&apos;estimation locale ci-dessous repose sur des médianes génériques : elle est indicative et ne permet pas un calcul de risque.
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="PAPP-A brut">
