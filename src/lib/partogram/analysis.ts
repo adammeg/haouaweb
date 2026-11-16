@@ -3,6 +3,7 @@ import {
   PARTO_ACTION_OFFSET_H,
   PARTO_ALERT_OFFSET_H,
 } from "./constants";
+import { evaluateLabour, PHASE_LABELS, sortPoints } from "./rules";
 
 export { PARTO_ALERT_OFFSET_H, PARTO_ACTION_OFFSET_H };
 
@@ -14,27 +15,14 @@ export type PartogramAnalysis = {
   decisionColor: string;
 };
 
-function formatTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleTimeString("fr-FR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
-}
-
 export function analyzePartogram(session: PartogramSession): PartogramAnalysis {
-  const entries = [...session.points].sort(
-    (a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime(),
-  );
+  const entries = sortPoints(session.points);
   if (entries.length === 0) {
     return {
       durationStr: "—",
       phase: "—",
       anomalies: [],
-      decision: "Aucune donnee",
+      decision: "Aucune donnée",
       decisionColor: "#6b7280",
     };
   }
@@ -45,67 +33,30 @@ export function analyzePartogram(session: PartogramSession): PartogramAnalysis {
   const m = Math.floor((ms % 3600000) / 60000);
   const durationStr = h + "h" + (m > 0 ? m + "min" : "");
 
-  let phase = "—";
-  if (last.dilatationCm != null) {
-    if (last.dilatationCm < 5) phase = "Phase latente";
-    else if (last.dilatationCm < 10) phase = "Phase active";
-    else phase = "Dilatation complete (10 cm)";
-  }
+  const evaluation = evaluateLabour(entries);
+  const anomalies = evaluation.findings.map((f) => f.text);
 
-  const anomalies: string[] = [];
-  for (const e of entries) {
-    const t = formatTime(e.recordedAt);
-    if (e.fcf && e.fcf < 110) anomalies.push("Bradycardie (" + e.fcf + ") a " + t);
-    if (e.fcf && e.fcf > 160) anomalies.push("Tachycardie (" + e.fcf + ") a " + t);
-    if (e.la === "M") anomalies.push("LA meconial a " + t);
-    if (e.taSys && e.taSys >= 140)
-      anomalies.push("HTA " + e.taSys + "/" + (e.taDia ?? "?") + " a " + t);
-    if (e.temp && e.temp >= 38) anomalies.push("Fievre " + e.temp + " a " + t);
-  }
-  for (let i = 1; i < entries.length; i++) {
-    const prev = entries[i - 1]!;
-    const cur = entries[i]!;
-    const dH =
-      (new Date(cur.recordedAt).getTime() - new Date(prev.recordedAt).getTime()) /
-      3600000;
-    if (
-      dH >= 2 &&
-      cur.dilatationCm === prev.dilatationCm &&
-      cur.dilatationCm != null &&
-      cur.dilatationCm < 10
-    ) {
-      anomalies.push(
-        "Stagnation " + cur.dilatationCm + " cm pendant >=" + Math.round(dH) + "h",
-      );
-    }
-  }
-
-  const initDil = Math.max(4, first.dilatationCm ?? 4);
-  const elapsed =
-    (new Date(last.recordedAt).getTime() - new Date(first.recordedAt).getTime()) /
-    3600000;
-  const expAlerte = initDil + Math.max(0, elapsed - PARTO_ALERT_OFFSET_H);
-  const expAction = initDil + Math.max(0, elapsed - PARTO_ACTION_OFFSET_H);
-
-  let decision = "Travail en progression normale.";
+  let decision = "Pas d'alerte de progression.";
   let decisionColor = "#16a34a";
-  if (
-    last.dilatationCm != null &&
-    last.dilatationCm < expAction &&
-    last.dilatationCm < 10 &&
-    elapsed > PARTO_ACTION_OFFSET_H
-  ) {
-    decision = "LIGNE ACTION — Decision chirurgicale a envisager";
+  if (evaluation.progress === "action") {
+    decision = "LIGNE D'ACTION franchie — décision obstétricale requise";
     decisionColor = "#dc2626";
-  } else if (
-    last.dilatationCm != null &&
-    last.dilatationCm < expAlerte &&
-    last.dilatationCm < 10 &&
-    elapsed > PARTO_ALERT_OFFSET_H
-  ) {
-    decision = "LIGNE ALERTE — Surveillance rapprochee";
+  } else if (evaluation.progress === "alerte") {
+    decision = "LIGNE D'ALERTE franchie — réévaluation et surveillance rapprochée";
     decisionColor = "#d97706";
+  } else if (evaluation.findings.some((f) => f.level === "red")) {
+    decision = "Anomalie sévère signalée — évaluation immédiate";
+    decisionColor = "#dc2626";
+  } else if (evaluation.phase === "latente") {
+    decision = "Phase de latence — les lignes d'alerte ne s'appliquent pas encore.";
+    decisionColor = "#6b7280";
   }
 
-  return { durationStr, phase, anomalies, decision, decisionColor };
+  return {
+    durationStr,
+    phase: PHASE_LABELS[evaluation.phase],
+    anomalies,
+    decision,
+    decisionColor,
+  };
 }

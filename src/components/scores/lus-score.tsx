@@ -12,8 +12,8 @@ export function LUSScore() {
   return (
     <ScoreShell
       title="📏 LUS Cicatriciel"
-      tag="CNGOF 2020"
-      description="Épaisseur du segment inférieur utérin (mm) — risque déhiscence / AVAC."
+      tag="Rozenberg 1996"
+      description="Épaisseur échographique du segment inférieur (mm) sur utérus cicatriciel. Repère informatif : aucun seuil décisionnel n'est validé (CNGOF 2012)."
       result={result}
     >
       <ScoreCriterion label="LUS (mm)">

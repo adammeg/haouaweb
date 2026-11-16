@@ -1,6 +1,9 @@
 import type { ScoreResult } from "./types";
 
+/** Rupture prématurée des membranes — CNGOF 2018 (avant terme), ACOG CO 712 (infection intra-amniotique). */
+
 export type RpmTest = "positif" | "negatif" | "nonfait";
+/** Quantité de liquide amniotique à l'échographie ; "absent" = non évaluée. */
 export type RpmLa = "absent" | "normal" | "oligo" | "anhydr";
 
 export interface RPMInput {
@@ -16,7 +19,7 @@ export interface RPMInput {
 }
 
 export const RPM_DEFAULT: RPMInput = {
-  sa: 32,
+  sa: 0,
   nitrazine: "nonfait",
   fern: "nonfait",
   la: "absent",
@@ -27,62 +30,84 @@ export const RPM_DEFAULT: RPMInput = {
   laOdor: false,
 };
 
+function conduite(sa: number): string {
+  if (sa < 24) {
+    return `RPM avant 24 SA (${sa} SA) : pronostic réservé, prise en charge individualisée après information du couple, en lien avec un centre de niveau adapté.`;
+  }
+  if (sa < 34) {
+    return `RPM à ${sa} SA : hospitalisation initiale, antibioprophylaxie (amoxicilline, céphalosporine de 3e génération ou érythromycine, 7 jours — CNGOF 2018 ; pas d'amoxicilline-acide clavulanique), corticothérapie anténatale, sulfate de magnésium si naissance imminente avant 32 SA, transfert in utero si nécessaire. Expectative en l'absence d'infection, de travail ou d'anomalie du RCF. Surveillance clinique, biologique et du RCF.`;
+  }
+  if (sa < 37) {
+    return `RPM à ${sa} SA : antibioprophylaxie ; expectative jusqu'à 37 SA en l'absence d'infection ou de complication (CNGOF 2018), naissance sans délai en cas d'infection intra-utérine, d'anomalie du RCF ou d'HRP.`;
+  }
+  return `RPM à terme (${sa} SA) : expectative courte ou déclenchement selon le protocole du service ; antibioprophylaxie en cas de portage de streptocoque B ou de rupture prolongée.`;
+}
+
 export function calcRPM(input: RPMInput): ScoreResult | null {
   const { sa } = input;
   if (!sa || sa < 1) return null;
 
-  const rpmDiag =
-    input.nitrazine === "positif" ||
-    input.fern === "positif" ||
-    input.la !== "absent";
+  const testPositif = input.nitrazine === "positif" || input.fern === "positif";
+  const laDiminue = input.la === "oligo" || input.la === "anhydr";
+  const statut: "confirmee" | "suspectee" | "non" = testPositif
+    ? "confirmee"
+    : laDiminue
+      ? "suspectee"
+      : "non";
 
-  const scoreCA = [
-    input.temp >= 37.8,
+  const fievre = input.temp >= 38;
+  const autresSignes = [
     input.tachyMaternal,
     input.tachyFetal,
     input.uterusTender,
     input.laOdor,
   ].filter(Boolean).length;
-
-  const chorioamniotite = scoreCA >= 2;
+  const infection = fievre && autresSignes >= 1;
 
   let interpretation: string;
-  if (sa < 24) {
+  if (statut === "confirmee") {
+    interpretation = conduite(sa);
+  } else if (statut === "suspectee") {
     interpretation =
-      `RPM avant viabilité (${sa} SA) — prise en charge individualisée. Pronostic très réservé < 23 SA.`;
-  } else if (sa < 28) {
-    interpretation = `RPM ${sa} SA — prise en charge active : corticothérapie, ATB (érythromycine), transfert niveau III, MgSO₄ si < 32 SA.`;
-  } else if (sa < 34) {
-    interpretation = `RPM ${sa} SA : corticothérapie si non faite, ATB amoxicilline 7j, expectative si pas d'infection. Surveillance T°, CRP, CTG.`;
-  } else if (sa <= 36) {
-    interpretation = `RPM ${sa} SA (près du terme) : ATB prophylaxie + déclenchement si infection ou SFA ou ≥ 37 SA.`;
+      "Oligoamnios ou anamnios sans test positif : RPM possible mais non confirmée. Compléter par un examen au spéculum et un test biochimique (IGFBP-1 ou PAMG-1) ; rechercher les autres causes d'oligoamnios.";
   } else {
-    interpretation = `RPM à terme (${sa} SA) : déclenchement recommandé (risque infection).`;
-  }
-
-  if (chorioamniotite) {
     interpretation =
-      `Chorioamnionite suspectée (${scoreCA}/5 critères). ${interpretation} Extraction urgente si signes sévères.`;
+      "Aucun argument pour une RPM avec les éléments saisis. En cas de doute clinique persistant : examen au spéculum et test biochimique (IGFBP-1 ou PAMG-1).";
   }
 
-  const level: ScoreResult["level"] = chorioamniotite
+  if (infection) {
+    interpretation = `Infection intra-utérine suspectée (fièvre ≥ 38 °C + ${autresSignes} signe(s) associé(s)) : antibiothérapie intraveineuse et naissance sans délai, quelle que soit la voie adaptée. ${statut === "confirmee" ? "" : interpretation}`.trim();
+  } else if (fievre) {
+    interpretation = `Fièvre maternelle isolée : rechercher une infection intra-utérine et les autres causes. ${interpretation}`;
+  }
+
+  const level: ScoreResult["level"] = infection
     ? "critical"
-    : rpmDiag
+    : statut === "confirmee"
       ? sa < 34
         ? "high"
         : "medium"
-      : "low";
+      : statut === "suspectee" || fievre
+        ? "medium"
+        : "low";
+
+  const value =
+    statut === "confirmee"
+      ? "RPM confirmée"
+      : statut === "suspectee"
+        ? "RPM suspectée"
+        : "RPM non confirmée";
 
   return {
-    value: rpmDiag ? "RPM confirmée" : "RPM non confirmée",
-    raw: scoreCA,
+    value,
+    raw: (fievre ? 1 : 0) + autresSignes,
     max: 5,
     level,
-    label: chorioamniotite ? "Chorioamnionite suspectée" : rpmDiag ? "RPM" : "Examen négatif",
+    label: infection ? "Infection intra-utérine suspectée" : value,
     interpretation,
     details: [
-      { label: "Diagnostic RPM", value: rpmDiag ? "Oui" : "Non" },
-      { label: "Score chorioamniotite", value: `${scoreCA}/5` },
+      { label: "Diagnostic RPM", value: statut === "confirmee" ? "Test positif" : statut === "suspectee" ? "À confirmer" : "Non" },
+      { label: "Signes infectieux", value: `${fievre ? "fièvre + " : ""}${autresSignes} signe(s)` },
     ],
   };
 }

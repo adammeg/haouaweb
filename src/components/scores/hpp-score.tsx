@@ -16,7 +16,7 @@ export function HPPScore() {
     <ScoreShell
       title="🩸 Risque HPP"
       tag="Prévention HPP"
-      description="Évaluation des facteurs de risque d'HPP avant l'accouchement. Score cumulatif — risque élevé ≥ 3 points."
+      description="Repérage des facteurs de risque d'HPP à l'admission et niveau d'anticipation (faible, intermédiaire, élevé). Ce n'est pas un score chiffré validé."
       result={result}
       resultIdSuffix="hpp"
     >
@@ -25,9 +25,9 @@ export function HPPScore() {
           value={input.cicat}
           onChange={(v) => patch("cicat", v as HPPInput["cicat"])}
           options={[
-            { value: 0, label: "Non (0)" },
-            { value: 1, label: "1 césarienne (+1)" },
-            { value: 2, label: "≥ 2 césariennes (+2)" },
+            { value: 0, label: "Non" },
+            { value: 1, label: "1 césarienne" },
+            { value: 2, label: "≥ 2 césariennes" },
           ]}
         />
       </ScoreCriterion>
@@ -36,8 +36,8 @@ export function HPPScore() {
           value={input.multi}
           onChange={(v) => patch("multi", v as HPPInput["multi"])}
           options={[
-            { value: 0, label: "Non (0)" },
-            { value: 1, label: "Oui (+1)" },
+            { value: 0, label: "Non" },
+            { value: 1, label: "Oui" },
           ]}
         />
       </ScoreCriterion>
@@ -46,9 +46,9 @@ export function HPPScore() {
           value={input.macro}
           onChange={(v) => patch("macro", v as HPPInput["macro"])}
           options={[
-            { value: 0, label: "Non (0)" },
-            { value: 1, label: "Macrosomie (+1)" },
-            { value: 2, label: "Gémellité (+2)" },
+            { value: 0, label: "Non" },
+            { value: 1, label: "Macrosomie" },
+            { value: 2, label: "Gémellité" },
           ]}
         />
       </ScoreCriterion>
@@ -57,9 +57,9 @@ export function HPPScore() {
           value={input.placenta}
           onChange={(v) => patch("placenta", v as HPPInput["placenta"])}
           options={[
-            { value: 0, label: "Non (0)" },
-            { value: 2, label: "Placenta bas inséré (+2)" },
-            { value: 3, label: "Prævia total (+3)" },
+            { value: 0, label: "Non" },
+            { value: 2, label: "Placenta bas inséré" },
+            { value: 3, label: "Prævia total" },
           ]}
         />
       </ScoreCriterion>
@@ -68,8 +68,8 @@ export function HPPScore() {
           value={input.coag}
           onChange={(v) => patch("coag", v as HPPInput["coag"])}
           options={[
-            { value: 0, label: "Non (0)" },
-            { value: 2, label: "Oui (+2)" },
+            { value: 0, label: "Non" },
+            { value: 2, label: "Oui" },
           ]}
         />
       </ScoreCriterion>
@@ -78,9 +78,9 @@ export function HPPScore() {
           value={input.anemie}
           onChange={(v) => patch("anemie", v as HPPInput["anemie"])}
           options={[
-            { value: 0, label: "Non (0)" },
-            { value: 1, label: "Hb 8–10 g/dL (+1)" },
-            { value: 2, label: "Hb < 8 g/dL (+2)" },
+            { value: 0, label: "Non" },
+            { value: 1, label: "Hb 8–10 g/dL" },
+            { value: 2, label: "Hb < 8 g/dL" },
           ]}
         />
       </ScoreCriterion>
@@ -89,8 +89,8 @@ export function HPPScore() {
           value={input.travail}
           onChange={(v) => patch("travail", v as HPPInput["travail"])}
           options={[
-            { value: 0, label: "Non (0)" },
-            { value: 2, label: "Oui (+2)" },
+            { value: 0, label: "Non" },
+            { value: 2, label: "Oui" },
           ]}
         />
       </ScoreCriterion>
@@ -99,8 +99,8 @@ export function HPPScore() {
           value={input.atcd}
           onChange={(v) => patch("atcd", v as HPPInput["atcd"])}
           options={[
-            { value: 0, label: "Non (0)" },
-            { value: 1, label: "Oui (+1)" },
+            { value: 0, label: "Non" },
+            { value: 1, label: "Oui" },
           ]}
         />
       </ScoreCriterion>
@@ -109,8 +109,8 @@ export function HPPScore() {
           value={input.infection}
           onChange={(v) => patch("infection", v as HPPInput["infection"])}
           options={[
-            { value: 0, label: "Non (0)" },
-            { value: 1, label: "Oui (+1)" },
+            { value: 0, label: "Non" },
+            { value: 1, label: "Oui" },
           ]}
         />
       </ScoreCriterion>

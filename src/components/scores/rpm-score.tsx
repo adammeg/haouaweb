@@ -24,12 +24,12 @@ export function RPMScore() {
   return (
     <ScoreShell
       title="💧 RPM"
-      tag="Gibbs · CNGOF"
+      tag="CNGOF 2018"
       description="Rupture prématurée des membranes — conduite selon terme."
       result={result}
     >
       <ScoreCriterion label="Âge gestationnel (SA)">
-        <ScoreInput value={input.sa} onChange={(v) => patch("sa", v)} min={20} max={42} />
+        <ScoreInput value={input.sa} onChange={(v) => patch("sa", v)} min={0} max={42} />
       </ScoreCriterion>
       <ScoreCriterion label="Test nitrazine">
         <select
@@ -53,13 +53,13 @@ export function RPMScore() {
           <option value="negatif">Négatif</option>
         </select>
       </ScoreCriterion>
-      <ScoreCriterion label="Liquide amniotique">
+      <ScoreCriterion label="Liquide amniotique (échographie)">
         <select
           className={SELECT_CLS}
           value={input.la}
           onChange={(e) => patch("la", e.target.value as RpmLa)}
         >
-          <option value="absent">Absent</option>
+          <option value="absent">Non évalué</option>
           <option value="normal">Normal</option>
           <option value="oligo">Oligoamnios</option>
           <option value="anhydr">Anhydramnios</option>

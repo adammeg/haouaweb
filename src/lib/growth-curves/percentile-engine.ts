@@ -5,7 +5,7 @@
 import { COLORS } from "./constants";
 import { interpPercentiles } from "./interpolate";
 import { INTERGROWTH_TABLES } from "./intergrowth-data";
-import { MOORE_ILA } from "./ila-moore";
+import { MOORE_ILA, MOORE_ILA_PERCENTILES } from "./ila-moore";
 import type {
   GrowthParamKey,
   IgPercentiles,
@@ -29,19 +29,21 @@ export function estimatePercentile(
   const ref = interpPercentiles(getTable(key), gaWeeks);
   if (!ref) return null;
 
+  // L'ILA (Moore 1990) est tabulé aux 2,5e, 5e, 50e, 95e et 97,5e percentiles.
+  const ranks: readonly number[] = key === "ila" ? MOORE_ILA_PERCENTILES : [3, 10, 50, 90, 97];
   const anchors: Array<{ p: number; v: number }> = [
-    { p: 3, v: ref.p3 },
-    { p: 10, v: ref.p10 },
-    { p: 50, v: ref.p50 },
-    { p: 90, v: ref.p90 },
-    { p: 97, v: ref.p97 },
+    { p: ranks[0]!, v: ref.p3 },
+    { p: ranks[1]!, v: ref.p10 },
+    { p: ranks[2]!, v: ref.p50 },
+    { p: ranks[3]!, v: ref.p90 },
+    { p: ranks[4]!, v: ref.p97 },
   ];
 
   let percentile: number;
   if (value <= anchors[0]!.v) {
-    percentile = value < ref.p3 * 0.92 ? 1 : 3;
+    percentile = value < ref.p3 ? 1 : 3;
   } else if (value >= anchors[4]!.v) {
-    percentile = value > ref.p97 * 1.08 ? 99 : 97;
+    percentile = value > ref.p97 ? 99 : 97;
   } else {
     percentile = piecewisePercentile(value, anchors);
   }
@@ -73,22 +75,32 @@ function buildEstimate(
   let icon: string;
   let label: string;
 
+  // « Petit / gros poids » ne s'applique qu'au poids estimé et au périmètre abdominal.
+  const weightLike = key === "pfe" || key === "pa";
   if (percentile < 3 || percentile > 97) {
     status = "pathologique";
     color = COLORS.pathologique;
     icon = "⚠";
     label =
       percentile < 3
-        ? `Hypotrophie sévère (P${percentile})`
-        : `Macrosomie (P${percentile})`;
+        ? weightLike
+          ? "< P3 — restriction de croissance à évaluer (Doppler)"
+          : "< P3 — mesure basse, à contrôler"
+        : weightLike
+          ? "> P97 — gros pour l'âge gestationnel"
+          : "> P97 — mesure élevée, à contrôler";
   } else if (percentile < 10 || percentile > 90) {
     status = "surveillance";
     color = COLORS.surveillance;
     icon = "⚠";
     label =
       percentile < 10
-        ? `Hypotrophie suspectée (P${percentile})`
-        : `Croissance accélérée (P${percentile})`;
+        ? weightLike
+          ? `Petit pour l'âge gestationnel (P${percentile})`
+          : `Mesure basse (P${percentile})`
+        : weightLike
+          ? `Gros pour l'âge gestationnel (P${percentile})`
+          : `Mesure élevée (P${percentile})`;
   } else {
     status = "normal";
     color = COLORS.normal;
@@ -97,10 +109,11 @@ function buildEstimate(
   }
 
   if (key === "ila") {
-    if (percentile < 3) label = `Oligoamnios sévère (P${percentile})`;
-    else if (percentile < 10) label = `Oligoamnios (P${percentile})`;
-    else if (percentile > 97) label = `Hydramnios sévère (P${percentile})`;
-    else if (percentile > 90) label = `Hydramnios (P${percentile})`;
+    // Le diagnostic d'oligoamnios / hydramnios repose sur les seuils absolus (ILA ≤ 5 cm / ≥ 25 cm), pas sur ce percentile.
+    if (percentile < 3) label = "ILA < 2,5e percentile — vérifier oligoamnios (ILA ≤ 5 cm)";
+    else if (percentile < 10) label = `ILA bas (P${percentile})`;
+    else if (percentile > 97) label = "ILA > 97,5e percentile — vérifier hydramnios (ILA ≥ 25 cm)";
+    else if (percentile > 90) label = `ILA élevé (P${percentile})`;
     else label = `LA normal (P${percentile})`;
   }
 

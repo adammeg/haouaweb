@@ -21,8 +21,7 @@ export function classifyPoseidon(p: IvfPatientProfile): PoseidonResult {
 export function classifyBologna(p: IvfPatientProfile): BolognaResult {
   let c = 0;
   const d: string[] = [];
-  const risk =
-    p.chirOv !== "non" || p.sopk !== "non" || p.endo === "stade34";
+  const risk = p.chirOv !== "non" || p.endo === "stade34";
   if ((p.age != null && p.age >= 40) || risk) {
     c++;
     if (p.age != null && p.age >= 40) d.push("Âge ≥ 40 ans");
@@ -62,67 +61,62 @@ export function classifyOvarianResponse(
   if (p.prevOocytes !== null && p.prevOocytes > 0) exp = p.prevOocytes;
   let rt: string;
   let oh: string;
-  let prog: number | null = null;
   if (exp === null) {
     rt = "Indéterminée";
     oh = "low";
   } else if (exp < 4) {
     rt = "Mauvaise répondante (Poor responder)";
     oh = "low";
-    prog = Math.max(5, 20 - ((p.age ?? 35) - 35) * 2);
   } else if (exp < 10) {
     rt = "Répondante sous-optimale (Suboptimal)";
     oh = "low";
-    prog = Math.max(10, 40 - ((p.age ?? 35) - 35) * 1.5);
   } else if (exp < 18) {
     rt = "Répondante normale (Normal responder)";
     oh = "medium";
-    prog = Math.max(20, 60 - ((p.age ?? 35) - 35) * 1.5);
   } else {
     rt = "Hyper-répondante (OHSS risk élevé)";
     oh = sopk ? "critical" : "high";
-    prog = Math.max(25, 65 - ((p.age ?? 35) - 35) * 1.5);
   }
   if (sopk && oh === "low") oh = "medium";
   if (p.ohssAtcd === "severe") oh = "critical";
   if (p.ohssAtcd === "modere" && oh !== "critical") oh = "high";
-  if (prog !== null) prog = Math.min(85, Math.max(5, Math.round(prog)));
+  // Aucun modèle validé de taux de succès par cycle n'est implémenté : pas de pronostic chiffré.
   return {
     responseType: rt,
     expectedOocytes: exp,
     ohssRisk: oh,
-    prognosis: prog,
+    prognosis: null,
   };
 }
 
+/** ESHRE : pas de bénéfice démontré au-delà de 300 UI/j ; dose réduite si forte réponse attendue. */
+const MAX_DAILY_DOSE = 300;
+const HIGH_RESPONDER_MAX_DOSE = 150;
+
 function calcStartDose(p: IvfPatientProfile): number {
+  const highResponder =
+    p.sopk === "oui" ||
+    (p.amh !== null && p.amh > 3.5) ||
+    (p.afc !== null && p.afc > 20);
+
   let dose = 225;
   if (p.amh !== null) {
-    if (p.amh < 0.5) dose = 450;
-    else if (p.amh < 1.0) dose = 375;
-    else if (p.amh < 1.5) dose = 300;
+    if (p.amh < 1.5) dose = 300;
     else if (p.amh < 2.5) dose = 225;
-    else if (p.amh < 3.5) dose = 150;
+    else if (p.amh <= 3.5) dose = 150;
     else dose = 100;
   }
-  if (p.afc !== null) {
-    if (p.afc < 5) dose = Math.max(dose, 375);
-    else if (p.afc > 20) dose = Math.min(dose, 150);
+  if (p.afc !== null && p.afc < 5) dose = Math.max(dose, 300);
+  if (!highResponder) {
+    if (p.age != null && p.age >= 40) dose = Math.max(dose, 300);
+    else if (p.age != null && p.age >= 38) dose = Math.max(dose, 250);
+    if (p.prevOocytes !== null && p.prevOocytes < 4) dose = Math.max(dose, 300);
   }
-  if (p.age != null && p.age >= 40) dose = Math.max(dose, 300);
-  else if (p.age != null && p.age >= 38) dose = Math.max(dose, 250);
   if (p.bmi != null) {
     if (p.bmi > 30) dose = Math.round(dose * 1.15);
     if (p.bmi < 19) dose = Math.round(dose * 0.9);
   }
-  if (p.prevOocytes !== null && p.prevOocytes < 4) dose = Math.max(dose, 375);
-  if (
-    p.prevDose !== null &&
-    p.prevOocytes !== null &&
-    p.prevOocytes < 4
-  )
-    dose = Math.min(Math.max(p.prevDose + 75, dose), 450);
-  if (p.sopk === "oui") dose = Math.min(dose, 150);
+  dose = Math.min(dose, highResponder ? HIGH_RESPONDER_MAX_DOSE : MAX_DAILY_DOSE);
   return Math.round(dose / 25) * 25;
 }
 
@@ -204,7 +198,11 @@ export function generateProtocols(
     p.prevCycles > 0 && p.prevOocytes !== null && p.prevOocytes <= 3;
   const preservation = p.indication === "preservation";
   const dose = calcStartDose(p);
-  const doseCourt = Math.min(dose + 75, 450);
+  const doseCourt = Math.min(dose + 75, MAX_DAILY_DOSE);
+  // Sous agoniste (long ou flare-up), l'hypophyse est désensibilisée : seul l'hCG déclenche l'ovulation.
+  const triggerSousAgoniste = ohssHigh
+    ? "hCG uniquement (déclenchement par agoniste impossible sous agoniste) — risque OHSS élevé : changer pour un protocole antagoniste"
+    : "hCG (Ovitrelle 250µg)";
 
   const r1_ohssCrit =
     ohssCrit || (sopk && p.afc !== null && p.afc > 20);
@@ -237,7 +235,7 @@ export function generateProtocols(
       pros: "Protocole le plus étudié · Sécuritaire · Idéal si risque OHSS · Cycle court · Facilement adaptable",
       cons: "Légèrement moins synchrone que le long protocole en endométriose sévère",
       indication:
-        "Indiqué pour la majorité des patientes. Protocole de référence ESHRE.",
+        "Indiqué pour la majorité des patientes. Protocole de première intention (ESHRE).",
       freezeAll: ohssHigh,
       ohssStrategy: ohssHigh
         ? "Trigger agoniste + Freeze-all — contreindique transfert frais"
@@ -259,10 +257,10 @@ export function generateProtocols(
         "Progestérone 200mg ×2/j OU MPA 10mg/j (blocage LH)",
         "Décapeptyl 0.2mg trigger — Freeze-all obligatoire",
       ],
-      pros: "Très bien toléré · Prise orale (pas d'antagoniste injecté) · Idéal SOPK · Zéro risque OHSS sévère",
+      pros: "Très bien toléré · Prise orale (pas d'antagoniste injecté) · Adapté au SOPK · Risque OHSS réduit avec trigger agoniste et freeze-all",
       cons: "Freeze-all obligatoire — pas de transfert frais · TEC différé 4–8 semaines",
       indication: r1_ohssCrit
-        ? "SOPK + CFA > 20 ou ATCD OHSS sévère → PPOS est la stratégie de choix (ESHRE 2023)"
+        ? "SOPK + CFA > 20 ou ATCD OHSS sévère → PPOS avec trigger agoniste et freeze-all : option de prévention OHSS"
         : "Option chez les patientes SOPK ou préférant la prise orale",
       freezeAll: true,
       ohssStrategy: r1_ohssCrit
@@ -274,23 +272,21 @@ export function generateProtocols(
       icon: "⏳",
       name: "Protocole Long Agoniste GnRH",
       type: r3_endo
-        ? "★ RECOMMANDÉ — Endométriose sévère"
+        ? "★ Option — Endométriose sévère"
         : "Synchronisation forte — Cycle prévisible",
       dose,
-      trigger: ohssHigh
-        ? "Agoniste GnRH — Freeze-all"
-        : "hCG (Ovitrelle 250µg)",
+      trigger: triggerSousAgoniste,
       strategy:
         "Décapeptyl 3.75mg LP J21 du cycle précédent · Désensibilisation 10–14j · Stimulation J2",
       meds: [
         "Décapeptyl 3.75mg LP J21 (cycle précédent)",
         "rFSH " + dose + " UI/j J2 (après désensibilisation)",
-        ohssHigh ? "Trigger agoniste + Freeze-all" : "hCG Ovitrelle trigger",
+        ohssHigh ? "hCG trigger + Freeze-all (pas de trigger agoniste possible)" : "hCG Ovitrelle trigger",
       ],
       pros: "Synchronisation parfaite · Suppression kyste endométriosique · Contrôle optimal · Endométriose sévère",
       cons: "Durée totale ~6 semaines · Effets climatériques transitoires · Contre-indiqué si réserve basse",
       indication: r3_endo
-        ? "Endométriose stade III–IV sans mauvaise réponse → Long protocole recommandé (CNGOF 2021)"
+        ? "Endométriose stade III–IV sans mauvaise réponse → Long protocole : option à discuter (pas de supériorité démontrée)"
         : "À considérer si synchronisation importante ou endométriose modérée",
       freezeAll: ohssHigh,
       ohssStrategy: ohssHigh
@@ -336,15 +332,13 @@ export function generateProtocols(
           ? "★ Option — Mauvaises répondantes"
           : "Boost FSH endogène — Usage limité",
       dose: doseCourt,
-      trigger: ohssHigh
-        ? "Agoniste GnRH — Freeze-all"
-        : "hCG (Ovitrelle 250µg)",
+      trigger: triggerSousAgoniste,
       strategy:
         "J2 : agoniste 0.1mg + FSH simultanément · Effet flare-up FSH endogène J1–J3 · Cycle court",
       meds: [
         "Décapeptyl 0.1mg/j dès J2",
         "rFSH " + doseCourt + " UI/j dès J2 (dose augmentée)",
-        ohssHigh ? "Trigger agoniste + Freeze-all" : "hCG trigger",
+        ohssHigh ? "hCG trigger + Freeze-all (pas de trigger agoniste possible)" : "hCG trigger",
       ],
       pros: "Boost FSH endogène utile en mauvaise réponse · Cycle court · Peu coûteux",
       cons: "Résultats controversés vs antagoniste · Risque pic LH prématuré · Déconseillé si SOPK",
@@ -375,7 +369,7 @@ export function generateProtocols(
       pros: "Aucun risque OHSS · Peu contraignant · Répétable cycles consécutifs · Accumulation progressive",
       cons: "1 seul ovocyte par cycle · Taux annulation élevé (30–40%) · Nécessite plusieurs cycles",
       indication: r2_extremePoor
-        ? "AMH < 0.5 ng/mL + âge ≥ 40 → CNM ou mini-FIV sont les seules options raisonnables"
+        ? "AMH < 0.5 ng/mL + âge ≥ 40 → CNM ou mini-FIV : options à discuter, avec information sur le don d'ovocytes"
         : "AMH effondrée après échec de stimulation standard",
       freezeAll: false,
       ohssStrategy: null,
@@ -409,7 +403,6 @@ export function generateProtocols(
     recommendedId = prevPoorResp ? "duostim" : "naturel";
   else if (r2_duostim) recommendedId = "duostim";
   else if (r4_preservation) recommendedId = "duostim";
-  else if (r3_endo) recommendedId = "long";
   else if (ohssHigh && sopk) recommendedId = "ppos";
   else recommendedId = "antagoniste";
 
@@ -431,7 +424,11 @@ export function generateCalendar(
 ): IvfCalendarDay[] {
   const dose = proto.dose;
   const ohssH = ohss.level === "high" || ohss.level === "critical";
-  const trigType = ohssH ? "agoniste" : "hcg";
+  const sousAgoniste = proto.id === "long" || proto.id === "court";
+  const trigType =
+    !sousAgoniste && (ohssH || proto.id === "ppos" || proto.id === "duostim")
+      ? "agoniste"
+      : "hcg";
   const fAll = proto.freezeAll || ohssH;
   const days: IvfCalendarDay[] = [];
 
@@ -526,7 +523,7 @@ export function generateCalendar(
     });
   }
 
-  if (proto.id !== "naturel" && proto.id !== "ppos") {
+  if (proto.id === "antagoniste" || proto.id === "duostim" || proto.id === "mini") {
     days.push({
       day: "J5–J6",
       type: "injection",
@@ -549,7 +546,7 @@ export function generateCalendar(
     type: "monitoring",
     title: "Monitoring J8–J10",
     detail:
-      "Écho + E2 · Step-up si E2 < 200 pg/mL · Step-down si E2 > 3000 ou > 20 follicules · Alerte OHSS",
+      "Écho + E2 · Adapter la dose à la réponse folliculaire · Alerte OHSS si nombreux follicules ou E2 très élevé",
     tags: ["echo", "labo"],
   });
   const tDay = proto.id === "naturel" ? "J10–J12" : "J10–J14";
@@ -563,8 +560,8 @@ export function generateCalendar(
         : "hCG (Ovitrelle)"),
     detail:
       trigType === "agoniste"
-        ? "Décapeptyl 0.2mg SC · Critères : ≥ 3 follicules ≥ 18mm + E2 adapté · OHSS élevé → Freeze-all obligatoire"
-        : "Ovitrelle 250µg SC · Critères : ≥ 3 follicules ≥ 18mm · E2 < 4000 pg/mL · Ponction H+36",
+        ? "Décapeptyl 0.2mg SC · Critères : plusieurs follicules de 16–22 mm · Freeze-all (ou soutien lutéal renforcé)"
+        : "Ovitrelle 250µg SC · Critères : plusieurs follicules de 16–22 mm · Ponction H+36",
     tags: ["trigger", "labo"],
   });
   days.push({
@@ -631,11 +628,10 @@ function buildExplanation(
   pts.push(
     "Patiente de " +
       (p.age ?? "?") +
-      " ans, POSEIDON Groupe " +
-      pos.group +
-      " (" +
-      pos.desc +
-      ").",
+      " ans. " +
+      (pos.group == null
+        ? "POSEIDON : " + pos.desc + "."
+        : "POSEIDON groupe " + pos.group + " (" + pos.desc + ")."),
   );
   if (p.amh !== null)
     pts.push(
@@ -679,7 +675,7 @@ function buildExplanation(
     );
   if (p.endo === "stade34")
     pts.push(
-      "Endométriose sévère → long protocole agoniste ou antagoniste + préparation endomètre.",
+      "Endométriose sévère : pas de protocole de stimulation dont la supériorité soit démontrée (ESHRE).",
     );
   pts.push(
     "Réponse prédite : " +

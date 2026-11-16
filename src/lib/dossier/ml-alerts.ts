@@ -8,6 +8,18 @@ export type MlAlert = {
   sub: string;
 };
 
+/** Lit « 140/90 », « 140-90 », « 14/9 » ou « 16/11 » (cmHg, convertis en mmHg). */
+export function parseBloodPressure(raw: string): { sys: number; dia: number } | null {
+  const m = raw.replace(",", ".").match(/(\d+(?:\.\d+)?)\s*[/\-\s]\s*(\d+(?:\.\d+)?)/);
+  if (!m) return null;
+  let sys = parseFloat(m[1]!);
+  let dia = parseFloat(m[2]!);
+  if (sys < 30) sys *= 10;
+  if (dia < 20) dia *= 10;
+  if (sys < 50 || sys > 300 || dia < 20 || dia > 200 || dia >= sys) return null;
+  return { sys: Math.round(sys), dia: Math.round(dia) };
+}
+
 export function computeMLAlerts(d: PatientSnapshot): MlAlert[] {
   const alerts: MlAlert[] = [];
   const spec = d.specialite || "";
@@ -31,10 +43,17 @@ export function computeMLAlerts(d: PatientSnapshot): MlAlert[] {
 
   if (spec === "obst") {
     if (d.ec_ta) {
-      const parts = d.ec_ta.split("/");
-      const sys = parseInt(parts[0], 10);
-      const dia = parseInt(parts[1], 10);
-      if (sys >= 160 || dia >= 110) {
+      const bp = parseBloodPressure(d.ec_ta);
+      const sys = bp?.sys ?? 0;
+      const dia = bp?.dia ?? 0;
+      if (!bp) {
+        alerts.push({
+          level: "warn",
+          icon: "❓",
+          title: `TA illisible : « ${d.ec_ta} »`,
+          sub: "Saisir au format systolique/diastolique en mmHg (ex. 140/90) — aucune alerte tensionnelle n'a pu être calculée",
+        });
+      } else if (sys >= 160 || dia >= 110) {
         alerts.push({
           level: "danger",
           icon: "🔴",
@@ -45,8 +64,8 @@ export function computeMLAlerts(d: PatientSnapshot): MlAlert[] {
         alerts.push({
           level: "warn",
           icon: "⚠️",
-          title: `TA ${d.ec_ta} — HTA gravidique`,
-          sub: "Bilan pré-éclampsie : protéinurie, plaquettes, LDH, uricémie",
+          title: `TA ${d.ec_ta} — HTA (≥ 140/90)`,
+          sub: "Confirmer la mesure ; bilan : protéinurie, NFS-plaquettes, transaminases, créatinine",
         });
       }
     }
@@ -75,19 +94,26 @@ export function computeMLAlerts(d: PatientSnapshot): MlAlert[] {
       });
     }
     const hb = parseFloat(d.o_hb ?? "0");
-    if (hb > 0 && hb < 10) {
+    if (hb > 0 && hb < 7) {
       alerts.push({
         level: "danger",
         icon: "🔴",
         title: `Anémie sévère — Hb ${hb} g/dL`,
-        sub: "Fer IV à envisager — bilan étiologique",
+        sub: "Prise en charge urgente — bilan étiologique, avis spécialisé (seuil OMS < 7 g/dL)",
+      });
+    } else if (hb > 0 && hb < 10) {
+      alerts.push({
+        level: "warn",
+        icon: "🩸",
+        title: `Anémie modérée — Hb ${hb} g/dL`,
+        sub: "Ferritine, traitement martial ; fer IV à discuter si intolérance, échec du fer oral ou terme avancé",
       });
     } else if (hb > 0 && hb < 11) {
       alerts.push({
         level: "warn",
         icon: "🩸",
-        title: `Anémie — Hb ${hb} g/dL`,
-        sub: "Supplémentation fer orale + réévaluation NFS",
+        title: `Anémie légère — Hb ${hb} g/dL`,
+        sub: "Ferritine, supplémentation en fer orale et contrôle de la NFS (seuil 10,5 g/dL au 2e trimestre)",
       });
     }
   }

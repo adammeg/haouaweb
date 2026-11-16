@@ -8,9 +8,9 @@ export const ORDO_SUGGESTIONS: Record<
   gyn: [
     {
       dci: "Acide folique",
-      dose: "5 mg",
-      posologie: "1 cp/j le matin",
-      duree: "3 mois",
+      dose: "0,4 mg",
+      posologie: "1 cp/j dès le projet de grossesse (5 mg/j si antécédent d'anomalie du tube neural ou antiépileptique)",
+      duree: "jusqu'à 12 SA",
       boites: 3,
       cat: "Vitamines",
     },
@@ -42,9 +42,9 @@ export const ORDO_SUGGESTIONS: Record<
   obst: [
     {
       dci: "Acide folique",
-      dose: "5 mg",
-      posologie: "1 cp/j le matin",
-      duree: "3 mois",
+      dose: "0,4 mg",
+      posologie: "1 cp/j dès le projet de grossesse (5 mg/j si antécédent d'anomalie du tube neural ou antiépileptique)",
+      duree: "jusqu'à 12 SA",
       boites: 3,
       cat: "Vitamines",
     },
@@ -58,17 +58,17 @@ export const ORDO_SUGGESTIONS: Record<
     },
     {
       dci: "Aspirine faible dose",
-      dose: "100 mg",
-      posologie: "1 cp/j le soir",
-      duree: "jusqu'à 36 SA",
+      dose: "100 à 160 mg",
+      posologie: "1 prise/j le soir, à débuter avant 16 SA (indication : haut risque de prééclampsie)",
+      duree: "jusqu'à 35–36 SA",
       boites: 6,
       cat: "Anticoagulants",
     },
     {
       dci: "Métoclopramide (Primpéran)",
       dose: "10 mg",
-      posologie: "1 cp 3×/j avant repas",
-      duree: "2 sem",
+      posologie: "1 cp jusqu'à 3×/j avant les repas (2e intention ; 30 mg/j maximum)",
+      duree: "5 j maximum",
       boites: 1,
       cat: "Antiémétiques",
     },
@@ -83,7 +83,7 @@ export const ORDO_SUGGESTIONS: Record<
       cat: "Inducteurs",
     },
     {
-      dci: "Méformine",
+      dci: "Metformine",
       dose: "500 mg",
       posologie: "1 cp 2–3×/j avec repas",
       duree: "3 mois",
@@ -92,9 +92,9 @@ export const ORDO_SUGGESTIONS: Record<
     },
     {
       dci: "Acide folique",
-      dose: "5 mg",
-      posologie: "1 cp/j",
-      duree: "3 mois",
+      dose: "0,4 mg",
+      posologie: "1 cp/j dès le projet de grossesse (5 mg/j si antécédent d'anomalie du tube neural ou antiépileptique)",
+      duree: "jusqu'à 12 SA",
       boites: 3,
       cat: "Vitamines",
     },
@@ -111,7 +111,7 @@ export const ORDO_SUGGESTIONS: Record<
     {
       dci: "Ibuprofène",
       dose: "400 mg",
-      posologie: "1 cp 3×/j avec repas",
+      posologie: "1 cp 3×/j avec repas — contre-indiqué pendant la grossesse (formellement dès 24 SA)",
       duree: "5 j",
       boites: 1,
       cat: "Antalgiques",
@@ -128,9 +128,9 @@ export const ORDO_TEMPLATES: OrdoTemplate[] = [
     lignes: [
       {
         dci: "Acide folique",
-        dose: "5 mg",
-        posologie: "1 cp/j le matin",
-        duree: "3 mois",
+        dose: "0,4 mg",
+        posologie: "1 cp/j dès le projet de grossesse (5 mg/j si antécédent d'anomalie du tube neural ou antiépileptique)",
+        duree: "jusqu'à 12 SA",
         boites: 3,
       },
       {
@@ -151,7 +151,7 @@ export const ORDO_TEMPLATES: OrdoTemplate[] = [
       {
         dci: "Éthinylestradiol + Lévonorgestrel (Minidril)",
         dose: "1 cp",
-        posologie: "1 cp/j sans interruption",
+        posologie: "1 cp/j pendant 21 jours, puis 7 jours d'arrêt",
         duree: "3 mois",
         boites: 3,
       },
@@ -171,7 +171,7 @@ export const ORDO_TEMPLATES: OrdoTemplate[] = [
         boites: 1,
       },
       {
-        dci: "Méformine",
+        dci: "Metformine",
         dose: "500 mg",
         posologie: "1 cp 2×/j avec repas",
         duree: "3 mois",

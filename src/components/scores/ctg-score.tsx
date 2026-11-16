@@ -29,8 +29,8 @@ export function CTGScore() {
       description="Classification cardiotocographique intrapartum."
       result={result}
     >
-      <ScoreCriterion label="FCF (bpm)">
-        <ScoreInput value={input.fcf} onChange={(v) => patch("fcf", v)} min={60} max={220} />
+      <ScoreCriterion label="Rythme de base (bpm)">
+        <ScoreInput value={input.fcf} onChange={(v) => patch("fcf", v)} min={0} max={220} />
       </ScoreCriterion>
       <ScoreCriterion label="Variabilité">
         <select
@@ -39,12 +39,13 @@ export function CTGScore() {
           onChange={(e) => patch("varia", e.target.value as CtgVaria)}
         >
           <option value="5_25">5–25 bpm (normale)</option>
-          <option value="lt5">&lt; 5 bpm</option>
+          <option value="lt5">&lt; 5 bpm (réduite)</option>
+          <option value="gt25">&gt; 25 bpm (augmentée)</option>
           <option value="sinusoidal">Sinusoïdal</option>
         </select>
       </ScoreCriterion>
-      {input.varia === "lt5" ? (
-        <ScoreCriterion label="Durée variabilité &lt; 5 (min)">
+      {input.varia === "lt5" || input.varia === "gt25" ? (
+        <ScoreCriterion label="Durée de l'anomalie de variabilité (min)">
           <ScoreInput
             value={input.dureeVariaLt5}
             onChange={(v) => patch("dureeVariaLt5", v)}
@@ -70,10 +71,10 @@ export function CTGScore() {
           onChange={(e) => patch("decel", e.target.value as CtgDecel)}
         >
           <option value="aucune">Aucune</option>
-          <option value="variables_legeres">Variables légères</option>
-          <option value="variables_severes">Variables sévères</option>
-          <option value="tardives">Tardives</option>
-          <option value="prolongees">Prolongées</option>
+          <option value="variables_legeres">Variables typiques</option>
+          <option value="variables_severes">Variables sévères répétées</option>
+          <option value="tardives">Tardives répétées</option>
+          <option value="prolongees">Prolongée (&gt; 3 min)</option>
         </select>
       </ScoreCriterion>
     </ScoreShell>

@@ -1,64 +1,69 @@
 import type { ScoreResult } from "./types";
 
 /**
- * Score Flamm & Geiger — prédiction succès AVAC.
- * Port fidèle de v50 `calcFlamm` (lignes 13236–13251).
+ * Score de Flamm & Geiger (Obstet Gynecol 1997) — succès d'une tentative de voie basse
+ * après césarienne, évalué à l'admission en travail. Total 0 à 10.
  */
 
 export interface FlammInput {
   /** Âge < 40 ans = 2, sinon 0. */
   age: 0 | 2;
-  /** AVB antérieur = 2 si oui, 0 sinon. */
-  avb: 0 | 2;
-  /** Indication précédente césarienne (autre que dystocie) : 0 ou 1. */
+  /** Voie basse antérieure : aucune 0, avant la césarienne 1, après 2, avant et après 4. */
+  avb: 0 | 1 | 2 | 4;
+  /** Indication de la première césarienne autre que stagnation de la dilatation = 1. */
   ind: 0 | 1;
-  /** Col favorable en début de travail. */
-  col: 0 | 1;
-  /** Travail spontané : 0 ou 1. */
-  travail: 0 | 1;
+  /** Effacement du col à l'admission : < 25 % 0, 25–75 % 1, > 75 % 2. */
+  effacement: 0 | 1 | 2;
+  /** Dilatation ≥ 4 cm à l'admission = 1. */
+  dilatation: 0 | 1;
 }
 
 export const FLAMM_DEFAULT: FlammInput = {
   age: 2,
   avb: 0,
   ind: 0,
-  col: 0,
-  travail: 0,
+  effacement: 0,
+  dilatation: 0,
 };
+
+/** Taux de succès observés dans la cohorte d'origine. */
+function successRate(score: number): number {
+  if (score <= 2) return 49;
+  if (score === 3) return 60;
+  if (score === 4) return 67;
+  if (score === 5) return 77;
+  if (score === 6) return 88;
+  if (score === 7) return 93;
+  return 95;
+}
 
 export function calcFlamm(input: FlammInput): ScoreResult {
   const score =
-    input.age + input.avb + input.ind + input.col + input.travail;
+    input.age + input.avb + input.ind + input.effacement + input.dilatation;
+  const rate = successRate(score);
 
   let level: ScoreResult["level"];
   let label: string;
-  let interpretation: string;
-  if (score >= 5) {
+  if (score >= 6) {
     level = "low";
-    label = "Excellent pronostic";
-    interpretation = `<strong>Excellent pronostic ✅ (score ${score}/7)</strong><br>Probabilité de succès >80%. L'AVAC est fortement recommandé.`;
-  } else if (score === 4) {
+    label = "Pronostic très favorable";
+  } else if (score >= 4) {
     level = "low";
-    label = "Bon pronostic";
-    interpretation =
-      "<strong>Bon pronostic ✅ (score 4/7)</strong><br>Probabilité de succès ~70-80%. L'épreuve du travail est recommandée.";
+    label = "Pronostic favorable";
   } else if (score === 3) {
     level = "medium";
-    label = "Pronostic réservé";
-    interpretation =
-      "<strong>Pronostic réservé ⚠️ (score 3/7)</strong><br>Probabilité de succès ~50-60%. Décision individualisée, information de la patiente.";
+    label = "Pronostic intermédiaire";
   } else {
     level = "high";
-    label = "Pronostic défavorable";
-    interpretation = `<strong>Pronostic défavorable ❌ (score ${score}/7)</strong><br>Probabilité de succès <50%. Césarienne programmée à discuter sérieusement.`;
+    label = "Pronostic réservé";
   }
 
   return {
-    value: `${score} / 7`,
+    value: `${score} / 10`,
     raw: score,
-    max: 7,
+    max: 10,
     level,
     label,
-    interpretation,
+    interpretation: `<strong>${label} (score ${score}/10)</strong><br>Taux de succès de la voie basse observé dans la cohorte d'origine : environ ${rate} %. Score calculé à l'admission en travail ; il informe la discussion avec la patiente et ne constitue pas à lui seul une indication de césarienne. [Flamm &amp; Geiger 1997]`,
   };
 }

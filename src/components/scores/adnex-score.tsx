@@ -14,9 +14,9 @@ export function ADNEXScore() {
 
   return (
     <ScoreShell
-      title="🧪 ADNEX (IOTA simplifié)"
-      tag="Masse annexielle"
-      description="Estimation du risque de malignité d'une masse ovarienne (modèle simplifié Van Calster / IOTA)."
+      title="🧪 Estimation simplifiée (non ADNEX)"
+      tag="Non validé"
+      description="Estimation interne non validée du risque de malignité d'une masse ovarienne. Ce n'est pas le modèle IOTA ADNEX : pour une décision, utiliser le calculateur officiel IOTA ADNEX."
       result={result}
       resultIdSuffix="adnex"
     >

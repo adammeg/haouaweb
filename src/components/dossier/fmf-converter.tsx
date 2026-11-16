@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import type { PatientSnapshot } from "@/types/domain";
 import { convertFmfMoM } from "@/lib/assist/fmf-mom";
 import { clinicalNumber, gestationalWeeks } from "@/lib/clinical/parse";
@@ -51,13 +51,14 @@ export function FmfConverterPanel({
     });
   }, [draft.o_plgf_raw, ga, eth]);
 
-  useEffect(() => {
+  // Les MoM utilisés par les scores sont ceux du laboratoire ; l'estimation locale n'est reportée que sur demande.
+  function reportEstimates() {
     const patch: FieldPatch = {};
     if (papp) patch.o_papp_a_mom = String(papp.mom);
     if (bhcg) patch.o_bhcg_mom = String(bhcg.mom);
     if (plgf) patch.o_plgf_mom = String(plgf.mom);
     if (Object.keys(patch).length) onField(patch);
-  }, [papp, bhcg, plgf, onField]);
+  }
 
   const badge = (r: { label: string; level: string } | null) =>
     r ? (
@@ -78,7 +79,7 @@ export function FmfConverterPanel({
     <div className="rounded-xl border border-[var(--border)] bg-[var(--teal-pale)]/20 p-4">
       <SectionTitle>FMF Converter — MoM T1 (11–14 SA)</SectionTitle>
       <p className="mb-3 text-xs text-[var(--muted)]">
-        Terme : {draft.o_terme || "—"} · Estimation locale des MoM ; privilégier les résultats corrigés du laboratoire. Les risques FMF nécessitent un calculateur vérifié.
+        Terme : {draft.o_terme || "—"} · Les MoM à utiliser sont ceux du compte rendu du laboratoire (médianes propres à l'automate). L'estimation locale ci-dessous repose sur des médianes génériques : elle est indicative et ne permet pas un calcul de risque.
       </p>
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label="PAPP-A brut">
@@ -91,7 +92,8 @@ export function FmfConverterPanel({
             value={draft.o_papp_a_unit || "mIU/mL"}
             onChange={(v) => onField({ o_papp_a_unit: v })}
             options={[
-              { value: "mIU/mL", label: "mIU/mL" },
+              { value: "mIU/mL", label: "mIU/mL (= UI/L)" },
+              { value: "mIU/L", label: "mIU/L" },
               { value: "ng/mL", label: "ng/mL" },
             ]}
           />
@@ -108,7 +110,7 @@ export function FmfConverterPanel({
             onChange={(v) => onField({ o_bhcg_unit: v })}
             options={[
               { value: "ng/mL", label: "ng/mL" },
-              { value: "mUI/mL", label: "mUI/mL" },
+              { value: "mUI/mL", label: "mUI/mL (= UI/L)" },
             ]}
           />
           {badge(bhcg)}
@@ -122,6 +124,38 @@ export function FmfConverterPanel({
           {badge(plgf)}
         </Field>
       </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <Field label="PAPP-A — MoM du laboratoire">
+          <TextInput
+            type="number"
+            value={draft.o_papp_a_mom}
+            onChange={(v) => onField({ o_papp_a_mom: v })}
+          />
+        </Field>
+        <Field label="βhCG libre — MoM du laboratoire">
+          <TextInput
+            type="number"
+            value={draft.o_bhcg_mom}
+            onChange={(v) => onField({ o_bhcg_mom: v })}
+          />
+        </Field>
+        <Field label="PlGF — MoM du laboratoire">
+          <TextInput
+            type="number"
+            value={draft.o_plgf_mom}
+            onChange={(v) => onField({ o_plgf_mom: v })}
+          />
+        </Field>
+      </div>
+      {papp || bhcg || plgf ? (
+        <button
+          type="button"
+          onClick={reportEstimates}
+          className="mt-3 rounded-lg border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--ink-mid)]"
+        >
+          Reporter les estimations locales dans les champs MoM (indicatif, à défaut de résultat du laboratoire)
+        </button>
+      ) : null}
     </div>
   );
 }

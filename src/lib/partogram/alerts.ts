@@ -1,9 +1,6 @@
-import {
-  PARTO_ACTION_OFFSET_H,
-  PARTO_ALERT_OFFSET_H,
-} from "./constants";
+import type { PartogramPoint } from "@/types/modules";
 import type { PartoCanvasEntry } from "./canvas-types";
-import { toHoursFromFirst } from "./canvas-types";
+import { evaluateLabour } from "./rules";
 
 export type ClinicalAlert = {
   level: "red" | "orange" | "green";
@@ -11,46 +8,31 @@ export type ClinicalAlert = {
   pulse?: boolean;
 };
 
-export function computeClinicalAlerts(
-  entries: PartoCanvasEntry[],
-): ClinicalAlert[] {
-  if (!entries.length) return [];
+export function computeClinicalAlerts(points: PartogramPoint[]): ClinicalAlert[] {
+  if (!points.length) return [];
 
   const alerts: ClinicalAlert[] = [];
-  const last = entries[entries.length - 1]!;
-  const initDil = Math.max(4, entries[0]!.dil ?? 4);
-  const elapsed = toHoursFromFirst(entries, last.time);
-  const expectedAlert = initDil + Math.max(0, elapsed - PARTO_ALERT_OFFSET_H);
-  const expectedAction = initDil + Math.max(0, elapsed - PARTO_ACTION_OFFSET_H);
+  const evaluation = evaluateLabour(points);
 
-  if (last.dil != null && last.dil < 10) {
-    if (last.dil < expectedAction && elapsed >= PARTO_ACTION_OFFSET_H) {
-      alerts.push({
-        level: "red",
-        text: "🚨 Ligne d'ACTION franchie — Décision obstétricale requise",
-        pulse: true,
-      });
-    } else if (last.dil < expectedAlert && elapsed >= PARTO_ALERT_OFFSET_H) {
-      alerts.push({
-        level: "red",
-        text: "⚠️ Ligne d'alerte franchie — Réévaluer dans 1h",
-        pulse: true,
-      });
-    }
+  if (evaluation.progress === "action") {
+    alerts.push({
+      level: "red",
+      text: "🚨 Ligne d'ACTION franchie — Décision obstétricale requise",
+      pulse: true,
+    });
+  } else if (evaluation.progress === "alerte") {
+    alerts.push({
+      level: "orange",
+      text: "⚠️ Ligne d'alerte franchie — Réévaluation et surveillance rapprochée",
+    });
   }
 
-  for (const e of entries) {
-    if (e.bcf && (e.bcf < 110 || e.bcf > 160)) {
-      const t = new Date(e.time).toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-      alerts.push({
-        level: "orange",
-        text: `⚠️ BCF anormal : ${e.bcf} bpm à ${t}`,
-      });
-      break;
-    }
+  for (const f of evaluation.findings) {
+    alerts.push({
+      level: f.level,
+      text: (f.level === "red" ? "🚨 " : "⚠️ ") + f.text,
+      pulse: f.level === "red",
+    });
   }
 
   if (!alerts.length) {

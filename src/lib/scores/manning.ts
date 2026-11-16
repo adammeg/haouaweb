@@ -31,6 +31,11 @@ export function calcManning(input: ManningInput): ScoreResult {
     label = "Bien-être excellent";
     interpretation =
       "<strong>Bien-être fœtal excellent ✅ (10/10)</strong><br>Risque d'asphyxie inférieur à 1/1000. Surveillance standard.";
+  } else if (score >= 8 && input.la === 0) {
+    level = "medium";
+    label = "8/10 avec oligoamnios";
+    interpretation =
+      "<strong>8/10 avec liquide amniotique diminué ⚠️</strong><br>L'oligoamnios est un marqueur d'atteinte chronique : rechercher une rupture des membranes et une insuffisance placentaire (Doppler, biométrie). À terme, envisager la naissance ; avant terme, surveillance rapprochée.";
   } else if (score >= 8) {
     level = "low";
     label = "Bien-être satisfaisant";

@@ -180,7 +180,7 @@ export function drawGrowthChart(
   ctx.fillStyle = COLORS.tealDeep;
   ctx.fillText(`${meta.shortLabel} (${meta.unit})`, PAD_L, 16);
 
-  drawLegend(ctx, PAD_L + gW - 130, 8);
+  drawLegend(ctx, PAD_L + gW - 130, 8, meta.shortLabel.toUpperCase().includes("ILA"));
 
   // Tooltip au survol
   if (opts.hoverIndex != null && pts[opts.hoverIndex]) {
@@ -242,11 +242,11 @@ function drawPercentileLine(
   ctx.setLineDash([]);
 }
 
-function drawLegend(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+function drawLegend(ctx: CanvasRenderingContext2D, x: number, y: number, ila = false): void {
   const items: Array<{ color: string; dash: number[]; label: string }> = [
     { color: COLORS.teal, dash: [], label: "P50" },
-    { color: COLORS.tealLight, dash: [4, 3], label: "P10/P90" },
-    { color: COLORS.gold, dash: [3, 3], label: "P3/P97" },
+    { color: COLORS.tealLight, dash: [4, 3], label: ila ? "P5/P95" : "P10/P90" },
+    { color: COLORS.gold, dash: [3, 3], label: ila ? "P2,5/P97,5" : "P3/P97" },
   ];
   ctx.font = "8px Inter, system-ui, sans-serif";
   items.forEach((it, i) => {

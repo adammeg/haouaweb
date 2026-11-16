@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ROMA_DEFAULT, calcROMA, type ROMAInput } from "@/lib/scores";
+import { ROMA_THRESHOLDS, type RomaAssay } from "@/lib/scores/roma";
 import { ScoreCriterion, ScoreInput, ScoreShell } from "./score-shell";
 
 export function ROMAScore() {
@@ -16,7 +17,7 @@ export function ROMAScore() {
     <ScoreShell
       title="🔬 ROMA"
       tag="Risque malignité ovarienne"
-      description="Risk of Ovarian Malignancy Algorithm (CA-125 + HE4). Seuils : 11,4% pré-ménopause, 25,3% post-ménopause."
+      description="Risk of Ovarian Malignancy Algorithm (CA-125 + HE4). Le seuil dépend de la technique de dosage : choisir celle du laboratoire."
       result={result}
       resultIdSuffix="roma"
     >
@@ -39,6 +40,19 @@ export function ROMAScore() {
         >
           <option value="post">Post-ménopause</option>
           <option value="pre">Pré-ménopause</option>
+        </select>
+      </ScoreCriterion>
+      <ScoreCriterion label="Technique de dosage">
+        <select
+          value={input.assay ?? "roche"}
+          onChange={(e) => patch("assay", e.target.value as RomaAssay)}
+          className="rounded-lg border border-[var(--border)] bg-white px-2.5 py-1.5 text-sm sm:min-w-[200px]"
+        >
+          {(Object.keys(ROMA_THRESHOLDS) as RomaAssay[]).map((k) => (
+            <option key={k} value={k}>
+              {ROMA_THRESHOLDS[k].label} ({ROMA_THRESHOLDS[k].pre}% / {ROMA_THRESHOLDS[k].post}%)
+            </option>
+          ))}
         </select>
       </ScoreCriterion>
     </ScoreShell>

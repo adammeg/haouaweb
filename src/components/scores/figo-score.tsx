@@ -61,12 +61,21 @@ export function FigoScore({ type }: { type: FigoType }) {
           <Section title="📋 Définition" color={color.text}>
             {info.desc}
           </Section>
-          <Section title="📈 Survie à 5 ans" color={color.text} highlight>
-            {info.surv5}
-          </Section>
-          <Section title="💊 Prise en charge" color={color.text}>
+          {info.surv5 ? (
+            <Section title="📈 Survie à 5 ans (ordre de grandeur indicatif)" color={color.text} highlight>
+              {info.surv5}
+            </Section>
+          ) : null}
+          <Section title="💊 Principes de prise en charge (décision en RCP)" color={color.text}>
             {info.pec}
           </Section>
+          {type === "endo" ? (
+            <p className="mt-3 text-[11px] leading-relaxed text-[var(--ink-mid)]">
+              FIGO 2023 : le stade dépend aussi du type histologique, des emboles lymphovasculaires et, si
+              disponible, de la classification moléculaire (une mutation POLE reclasse les stades I–II en
+              IAmPOLEmut ; une anomalie de p53 avec atteinte myométriale en IICmp53abn).
+            </p>
+          ) : null}
         </div>
       ) : (
         <p className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-raised)] p-4 text-center text-xs italic text-[var(--muted)]">

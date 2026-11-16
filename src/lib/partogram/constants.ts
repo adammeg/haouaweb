@@ -1,6 +1,8 @@
 /** Constantes grille OMS — parité HawaeMD v51 / spec clinique */
 export const PARTO_MAX_HOURS = 24;
-export const PARTO_ALERT_OFFSET_H = 2;
+/** Partogramme OMS modifié : la ligne d'alerte part de l'entrée en phase active (4 cm), sans décalage ; la ligne d'action est 4 h à droite. */
+export const PARTO_ACTIVE_PHASE_CM = 4;
+export const PARTO_ALERT_OFFSET_H = 0;
 export const PARTO_ACTION_OFFSET_H = 4;
 
 export type SimScenario = "normal" | "dystocie" | "precipite";

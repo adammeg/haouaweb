@@ -129,7 +129,7 @@ export function RCIUScore() {
           <ScoreInput
             value={input.sa}
             onChange={(v) => patch("sa", v)}
-            min={20}
+            min={0}
             max={42}
           />
         </ScoreCriterion>
@@ -137,7 +137,7 @@ export function RCIUScore() {
           <ScoreInput
             value={input.pfe}
             onChange={(v) => patch("pfe", v)}
-            min={100}
+            min={0}
             max={6000}
           />
         </ScoreCriterion>

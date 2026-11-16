@@ -10,8 +10,8 @@ import {
 } from "./score-shell";
 
 const ETHNIE_OPTS = [
-  { value: 0, label: "Autre / européenne" },
-  { value: 1, label: "Noire" },
+  { value: 0, label: "Autre" },
+  { value: 1, label: "Afro-américaine" },
   { value: 2, label: "Hispanique" },
 ] as const;
 
@@ -23,7 +23,7 @@ const AVB_OPTS = [
 
 const INDICATION_OPTS = [
   { value: 0, label: "Autre indication" },
-  { value: 1, label: "Disproportion fœto-pelvienne" },
+  { value: 1, label: "Arrêt de dilatation ou de descente (récurrente)" },
 ] as const;
 
 function ethnieFromIdx(i: number): MFMUInput["ethnie"] {
@@ -61,7 +61,7 @@ export function MFMUScore() {
     <ScoreShell
       title="🏥 Score AVAC — MFMU"
       tag="Pronostic AVB"
-      description="Estime la probabilité de succès d'une épreuve du travail après césarienne (MFMU Network)."
+      description="Probabilité de succès d'une tentative de voie basse après césarienne (MFMU, Grobman 2007). Variables de la première consultation prénatale."
       result={result}
       resultIdSuffix="mfmu"
     >
@@ -69,20 +69,20 @@ export function MFMUScore() {
         <ScoreInput
           value={input.age}
           onChange={(v) => patch("age", v)}
-          min={15}
+          min={0}
           max={55}
         />
       </ScoreCriterion>
-      <ScoreCriterion label="IMC">
+      <ScoreCriterion label="IMC en début de grossesse">
         <ScoreInput
           value={input.imc}
           onChange={(v) => patch("imc", v)}
-          min={15}
+          min={0}
           max={60}
           step="0.1"
         />
       </ScoreCriterion>
-      <ScoreCriterion label="Ethnie">
+      <ScoreCriterion label="Origine (variable du modèle 2007)">
         <ScoreSelect
           value={ethnieIdx(input.ethnie)}
           onChange={(v) => patch("ethnie", ethnieFromIdx(v))}
@@ -101,14 +101,6 @@ export function MFMUScore() {
           value={indIdx(input.indication)}
           onChange={(v) => patch("indication", indFromIdx(v))}
           options={INDICATION_OPTS.map((o) => ({ value: o.value, label: o.label }))}
-        />
-      </ScoreCriterion>
-      <ScoreCriterion label="Terme (SA)">
-        <ScoreInput
-          value={input.terme}
-          onChange={(v) => patch("terme", v)}
-          min={24}
-          max={42}
         />
       </ScoreCriterion>
     </ScoreShell>

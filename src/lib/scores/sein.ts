@@ -79,21 +79,17 @@ export interface SeinFullResult extends ScoreResult {
 }
 
 function stadeTNM(T: SeinT, N: SeinN, M: SeinM): string {
+  // Stades anatomiques AJCC 8e édition.
   if (M === "M1") return "IV";
-  if (["T4a", "T4b", "T4c", "T4d"].includes(T)) {
-    return N === "N3a" || N === "N3b" || N === "N3c" ? "IIIC" : "IIIB";
-  }
-  if (T === "T3" && (N === "N0" || N === "N1")) {
-    return N === "N0" ? "IIB" : "IIIA";
-  }
-  if (N === "N2a" || N === "N2b") return "IIIA";
   if (N === "N3a" || N === "N3b" || N === "N3c") return "IIIC";
-  if (T === "Tis") return "0";
-  if (["T1mi", "T1a", "T1b", "T1c"].includes(T) && N === "N0") return "IA";
-  if (T === "T1c" && (N === "N1mi" || N === "N1")) return "IB";
-  if (T === "T2" && N === "N0") return "IIA";
-  if (T === "T2" && (N === "N1mi" || N === "N1")) return "IIB";
-  if (T === "T3" && N === "N0") return "IIB";
+  if (["T4a", "T4b", "T4c", "T4d"].includes(T)) return "IIIB";
+  if (N === "N2a" || N === "N2b") return "IIIA";
+  if (T === "T3") return N === "N0" ? "IIB" : "IIIA";
+  if (T === "T2") return N === "N0" ? "IIA" : "IIB";
+  if (T === "Tis" && N === "N0") return "0";
+  // T1 (et Tis avec atteinte ganglionnaire, à reclasser après relecture anatomopathologique)
+  if (N === "N0") return "IA";
+  if (N === "N1mi") return "IB";
   return "IIA";
 }
 
@@ -162,7 +158,7 @@ function therapeuticPlan(
 
   if (stade === "0") {
     chir =
-      "Tumorectomie + curage ganglionnaire sentinelle. Mastectomie si lésion étendue/multifocale.";
+      "Tumorectomie en berges saines ; mastectomie si lésion étendue ou multifocale. Ganglion sentinelle non systématique (indiqué en cas de mastectomie ou de suspicion de micro-invasion).";
   } else if (["IA", "IB", "IIA", "IIB"].includes(stade)) {
     chir =
       "Chirurgie conservatrice (tumorectomie + GS) si possible. Mastectomie si contre-indication à la conservation.";
@@ -174,12 +170,17 @@ function therapeuticPlan(
       "Chirurgie palliative uniquement si complications locales. Traitement systémique prioritaire.";
   }
 
-  if (soustype.includes("Triple négatif")) {
+  if (stade === "0") {
+    chemo = "Pas de chimiothérapie (carcinome in situ).";
+  } else if (soustype.includes("Triple négatif")) {
     chemo =
-      "Chimiothérapie néoadjuvante recommandée (AC-T ou TC). Capécitabine si résidu post-NAC. Pembrolizumab si PD-L1+.";
-  } else if (soustype.includes("HER2+") || soustype.includes("Luminal B")) {
+      "Chimiothérapie, néoadjuvante dès T2 ou N+ (anthracyclines et taxanes ± sel de platine) ; immunothérapie associée à discuter aux stades II–III ; traitement post-néoadjuvant si maladie résiduelle. Décision en RCP.";
+  } else if (her2 === "pos") {
     chemo =
-      "Chimiothérapie ± néoadjuvante selon stade (AC-TH ou TCH). Évaluation oncologique multidisciplinaire.";
+      "Chimiothérapie associée à un anti-HER2 (taxane ± anthracycline ou sel de platine), néoadjuvante dès T2 ou N+. Décision en RCP.";
+  } else if (soustype.startsWith("Luminal B")) {
+    chemo =
+      "Chimiothérapie (sans anti-HER2) à discuter selon le stade, le grade, le Ki-67 et, si disponible, une signature génomique. Décision en RCP.";
   } else if (soustype === "Luminal A" && ["IA", "IB"].includes(stade)) {
     chemo =
       "Chimiothérapie non recommandée en routine. Discuter selon risque de récidive (Ki-67, grade).";
@@ -197,11 +198,14 @@ function therapeuticPlan(
     hormono = "Non applicable (RE−).";
   }
 
-  if (her2 === "pos") {
+  if (stade === "0") {
+    her2_tt = "Non applicable (carcinome in situ).";
+  } else if (her2 === "pos") {
     her2_tt =
       "Trastuzumab (Herceptin) ± pertuzumab 1 an. Si résidu post-NAC : T-DM1.";
-  } else if (her2 === "low" && re === "neg") {
-    her2_tt = "HER2-low métastatique : trastuzumab-déruxtécan (T-DXd) si ligne ≥2.";
+  } else if (her2 === "low") {
+    her2_tt =
+      "HER2-low : pas d'anti-HER2 en situation précoce ; trastuzumab-déruxtécan à discuter en situation métastatique après traitement antérieur.";
   } else {
     her2_tt = "Non applicable (HER2−).";
   }
@@ -238,7 +242,9 @@ export function calcSein(input: SeinInput): SeinFullResult {
     );
   }
   if (input.histo === "ccis") {
-    remarques.push("CCIS : risque évolutif faible — surveillance rapprochée.");
+    remarques.push(
+      "CCIS : lésion pré-invasive pouvant évoluer vers un cancer infiltrant — traitement local (chirurgie ± radiothérapie), pas de simple surveillance hors essai.",
+    );
   }
   if (input.T === "T4d") {
     remarques.push(
@@ -248,6 +254,10 @@ export function calcSein(input: SeinInput): SeinFullResult {
   if (stade === "IV") {
     remarques.push("Stade métastatique : traitement palliatif prioritaire.");
   }
+
+  remarques.push(
+    "Aide-mémoire non prescriptif : la stratégie est arrêtée en RCP selon les référentiels en vigueur (ESMO, Saint-Paul-de-Vence, INCa).",
+  );
 
   const level = stadeLevel(stade);
   const tnm = `${input.T} · ${input.N} · ${input.M}`;

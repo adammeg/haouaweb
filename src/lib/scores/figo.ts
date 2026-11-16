@@ -8,7 +8,8 @@ export type FigoType = "col" | "endo" | "ovaire";
 
 export interface FigoStageInfo {
   desc: string;
-  surv5: string;
+  /** Ordre de grandeur indicatif, non sourcé ; absent quand aucune valeur fiable n'est disponible. */
+  surv5?: string;
   pec: string;
 }
 
@@ -85,61 +86,76 @@ export const FIGO_DATA: Record<FigoType, Record<string, FigoStageInfo>> = {
       pec: "Chimiothérapie palliative (cisplatine + paclitaxel ± bévacizumab)",
     },
   },
+  // FIGO 2023 (Berek et al.). Types « non agressifs » : endométrioïde de bas grade (grades 1–2).
+  // Types « agressifs » : endométrioïde de grade 3, séreux, à cellules claires, carcinosarcome, indifférencié, mixte.
   endo: {
     IA1: {
-      desc: "Tumeur limitée à l'endomètre ou < 50% myomètre, bas grade",
-      surv5: "> 95%",
-      pec: "Hystérectomie totale + salpingo-ovariectomie bilatérale",
+      desc: "Type non agressif limité à un polype endométrial ou confiné à l'endomètre",
+      pec: "Chirurgie : hystérectomie totale avec annexectomie bilatérale et évaluation ganglionnaire selon le risque. Traitement adjuvant selon le groupe de risque (ESGO/ESTRO/ESP).",
     },
     IA2: {
-      desc: "Tumeur limitée à l'endomètre ou < 50% myomètre, haut grade",
-      surv5: "85–90%",
-      pec: "Hystérectomie + curage ± radiothérapie adjuvante",
+      desc: "Type non agressif envahissant moins de 50 % du myomètre, sans emboles lymphovasculaires ou avec emboles focaux",
+      pec: "Chirurgie avec évaluation ganglionnaire (ganglion sentinelle). Traitement adjuvant selon le groupe de risque.",
+    },
+    IA3: {
+      desc: "Carcinome endométrioïde de bas grade limité à l'utérus et à l'ovaire (atteinte ovarienne synchrone de bon pronostic, sous conditions strictes)",
+      pec: "Chirurgie ; pas de traitement adjuvant si tous les critères de bon pronostic sont réunis. Décision en RCP.",
     },
     IB: {
-      desc: "Invasion myomètre ≥ 50%",
-      surv5: "80–85%",
-      pec: "Hystérectomie + curage + radiothérapie",
+      desc: "Type non agressif envahissant 50 % ou plus du myomètre, sans emboles lymphovasculaires ou avec emboles focaux",
+      pec: "Chirurgie avec évaluation ganglionnaire. Traitement adjuvant (curiethérapie ou radiothérapie) selon le groupe de risque.",
     },
     IC: {
-      desc: "Invasion du stroma cervical",
-      surv5: "70–75%",
-      pec: "Chirurgie radicale + radiothérapie",
+      desc: "Type agressif limité à un polype ou confiné à l'endomètre",
+      pec: "Chirurgie avec stadification complète. Traitement adjuvant à discuter en RCP.",
     },
-    II: {
-      desc: "Invasion stromale cervicale",
-      surv5: "70–75%",
-      pec: "Hystérectomie radicale ± radiothérapie",
+    IIA: {
+      desc: "Type non agressif avec invasion du stroma cervical",
+      pec: "Chirurgie avec évaluation ganglionnaire. Radiothérapie adjuvante selon le groupe de risque.",
     },
-    IIIA: {
-      desc: "Invasion séreuse / annexes",
-      surv5: "50–60%",
-      pec: "Chirurgie + chimio-radiothérapie",
+    IIB: {
+      desc: "Type non agressif avec emboles lymphovasculaires substantiels",
+      pec: "Chirurgie avec évaluation ganglionnaire. Traitement adjuvant selon le groupe de risque.",
     },
-    IIIB: {
-      desc: "Invasion vaginale / paramètres",
-      surv5: "40–50%",
-      pec: "Chirurgie + radiothérapie externe + chimiothérapie",
+    IIC: {
+      desc: "Type agressif avec atteinte myométriale, quelle qu'en soit la profondeur",
+      pec: "Chirurgie avec stadification complète. Traitement adjuvant (chimiothérapie ± radiothérapie) en RCP.",
+    },
+    IIIA1: {
+      desc: "Extension à l'ovaire ou à la trompe (hors critères du stade IA3)",
+      pec: "Chirurgie puis traitement adjuvant systémique ± radiothérapie, en RCP.",
+    },
+    IIIA2: {
+      desc: "Atteinte de la sous-séreuse ou de la séreuse utérine",
+      pec: "Chirurgie puis traitement adjuvant systémique ± radiothérapie, en RCP.",
+    },
+    IIIB1: {
+      desc: "Métastase ou extension directe au vagin et/ou aux paramètres",
+      pec: "Stratégie multimodale (chirurgie si résection complète possible, radiothérapie, traitement systémique), en RCP.",
+    },
+    IIIB2: {
+      desc: "Métastase au péritoine pelvien",
+      pec: "Stratégie multimodale, en RCP.",
     },
     IIIC1: {
-      desc: "Métastases ganglionnaires pelviennes",
-      surv5: "50–60%",
-      pec: "Chirurgie + radiothérapie ± chimiothérapie",
+      desc: "Métastases ganglionnaires pelviennes (IIIC1i micrométastase, IIIC1ii macrométastase)",
+      pec: "Chirurgie puis traitement adjuvant systémique et radiothérapie, en RCP.",
     },
     IIIC2: {
-      desc: "Métastases ganglionnaires para-aortiques",
-      surv5: "30–40%",
-      pec: "Chirurgie + radiothérapie étendue + chimiothérapie",
+      desc: "Métastases ganglionnaires para-aortiques jusqu'aux vaisseaux rénaux, avec ou sans atteinte pelvienne (IIIC2i micrométastase, IIIC2ii macrométastase)",
+      pec: "Chirurgie puis traitement adjuvant systémique et radiothérapie étendue, en RCP.",
     },
     IVA: {
-      desc: "Invasion rectum / vessie",
-      surv5: "15–20%",
-      pec: "Chimiothérapie ± radiothérapie palliative",
+      desc: "Invasion de la muqueuse vésicale et/ou intestinale",
+      pec: "Traitement systémique ± radiothérapie ; chirurgie dans des cas sélectionnés. RCP.",
     },
     IVB: {
-      desc: "Métastases à distance",
-      surv5: "< 15%",
-      pec: "Chimiothérapie palliative (carboplatine + paclitaxel)",
+      desc: "Métastases péritonéales abdominales au-delà du pelvis",
+      pec: "Traitement systémique ; chirurgie de cytoréduction si résection complète envisageable. RCP.",
+    },
+    IVC: {
+      desc: "Métastases à distance, y compris ganglions extra-abdominaux ou intra-abdominaux au-dessus des vaisseaux rénaux, poumon, foie, cerveau, os",
+      pec: "Traitement systémique (chimiothérapie ± immunothérapie selon le profil moléculaire) ; soins de support. RCP.",
     },
   },
   ovaire: {
@@ -212,9 +228,9 @@ export const FIGO_DATA: Record<FigoType, Record<string, FigoStageInfo>> = {
 };
 
 export const FIGO_LABELS: Record<FigoType, string> = {
-  col: "Col de l'utérus",
-  endo: "Endomètre",
-  ovaire: "Ovaire",
+  col: "Col de l'utérus (FIGO 2018)",
+  endo: "Endomètre (FIGO 2023)",
+  ovaire: "Ovaire (FIGO 2014)",
 };
 
 export function figoRoman(

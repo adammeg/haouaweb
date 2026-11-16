@@ -137,7 +137,7 @@ export function calcAnnexeUnified(input: AnnexeInput): AnnexeSubResult {
         risk: "< 1%",
       };
     } else if (!o.solidComponent && !o.ascite) {
-      oradsResult = { cat: 3, label: "Risque faible", risk: "1–5%" };
+      oradsResult = { cat: 3, label: "Risque faible", risk: "1–< 10%" };
     } else if (
       o.solidComponent &&
       (o.doppler === "faible" || o.doppler === "modere")
@@ -145,10 +145,10 @@ export function calcAnnexeUnified(input: AnnexeInput): AnnexeSubResult {
       oradsResult = {
         cat: 4,
         label: "Risque intermédiaire",
-        risk: "5–50%",
+        risk: "10–< 50%",
       };
     } else {
-      oradsResult = { cat: 5, label: "Risque élevé", risk: "> 50%" };
+      oradsResult = { cat: 5, label: "Risque élevé", risk: "≥ 50%" };
     }
   }
 

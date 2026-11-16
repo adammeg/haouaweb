@@ -120,8 +120,8 @@ export function PartogramPanel({
 
   const canvasEntries = useMemo(() => pointsToCanvasEntries(points), [points]);
   const alerts = useMemo(
-    () => computeClinicalAlerts(canvasEntries),
-    [canvasEntries],
+    () => computeClinicalAlerts(points),
+    [points],
   );
   const info = useMemo(() => {
     const strip = computeInfoStrip(canvasEntries);

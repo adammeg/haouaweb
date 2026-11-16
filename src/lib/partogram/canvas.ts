@@ -1,5 +1,6 @@
 import {
   PARTO_ACTION_OFFSET_H,
+  PARTO_ACTIVE_PHASE_CM,
   PARTO_ALERT_OFFSET_H,
   PARTO_MAX_HOURS,
 } from "./constants";
@@ -35,6 +36,7 @@ function drawZoneA(
   yDil: (d: number) => number,
   yDesc: (d: number) => number,
   initDil: number,
+  activeStartH: number | null,
 ) {
   ctx.fillStyle = "rgba(244,214,218,0.25)";
   ctx.fillRect(ml, yA, xScale(4) - ml, hA);
@@ -88,9 +90,11 @@ function drawZoneA(
   ctx.textAlign = "left";
   ctx.fillText("Dilatation cervicale & descente de la présentation", ml + 2, yA - 6);
 
+  // Les lignes partent de l'entrée en phase active ; rien à tracer tant que la patiente est en latence.
+  if (activeStartH == null) return;
   const omsPts: { x: number; y: number }[] = [];
   for (let d = initDil; d <= 10; d += 0.2) {
-    const h = d - initDil;
+    const h = activeStartH + d - initDil;
     if (h <= maxH) omsPts.push({ x: xScale(h), y: yDil(d) });
   }
 
@@ -360,11 +364,18 @@ export function drawPartogramCanvas(
   ctx.fillStyle = "#fafaf8";
   ctx.fillRect(0, 0, W, H);
 
-  const initDil = entries.length
-    ? Math.max(4, entries[0]!.dil ?? 4)
-    : 4;
+  const firstActive = entries.find(
+    (e) => e.dil != null && e.dil >= PARTO_ACTIVE_PHASE_CM,
+  );
+  const initDil = firstActive?.dil ?? PARTO_ACTIVE_PHASE_CM;
+  // Sans observation : gabarit tracé depuis H0 ; en latence : pas de ligne.
+  const activeStartH = !entries.length
+    ? 0
+    : firstActive
+      ? toHoursFromFirst(entries, firstActive.time)
+      : null;
 
-  drawZoneA(ctx, ml, gW, hA, yA, maxH, xScale, yDil, yDesc, initDil);
+  drawZoneA(ctx, ml, gW, hA, yA, maxH, xScale, yDil, yDesc, initDil, activeStartH);
   drawZoneB(ctx, ml, gW, hB, yB);
   drawZoneC(ctx, ml, gW, hC, yC, yBCF);
 

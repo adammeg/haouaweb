@@ -27,17 +27,28 @@ export const HADLOCK_P50: Record<number, number> = {
   42: 3932,
 };
 
+/** Hadlock 1991 : écart-type ≈ 12,7 % du poids médian (P10 = P50 − 1,28 ET, P3 = P50 − 1,88 ET…). */
 const HADLOCK_RATIOS = {
-  p3: 0.72,
-  p5: 0.75,
-  p10: 0.8,
-  p25: 0.88,
+  p3: 0.76,
+  p5: 0.79,
+  p10: 0.84,
+  p25: 0.91,
   p50: 1.0,
-  p75: 1.13,
-  p90: 1.22,
-  p95: 1.28,
-  p97: 1.32,
+  p75: 1.09,
+  p90: 1.16,
+  p95: 1.21,
+  p97: 1.24,
 };
+
+/** P50 interpolé linéairement entre deux semaines entières. */
+function hadlockP50(sa: number): number | null {
+  if (!Number.isFinite(sa) || sa < 20 || sa > 42) return null;
+  const lo = Math.floor(sa);
+  const hi = Math.min(42, lo + 1);
+  const a = HADLOCK_P50[lo]!;
+  const b = HADLOCK_P50[hi]!;
+  return Math.round(a + (b - a) * (sa - lo));
+}
 
 export type DopOmb = "normal" | "eleve" | "absent" | "reverse";
 export type DopAcm = "normal" | "bas";
@@ -56,8 +67,8 @@ export interface RCIUInput {
 }
 
 export const RCIU_DEFAULT: RCIUInput = {
-  sa: 32,
-  pfe: 1800,
+  sa: 0,
+  pfe: 0,
   dopOmb: "normal",
   dopAcm: "normal",
   rcp: "normal",
@@ -72,7 +83,7 @@ export interface PercentileInfo {
 }
 
 export function hadlockPercentile(sa: number, pfe: number): PercentileInfo | null {
-  const p50 = HADLOCK_P50[sa];
+  const p50 = hadlockP50(sa);
   if (!p50) return null;
   const ratio = pfe / p50;
   if (ratio <= HADLOCK_RATIOS.p3) {
@@ -93,7 +104,7 @@ export function hadlockPercentile(sa: number, pfe: number): PercentileInfo | nul
   if (ratio <= HADLOCK_RATIOS.p90) {
     return { pc: "75–90e", label: "75e–90e percentile", severity: 0 };
   }
-  return { pc: ">90e", label: "> 90e percentile — Macrosomie probable", severity: 0 };
+  return { pc: ">90e", label: "> 90e percentile", severity: 0 };
 }
 
 export interface RCIUFullResult extends ScoreResult {
@@ -114,10 +125,9 @@ export function calcRCIU(input: RCIUInput): RCIUFullResult | null {
   const { sa, pfe, dopOmb, dopAcm, rcp, dopDv, la } = input;
   if (!sa || !pfe || sa < 20 || sa > 42 || pfe < 100) return null;
 
-  const clampedSa = Math.min(42, Math.max(20, sa));
-  const p50 = HADLOCK_P50[sa] ?? HADLOCK_P50[clampedSa]!;
+  const p50 = hadlockP50(sa);
   const perc = hadlockPercentile(sa, pfe);
-  if (!perc) return null;
+  if (!p50 || !perc) return null;
 
   const dopSev =
     dopOmb === "reverse"
@@ -140,13 +150,39 @@ export function calcRCIU(input: RCIUInput): RCIUFullResult | null {
   let urgence: RCIUFullResult["urgence"] = "surveillance";
   let level: ScoreLevel = "ok";
 
-  if (perc.severity === 0) {
-    if (perc.pc.includes("90") || perc.pc.includes(">90")) {
-      diagnosis = "Macrosomie suspectée";
-      diagnosisDesc =
-        "PFE au-dessus du 90e percentile. Risque de dystocie des épaules.";
+  const corticoides = sa < 34 ? " Corticothérapie anténatale si une naissance avant 34 SA est envisagée." : "";
+
+  if (dopSev >= 3) {
+    // Diastole ombilicale nulle/inversée ou ductus venosus anormal : urgence quel que soit le percentile.
+    const signe =
+      dopOmb === "reverse"
+        ? "diastole ombilicale inversée"
+        : dopOmb === "absent"
+          ? "diastole ombilicale nulle"
+          : "ductus venosus anormal";
+    diagnosis =
+      perc.severity >= 2
+        ? `RCIU avec ${signe}`
+        : `Doppler critique (${signe}) — PFE ${perc.label}`;
+    diagnosisDesc =
+      "Altération hémodynamique sévère : le Doppler prime sur le percentile du poids estimé.";
+    conduite = `URGENCE : évaluation hospitalière immédiate en maternité de niveau adapté, contrôle du Doppler, RCF, avis spécialisé.${corticoides} Terme de naissance selon le stade (ISUOG 2020).`;
+    urgence = "urgent";
+    level = "critical";
+  } else if (perc.severity === 0) {
+    if (dopSev > 0 || laAnormal) {
+      diagnosis = "PFE normal avec Doppler ou liquide anormal";
+      diagnosisDesc = `PFE ${perc.label} pour ${sa} SA, mais ${dopSev > 0 ? "anomalie Doppler" : "liquide amniotique diminué"}.`;
       conduite =
-        "Vérifier DG. Surveillance biométries à 2 semaines. Discuter voie accouchement si PFE > 4 500 g.";
+        "Contrôle du Doppler et de la quantité de liquide, recherche d'une rupture des membranes et d'une cassure de la courbe de croissance. Surveillance rapprochée.";
+      urgence = "planifie";
+      level = "medium";
+    } else if (perc.pc === ">90e") {
+      diagnosis = "PFE > 90e percentile";
+      diagnosisDesc =
+        "Fœtus gros pour l'âge gestationnel (la macrosomie se définit par un poids ≥ 4 000 g).";
+      conduite =
+        "Rechercher un diabète gestationnel. Contrôle biométrique. Voie d'accouchement à discuter si PFE > 4 500 g (4 250 g en cas de diabète).";
       urgence = "planifie";
       level = "medium";
     } else {
@@ -157,41 +193,39 @@ export function calcRCIU(input: RCIUInput): RCIUFullResult | null {
       level = "ok";
     }
   } else if (perc.severity === 1) {
-    diagnosis = "PFE modérément bas (10e–25e pc)";
-    diagnosisDesc = "Peut être constitutionnel ou début RCIU.";
+    diagnosis = "PFE entre le 10e et le 25e percentile";
+    diagnosisDesc = "Au-dessus du seuil de PAG ; à interpréter avec la dynamique de croissance.";
     conduite =
       dopSev > 0 || laAnormal
-        ? "Dopplers anormaux : surveillance rapprochée J7. Hospitalisation si aggravation."
-        : "Dopplers normaux : contrôle biométries à 2 semaines. Surveillance MAF.";
-    urgence = dopSev > 0 ? "urgent" : "planifie";
+        ? "Doppler ou liquide anormal : contrôle sous 1 semaine (biométrie à 2 semaines d'intervalle), surveillance rapprochée."
+        : "Doppler normaux : contrôle biométrique à 2–3 semaines pour vérifier l'absence de cassure de la courbe.";
+    urgence = "planifie";
     level = "medium";
-  } else if (perc.severity === 2) {
-    diagnosis = "RCIU modéré (5e–10e pc)";
-    diagnosisDesc = "RCIU probable — évaluation Doppler indispensable.";
-    conduite =
-      dopSev >= 3
-        ? "Dopplers sévères : hospitalisation urgente, corticothérapie si < 34 SA, discuter extraction."
-        : dopSev >= 1
-          ? "Surveillance hospitalière ou ambulatoire renforcée. CTG biquotidien. Corticothérapie si < 34 SA."
-          : "Contrôle biométries + Dopplers à 1 semaine. Surveillance MAF quotidienne.";
-    urgence = dopSev >= 3 ? "urgent" : "planifie";
-    level = "high";
-  } else if (perc.severity === 3) {
-    diagnosis = "RCIU sévère (3e–5e pc)";
-    diagnosisDesc = "RCIU sévère — prise en charge active nécessaire.";
-    conduite =
-      dopSev >= 3
-        ? "URGENCE : hospitalisation immédiate. Corticothérapie avant 34 SA. Extraction selon terme et Dopplers."
-        : "Hospitalisation recommandée. Dopplers + CTG quotidien. Corticothérapie si < 34 SA. RCP obligatoire.";
-    urgence = "urgent";
-    level = "high";
+  } else if (perc.severity === 2 || perc.severity === 3) {
+    const tranche = perc.severity === 2 ? "5e–10e" : "3e–5e";
+    if (dopSev >= 1 || laAnormal) {
+      diagnosis = `RCIU probable (PFE ${tranche} pc avec Doppler ou liquide anormal)`;
+      diagnosisDesc = "PFE < 10e percentile associé à un critère Doppler : restriction de croissance (critères Delphi).";
+      conduite = `Surveillance rapprochée (Doppler et RCF au moins hebdomadaires, plus si résistances ombilicales élevées), avis spécialisé.${corticoides} Naissance à discuter à partir de 36–37 SA selon le Doppler (ISUOG 2020).`;
+      urgence = "urgent";
+      level = "high";
+    } else {
+      diagnosis = `PAG (PFE ${tranche} pc), Doppler normaux`;
+      diagnosisDesc = "Petit poids pour l'âge gestationnel sans critère de restriction avec les éléments saisis.";
+      conduite =
+        "Doppler (ombilical, cérébral, utérines) et biométrie de contrôle à 2 semaines. Naissance à envisager à partir de 38 SA, sans dépasser 39 SA (ISUOG 2020).";
+      urgence = "planifie";
+      level = "medium";
+    }
   } else {
-    diagnosis = "RCIU très sévère (< 3e pc)";
-    diagnosisDesc = "Urgence obstétricale.";
+    diagnosis = "RCIU (PFE < 3e percentile)";
+    diagnosisDesc = "Un PFE < 3e percentile suffit au diagnostic de restriction de croissance (critères Delphi).";
     conduite =
-      "URGENCE ABSOLUE : hospitalisation immédiate. Corticothérapie obligatoire avant 34 SA. Transfert niveau III si < 32 SA.";
-    urgence = "urgent";
-    level = "critical";
+      dopSev >= 1 || laAnormal
+        ? `Doppler ou liquide anormal : surveillance au moins bihebdomadaire, avis spécialisé, hospitalisation à discuter.${corticoides} Terme de naissance selon le Doppler (ISUOG 2020).`
+        : `Doppler normaux : surveillance hebdomadaire (Doppler, RCF), recherche étiologique.${corticoides} Naissance à envisager vers 37 SA.`;
+    urgence = dopSev >= 1 ? "urgent" : "planifie";
+    level = "high";
   }
 
   const growthBars = [

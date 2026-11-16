@@ -1,4 +1,9 @@
-/** FMF MoM converter — Spencer 2003 + Kagan 2008 (interpolation linéaire). */
+/**
+ * Estimation locale de MoM du 1er trimestre à partir de médianes génériques.
+ * INDICATIF : les médianes dépendent du laboratoire, de l'automate et des caractéristiques maternelles ;
+ * ces MoM ne sont pas valides pour un calcul de risque (trisomie 21, prééclampsie). Médianes et
+ * facteurs de correction hérités du prototype, non vérifiés contre les publications FMF.
+ */
 
 export type FmfMarker = "papp_a" | "bhcg" | "plgf";
 
@@ -86,16 +91,13 @@ function toBaseUnit(
   unit?: string,
 ): number {
   if (marker === "papp_a") {
+    // Unité de base : mIU/mL (= UI/L).
     const u = (unit || "mIU/mL").toLowerCase();
     if (u.includes("ng")) return value * 1.18;
-    if (u.includes("iu/l") && !u.includes("miu")) return value;
+    if (u === "miu/l" || u === "mui/l") return value / 1000;
     return value;
   }
-  if (marker === "bhcg") {
-    const u = (unit || "ng/mL").toLowerCase();
-    if (u.includes("mui") || u.includes("iu/l")) return value / 5;
-    return value;
-  }
+  // β-hCG libre : 1 ng/mL = 1 UI/L (= 1 mUI/mL) selon l'étalon OMS 75/551 ; PlGF en pg/mL.
   return value;
 }
 
@@ -137,7 +139,7 @@ export function convertFmfMoM(input: FmfMomInput): FmfMomResult | null {
   const levelFr = { low: "bas", normal: "normal", high: "élevé" };
   return {
     mom,
-    label: `${names[marker]} = ${mom} MoM — ${levelFr[level]}`,
+    label: `${names[marker]} ≈ ${mom} MoM (estimation) — ${levelFr[level]}`,
     level,
   };
 }

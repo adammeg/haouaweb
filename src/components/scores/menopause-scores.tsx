@@ -34,7 +34,7 @@ export function GreeneScore() {
     <ScoreShell
       title="🌸 Score de Greene"
       tag="Ménopause"
-      description="Évaluation symptomatique en 21 items, 5 catégories. Score total 0–63."
+      description="Greene Climacteric Scale (1998) : 21 items cotés 0–3, sous-échelles psychologique, somatique, vasomotrice et sexuelle. Outil de suivi, sans seuil décisionnel."
       result={result}
       resultIdSuffix="greene"
     >
