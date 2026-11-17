@@ -2,7 +2,7 @@
 
 Assist appears as a compact animated pill at the top of the page for signed-in doctors. There is no chat window, transcript history, text composer, or Send step. Voice activation is enabled by default.
 
-Say **“bonjour assist”** or **“bonjour assiste”**, followed by a request. The island shows waiting, listening, thinking, or speaking, with a short wake acknowledgement when audio feedback is available. Commands execute automatically; questions receive spoken answers. After each answer, **À vous** opens a 20-second window for a follow-up without repeating the wake phrase. Silence returns to wake-only listening. Examples:
+Say **“bonjour assist”** or **“bonjour assiste”**, followed by a request. Recognition variants **“bonjour assistant”** and **“bonjour l'assist”** are accepted too. The island acknowledges interim wake detection immediately, but submits finalized words only. It shows waiting, listening, thinking, or speaking, with an optional short wake sound. Commands execute automatically; questions receive spoken answers. The optional native audio mode supports continuous follow-ups during an active conversation. In the browser fallback, **À vous** opens a 20-second follow-up window after each answer, then returns to wake-only listening. Examples:
 
 - “Bonjour assist, résume le dossier.”
 - “Bonjour assiste, ouvre l’agenda.”
@@ -25,13 +25,17 @@ The recognizer renews bounded waiting sessions while automatic activation remain
 
 ## Answers and clinical edits
 
-Completed answers are spoken with the browser's generated French voice; the replay control or “répète” repeats the latest answer. Tap the pill or say “bonjour assist” while Assist is thinking/speaking to interrupt and ask something else. During playback, the recognizer ignores ordinary words and accepts only the wake prefix. Some browsers cannot recognize speech during playback; the island then shows a tap-to-interrupt fallback. Actual interruption reliability requires device/echo testing.
+With an OpenRouter key configured, Assist speaks using **HeyGen Voice Turbo (free)** by default. This is speech synthesis: browser recognition captures requests, Hawae's existing reasoning and workspace handlers produce answers, and HeyGen voices them. Playback streams and remains cancellable; no direct OpenAI key is needed. Settings let the doctor choose the device voice instead. See [OpenRouter setup, data flow and the announced November 30, 2026 free endpoint retirement](voice-openrouter.md).
 
-“C’est tout” ends the conversational window; “mets-toi en pause” disables wake listening. The UI marks speaking only once audio starts. If audio never starts, it offers replay guidance after six seconds. Requests that exceed 45 seconds time out with feedback. Spoken-answer prompts favor short conversational replies while retaining relevant clinical uncertainty and alerts.
+When the optional native realtime path is configured and OpenRouter synthesis is disabled, Assist uses WebRTC speech-to-speech with semantic VAD and an application tool for dossier/agenda access. Speaking during output immediately mutes and clears the old audio at speech onset, before transcription completes. Follow-ups do not need the wake phrase. The microphone stays open only during the bounded active conversation. See [configuration, data flow and validation](voice-realtime.md).
+
+The browser fallback streams text answers and speaks complete sentences before generation finishes. Tap the pill, say “bonjour assist”, use an interim control such as “stop” or “attends”, or speak a new request to interrupt. Matching playback text is ignored as likely echo; other speech uses a heuristic and may misclassify room noise or echo. Some browsers cannot recognize speech during playback; the island then shows a tap-to-interrupt fallback. Actual interruption reliability requires device/echo testing. Replay or “répète” repeats the latest completed answer.
+
+“C’est tout” ends the conversational window; “mets-toi en pause” disables wake listening. The UI marks speaking once output starts. Browser voice start and Web Audio unlocking have a six-second deadline. OpenRouter synthesis requests have a 30-second deadline; reasoning requests have a 45-second deadline. Spoken-answer prompts favor short conversational replies while retaining relevant clinical uncertainty and alerts.
 
 Navigation is allowlisted. Dictation appends only to `motif`, `symptomes`, or `atcdMed`. Clinical changes open a review card with the old and proposed value. **Appliquer au dossier** commits a change; speaking “oui” does not. Switching user, patient or clinical revision discards the pending edit.
 
-Speech uses browser APIs; reasoning uses the existing `/api/ia` provider configuration. No additional speech API key is required. Recognition requires HTTPS (or localhost), microphone permission, and `SpeechRecognition`/`webkitSpeechRecognition`. Wake activation matches recognized words rather than a separately trained acoustic keyword model. The local mode never silently switches to a remote speech service. Actual recognition and generated voice availability depend on the browser/device.
+The device-voice fallback needs no speech API key; HeyGen synthesis reuses `OPENROUTER_API_KEY`. Reasoning uses the existing `/api/ia` provider configuration and its own chat model. Native OpenAI audio requires separate explicit server configuration and a direct OpenAI key; an OpenRouter key cannot enable that WebRTC endpoint. Wake recognition requires HTTPS (or localhost), microphone permission, and `SpeechRecognition`/`webkitSpeechRecognition`. Wake activation matches recognized words rather than a separately trained acoustic keyword model. The local wake mode never silently switches to a remote recognizer. Native audio can also start by tapping the island on compatible browsers without local recognition. Actual recognition, output and latency depend on the browser/device and provider.
 
 ## Validation
 

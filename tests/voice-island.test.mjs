@@ -6,6 +6,8 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { navigation } from "./fixtures/voice-navigation.mjs";
 import { VOICE_SESSION_END_EVENT } from "../src/lib/voice/preferences.ts";
+import { realtimeBrowser } from "./fixtures/realtime-browser.mjs";
+import { webAudio } from "./fixtures/voice-audio.mjs";
 
 registerHooks({ resolve(specifier, context, next) {
   return next(specifier === "next/navigation" ? new URL("./fixtures/voice-navigation.mjs", import.meta.url).href : specifier, context);
@@ -15,7 +17,7 @@ const { useHawaeStore } = await import("../src/stores/hawae-store.ts");
 const { useRdvStore } = await import("../src/stores/rdv-store.ts");
 const { useAssistantDataStatus } = await import("../src/stores/assistant-data-status.ts");
 
-async function mount(t, { access = "enabled", preferences, localSupported = true, speechStarts = true, availability } = {}) {
+async function mount(t, { access = "enabled", preferences, localSupported = true, speechStarts = true, availability, realtime = false, serverSpeech = false } = {}) {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
   const window = new Window({ url: "http://localhost:3000" });
   Object.defineProperty(window, "isSecureContext", { value: true });
@@ -35,7 +37,25 @@ async function mount(t, { access = "enabled", preferences, localSupported = true
   globalThis.window = window; globalThis.document = window.document; globalThis.localStorage = window.localStorage;
   globalThis.SpeechSynthesisUtterance = Utterance; globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   const oldFetch = globalThis.fetch;
+  const oldNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  const oldPeer = Object.getOwnPropertyDescriptor(globalThis, "RTCPeerConnection");
+  const rtc = realtime ? realtimeBrowser() : null;
+  const audio = serverSpeech ? webAudio() : null;
+  const audioRequests = [];
+  if (audio) window.AudioContext = audio.Context;
+  if (rtc) {
+    Object.defineProperty(globalThis, "navigator", { configurable: true, value: { mediaDevices: rtc.devices } });
+    globalThis.RTCPeerConnection = window.RTCPeerConnection = rtc.Peer;
+    const createElement = window.document.createElement.bind(window.document);
+    window.document.createElement = (tag, ...args) => tag === "audio" ? rtc.audio() : createElement(tag, ...args);
+  }
   globalThis.fetch = async (_url, init) => {
+    if (_url === "/api/voice/realtime") return init?.method === "POST" ? new Response("v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n") : Response.json({ available: realtime });
+    if (_url === "/api/voice/speech") {
+      if (init?.method !== "POST") return Response.json({ available: serverSpeech });
+      audioRequests.push(init);
+      return new Response(new Uint8Array(8192), { headers: { "Content-Type": "audio/pcm", "X-Hawae-Audio-Sample-Rate": "44100" } });
+    }
     requests.push(JSON.parse(init.body));
     return Response.json({ reply: "Réponse vocale synthétique." });
   };
@@ -59,8 +79,10 @@ async function mount(t, { access = "enabled", preferences, localSupported = true
     await window.happyDOM.close();
     delete globalThis.window; delete globalThis.document; delete globalThis.localStorage;
     delete globalThis.SpeechSynthesisUtterance; delete globalThis.IS_REACT_ACT_ENVIRONMENT;
+    if (oldNavigator) Object.defineProperty(globalThis, "navigator", oldNavigator); else delete globalThis.navigator;
+    if (oldPeer) Object.defineProperty(globalThis, "RTCPeerConnection", oldPeer); else delete globalThis.RTCPeerConnection;
   });
-  return { container, instances, spoken, requests, tick, click, window,
+  return { container, instances, spoken, requests, tick, click, window, rtc, audio, audioRequests,
     hide: async () => { visibility = "hidden"; await act(async () => window.document.dispatchEvent(new window.Event("visibilitychange"))); },
     show: async () => { visibility = "visible"; await act(async () => window.document.dispatchEvent(new window.Event("visibilitychange"))); },
   };
@@ -212,7 +234,7 @@ test("the wake phrase interrupts spoken output and accepts a replacement questio
   await act(async () => view.instances.at(-1).emit("bonjour assist, explique la ménopause")); await view.tick(1500);
   await view.tick(500);
   const oldSpeech = view.spoken[0];
-  await act(async () => view.instances.at(-1).emit("voix de la réponse elle-même")); await view.tick(1500);
+  await act(async () => view.instances.at(-1).emit("Réponse vocale synthétique.")); await view.tick(1500);
   assert.equal(view.requests.length, 1);
   await act(async () => view.instances.at(-1).emit("bonjour assist, développe le dernier point")); await view.tick(1500);
   assert.equal(view.requests.length, 2);
@@ -402,4 +424,187 @@ test("workspace data from another logged-in doctor is never read by the current 
   await act(async () => view.instances.at(-1).emit("bonjour assist, quels sont mes rendez-vous le 1 janvier 2026")); await view.tick(1500);
   assert.doesNotMatch(view.spoken.at(-1).text, /Secret autre compte/);
   assert.match(view.spoken.at(-1).text, /chargement/);
+});
+
+test("an interim stop cancels the spoken answer immediately without waiting for a final transcript", async (t) => {
+  const view = await mount(t); await view.tick(500);
+  await act(async () => view.instances.at(-1).emit("bonjour assist, explique la ménopause")); await view.tick(1500);
+  const utterance = view.spoken[0];
+  await act(async () => view.instances.at(-1).onresult({ resultIndex: 0, results: [{ isFinal: false, 0: { transcript: "attends" } }] }));
+  assert.equal(utterance.onend, null);
+  assert.doesNotMatch(view.container.textContent, /Assist vous répond/);
+  assert.equal(view.requests.length, 1);
+});
+
+test("a partial wake phrase acknowledges without executing an unfinished command", async (t) => {
+  const view = await mount(t); await view.tick(500);
+  await act(async () => view.instances.at(-1).onresult({ resultIndex: 0, results: [{ isFinal: false, 0: { transcript: "bonjour assistant" } }] }));
+  assert.match(view.container.textContent, /vous écoute/);
+  assert.deepEqual(navigation.pushed, []); assert.equal(view.requests.length, 0);
+});
+
+test("configured realtime audio delegates to real Hawae requests without using browser TTS", async (t) => {
+  const view = await mount(t, { realtime: true }); await view.tick(500);
+  await act(async () => view.instances.at(-1).emit("bonjour assist, explique la ménopause")); await view.tick(1500);
+  assert.equal(view.rtc.peers.length, 1);
+  assert.equal(view.requests.length, 0); // The realtime model interprets the first utterance.
+  const channel = view.rtc.peers[0].channel;
+  assert.ok(channel.messages.some((event) => event.item?.content?.[0]?.text === "explique la ménopause"));
+  await act(async () => channel.emit({ type: "response.function_call_arguments.done", name: "hawae_request", call_id: "medical", arguments: JSON.stringify({ request: "explique la ménopause" }) }));
+  assert.equal(view.requests.length, 1);
+  assert.equal(view.requests[0].question, "explique la ménopause");
+  assert.ok(channel.messages.some((event) => event.item?.type === "function_call_output" && event.item.call_id === "medical"));
+  assert.equal(view.spoken.length, 0);
+  await act(async () => {
+    channel.emit({ type: "response.created", response: { id: "answer" } });
+    channel.emit({ type: "output_audio_buffer.started", response_id: "answer" });
+  });
+  assert.match(view.container.textContent, /Audio temps réel/);
+  await act(async () => channel.emit({ type: "input_audio_buffer.speech_started" }));
+  assert.equal(view.rtc.audios[0].muted, true);
+  assert.equal(view.rtc.audios[0].paused, true);
+  await view.hide();
+  assert.equal(view.rtc.tracks[0].stopped, true);
+  assert.equal(view.rtc.peers[0].connectionState, "closed");
+});
+
+test("realtime can read actual cabinet data through the same isolated workspace tools", async (t) => {
+  const view = await mount(t, { realtime: true }); await view.tick(500);
+  await act(async () => useRdvStore.setState({ list: [{ id: "r", patient: "Fatima Réelle", date: "2026-01-01", heure: "09:00", duree: 30, statut: "confirme", type: "consultation" }] }));
+  await act(async () => view.instances.at(-1).emit("bonjour assist, peux-tu regarder mon planning")); await view.tick(1500);
+  const channel = view.rtc.peers[0].channel;
+  await act(async () => channel.emit({ type: "response.function_call_arguments.done", name: "hawae_request", call_id: "agenda", arguments: JSON.stringify({ request: "Quels sont mes rendez-vous le 1 janvier 2026 ?" }) }));
+  const result = channel.messages.find((event) => event.item?.call_id === "agenda");
+  assert.ok(result); assert.match(result.item.output, /Fatima Réelle/);
+  assert.equal(view.requests.length, 0); assert.equal(view.spoken.length, 0);
+});
+
+test("native tap-to-talk works without a local recognition pack and pause releases its microphone", async (t) => {
+  const view = await mount(t, { realtime: true, localSupported: false }); await view.tick(500);
+  await view.click("Parler à Assist");
+  assert.equal(view.rtc.peers.length, 1);
+  assert.equal(view.requests.length, 0);
+  await view.click("Mettre Assist en pause");
+  assert.equal(view.rtc.tracks[0].stopped, true);
+  assert.equal(view.rtc.peers[0].connectionState, "closed");
+  await view.tick(2000);
+  assert.equal(view.rtc.peers.length, 1);
+});
+
+test("a native disconnect aborts pending application work and a late answer cannot fall back to speech", async (t) => {
+  const view = await mount(t, { realtime: true }); await view.tick(500);
+  await view.click("Parler à Assist");
+  let finish, signal;
+  globalThis.fetch = async (_url, init) => { signal = init.signal; return new Promise((resolve) => { finish = resolve; }); };
+  const channel = view.rtc.peers[0].channel;
+  await act(async () => channel.emit({ type: "response.function_call_arguments.done", name: "hawae_request", call_id: "pending", arguments: JSON.stringify({ request: "explique la ménopause" }) }));
+  assert.ok(signal);
+  await act(async () => channel.onclose());
+  assert.equal(signal.aborted, true);
+  await act(async () => finish(Response.json({ reply: "Ancienne réponse après déconnexion." })));
+  assert.equal(view.spoken.length, 0);
+  assert.equal(channel.messages.some((event) => event.item?.type === "function_call_output"), false);
+});
+
+test("configured OpenRouter speech takes priority, uses actual app answers and stops audio on an interim interruption", async (t) => {
+  const view = await mount(t, { realtime: true, serverSpeech: true }); await view.tick(500);
+  await act(async () => view.instances.at(-1).emit("bonjour assist, explique la ménopause")); await view.tick(1500);
+  assert.equal(view.requests.length, 1);
+  assert.equal(view.rtc.peers.length, 0);
+  assert.equal(view.spoken.length, 0);
+  assert.equal(JSON.parse(view.audioRequests[0].body).text, "Réponse vocale synthétique.");
+  assert.equal(view.audio.sources.length, 1);
+  await view.tick(36); assert.match(view.container.textContent, /Assist vous répond/);
+  await act(async () => view.instances.at(-1).onresult({ resultIndex: 0, results: [{ isFinal: false, 0: { transcript: "stop" } }] }));
+  assert.equal(view.audio.sources[0].stopped, true);
+  assert.doesNotMatch(view.container.textContent, /Assist vous répond/);
+});
+
+test("OpenRouter voices the real agenda and closes scheduled audio when the page is hidden", async (t) => {
+  const view = await mount(t, { serverSpeech: true }); await view.tick(500);
+  await act(async () => useRdvStore.setState({ list: [{ id: "r", patient: "Fatima Agenda", date: "2026-01-01", heure: "09:00", duree: 30, statut: "confirme" }] }));
+  await act(async () => view.instances.at(-1).emit("bonjour assist, quels sont mes rendez-vous le 1 janvier 2026")); await view.tick(1500);
+  assert.equal(view.requests.length, 0);
+  assert.match(JSON.parse(view.audioRequests[0].body).text, /Fatima Agenda/);
+  await view.hide(); assert.equal(view.audio.sources[0].stopped, true);
+  await view.tick(500); assert.doesNotMatch(view.container.textContent, /Assist vous répond/);
+});
+
+test("the doctor can explicitly keep browser speech when OpenRouter speech is configured", async (t) => {
+  const view = await mount(t, { serverSpeech: true, preferences: { active: true, processing: "local", serverSpeech: false } }); await view.tick(500);
+  await act(async () => view.instances.at(-1).emit("bonjour assist, explique la ménopause")); await view.tick(1500);
+  assert.equal(view.spoken.length, 1); assert.equal(view.audioRequests.length, 0);
+});
+
+test("OpenRouter errors stay visible after recognition resumes and do not trigger a fallback request", async (t) => {
+  const view = await mount(t, { serverSpeech: true }); await view.tick(500);
+  globalThis.fetch = async (url) => url === "/api/voice/speech" ? Response.json({ error: "Limite gratuite atteinte. Choisissez la voix de l’appareil." }, { status: 429 }) : Response.json({ reply: "Une réponse." });
+  await act(async () => view.instances.at(-1).emit("bonjour assist, explique la ménopause")); await view.tick(1500); await view.tick(500);
+  assert.match(view.container.textContent, /Limite gratuite atteinte/);
+  assert.equal(view.spoken.length, 0); assert.equal(view.audio.sources.length, 0);
+});
+
+test("browser fallback speaks its first complete sentence while the HTTP response is still streaming", async (t) => {
+  const view = await mount(t); await view.tick(500);
+  let streamController;
+  globalThis.fetch = async () => new Response(new ReadableStream({ start(controller) { streamController = controller; } }), { headers: { "Content-Type": "text/plain" } });
+  await act(async () => view.instances.at(-1).emit("bonjour assist, explique la ménopause")); await view.tick(1500);
+  await act(async () => streamController.enqueue(new TextEncoder().encode("Première phrase utile. La suite")));
+  assert.equal(view.spoken.length, 1);
+  assert.equal(view.spoken[0].text, "Première phrase utile.");
+  assert.match(view.container.textContent, /Assist vous répond/);
+  await act(async () => streamController.enqueue(new TextEncoder().encode(" précise le contexte.")));
+  await act(async () => streamController.close());
+  assert.equal(view.spoken.length, 1);
+  await act(async () => view.spoken[0].onend());
+  assert.equal(view.spoken.length, 2);
+  assert.equal(view.spoken[1].text, "La suite précise le contexte.");
+  await act(async () => view.spoken[1].onend()); await view.tick(500);
+  assert.match(view.container.textContent, /À vous/);
+});
+
+test("interrupting a streamed reply cancels queued speech and prevents a late sentence from playing", async (t) => {
+  const view = await mount(t); await view.tick(500);
+  let streamController;
+  globalThis.fetch = async () => new Response(new ReadableStream({ start(controller) { streamController = controller; } }), { headers: { "Content-Type": "text/plain" } });
+  await act(async () => view.instances.at(-1).emit("bonjour assist, explique la ménopause")); await view.tick(1500);
+  await act(async () => streamController.enqueue(new TextEncoder().encode("Première phrase. Seconde phrase. ")));
+  assert.equal(view.spoken.length, 1);
+  await act(async () => view.instances.at(-1).onresult({ resultIndex: 0, results: [{ isFinal: false, 0: { transcript: "stop" } }] }));
+  assert.equal(view.spoken[0].onend, null);
+  await act(async () => streamController.close()); await view.tick(2000);
+  assert.equal(view.spoken.length, 1);
+});
+
+test("streamed patient answers with a mismatched revision are rejected before any clinical speech", async (t) => {
+  const view = await mount(t);
+  const patient = { id: "stream-patient", prenom: "Fatima", nom: "Test", specialite: "gyn" };
+  await act(async () => useHawaeStore.setState({ draft: patient, currentPatientId: patient.id, patientsByUser: { "doctor-test": { [patient.id]: patient } } })); await view.tick(500);
+  let cancelled = false;
+  globalThis.fetch = async (url) => {
+    if (url === "/api/workspace/state") return Response.json({ updatedAt: "2026-11-17T10:00:00Z" });
+    return new Response(new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode("Information clinique du mauvais dossier. ")); }, cancel() { cancelled = true; } }), { headers: { "Content-Type": "text/plain", "X-Hawae-Patient-Revision": "wrong-revision" } });
+  };
+  await act(async () => view.instances.at(-1).emit("bonjour assist, résume le dossier")); await view.tick(1500);
+  await act(async () => { await new Promise((resolve) => setImmediate(resolve)); });
+  assert.equal(cancelled, true);
+  assert.ok(view.spoken.length > 0);
+  assert.doesNotMatch(view.spoken.map((u) => u.text).join(" "), /Information clinique du mauvais dossier/);
+  assert.equal(useHawaeStore.getState().draft.hawaeIaHistory?.length ?? 0, 0);
+});
+
+test("a failed response stream cancels queued audio and cannot become conversational history", async (t) => {
+  const view = await mount(t); await view.tick(500);
+  let controller;
+  globalThis.fetch = async () => new Response(new ReadableStream({ start(c) { controller = c; } }), { headers: { "Content-Type": "text/plain" } });
+  await act(async () => view.instances.at(-1).emit("bonjour assist, explique la ménopause")); await view.tick(1500);
+  await act(async () => controller.enqueue(new TextEncoder().encode("Premier fragment. Fragment à annuler. ")));
+  const partial = view.spoken[0];
+  await act(async () => controller.error(new Error("Connexion interrompue.")));
+  assert.equal(partial.onend, null);
+  assert.equal(view.spoken.some((u) => u.text === "Fragment à annuler."), false);
+  let nextBody;
+  globalThis.fetch = async (_url, init) => { nextBody = JSON.parse(init.body); return Response.json({ reply: "Nouvelle réponse complète." }); };
+  await act(async () => view.instances.at(-1).emit("bonjour assist, nouvelle question")); await view.tick(1500);
+  assert.deepEqual(nextBody.history, []);
 });

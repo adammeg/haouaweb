@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { VoiceSentenceBuffer } from "@/lib/voice/speech-stream";
 import { usePathname, useRouter } from "next/navigation";
 import { useHawaeStore } from "@/stores/hawae-store";
 import { quickChatHistory } from "@/lib/ia/quick-chat";
@@ -64,7 +65,7 @@ function DoctorVoiceIsland({ accountId, workspaceDoctorId }: { accountId: string
     onWake: () => { wakeContext.current = contextRef.current; wakeIdentity.current = activeVoiceIdentity(); setError(""); setNotice(""); },
     onTranscript: (text) => { if (wakeContext.current === contextRef.current && wakeIdentity.current === activeVoiceIdentity()) askRef.current(text); },
   });
-  const pauseVoice = voice.pause;
+  const pauseVoice = voice.suspend;
 
   const cancelRequest = useCallback(() => {
     requestId.current++;
@@ -199,11 +200,39 @@ function DoctorVoiceIsland({ accountId, workspaceDoctorId }: { accountId: string
       if (!current()) return;
       const response = await fetch("/api/ia", { method: "POST", signal: ac.signal, headers: { "Content-Type": "application/json" },
         body: JSON.stringify(prepared
-          ? { mode: "question", question, patientId: prepared.patientId, expectedRevision: prepared.expectedRevision, conversation: true, voice: true, stream: false }
-          : { mode: "chat", question, history: quickChatHistory(history.current), voice: true, stream: false }),
+          ? { mode: "question", question, patientId: prepared.patientId, expectedRevision: prepared.expectedRevision, conversation: true, voice: true, stream: !voice.realtimeActive }
+          : { mode: "chat", question, history: quickChatHistory(history.current), voice: true, stream: !voice.realtimeActive }),
       });
-      const data = await response.json() as { reply?: string; error?: string; meta?: Partial<HawaeIaExchange> };
-      if (!response.ok) throw new Error(data.error || "Assist est momentanément indisponible.");
+      let data: { reply?: string; error?: string; meta?: Partial<HawaeIaExchange> };
+      let audioStream: number | null = null;
+      if (!response.ok || response.headers.get("content-type")?.includes("application/json")) {
+        data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Assist est momentanément indisponible.");
+      } else {
+        if (!response.body) throw new Error("Aucune réponse reçue.");
+        const revision = response.headers.get("X-Hawae-Patient-Revision") ?? undefined;
+        if (prepared && revision !== prepared.expectedRevision) { await response.body.cancel(); throw new Error("La réponse ne correspond pas au dossier demandé."); }
+        data = { reply: "", meta: { revision,
+          provider: response.headers.get("X-Hawae-AI-Provider") ?? undefined, model: response.headers.get("X-Hawae-AI-Model") ?? undefined,
+          promptVersion: response.headers.get("X-Hawae-Prompt-Version") ?? undefined, knowledgeVersion: response.headers.get("X-Hawae-Knowledge-Version") ?? undefined,
+          engineVersion: response.headers.get("X-Hawae-Engine-Version") ?? undefined, cacheVersion: response.headers.get("X-Hawae-Cache-Version") ?? undefined,
+          evidenceIds: JSON.parse(response.headers.get("X-Hawae-Evidence-Ids") || "[]"),
+        } };
+        const reader = response.body.getReader(), decoder = new TextDecoder(), sentences = new VoiceSentenceBuffer();
+        audioStream = voice.beginSpeechStream();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (!current()) return;
+            const text = done ? decoder.decode() : decoder.decode(value, { stream: true });
+            data.reply = (data.reply ?? "") + text;
+            if (data.reply.length > 24_000) throw new Error("Réponse vocale trop longue.");
+            for (const sentence of sentences.push(text)) voice.enqueueSpeech(audioStream, sentence);
+            if (done) break;
+          }
+          voice.enqueueSpeech(audioStream, sentences.flush());
+        } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
+      }
       if (!data.reply?.trim()) throw new Error("Aucune réponse reçue. Réessayez votre demande.");
       if (!current()) return;
       if (prepared) {
@@ -212,7 +241,8 @@ function DoctorVoiceIsland({ accountId, workspaceDoctorId }: { accountId: string
         const entry: HawaeIaExchange = { ...data.meta, id: crypto.randomUUID(), at: new Date().toISOString(), mode: "question", question, reply: data.reply, contextKeyAtGeneration: prepared.key };
         state.patchDraft({ hawaeIaHistory: [...(state.draft?.hawaeIaHistory ?? []), entry].slice(-60) }); state.saveDraft();
       } else history.current = [...history.current, { role: "user", text: question, status: "complete" }, { role: "assistant", text: data.reply, status: "complete" }].slice(-8) as CompletedTurn[];
-      setLastReply(data.reply); voice.speak(data.reply);
+      setLastReply(data.reply);
+      if (audioStream !== null) voice.finishSpeechStream(audioStream); else voice.speak(data.reply);
     } catch (cause) {
       if (current() || (timedOut && sameContext())) {
         const message = timedOut ? "La réponse prend trop de temps. Réessayez ou posez une question plus courte." : cause instanceof Error ? cause.message : "Assist est indisponible.";
@@ -274,9 +304,11 @@ function DoctorVoiceIsland({ accountId, workspaceDoctorId }: { accountId: string
 
   const listening = voice.state === "recording";
   const waiting = voice.state === "waiting";
-  const needsSetup = !voice.supported || (voice.preferences.processing === "local" && (!voice.localSupported || !voice.localAvailable)) || (voice.preferences.processing === "browser" && !voice.preferences.browserConsent);
+  const thinking = loading || voice.realtimeThinking;
+  const realtimeUsable = !voice.serverSpeechAvailable && voice.realtimeAvailable && voice.realtimeSupported && voice.preferences.realtime !== false;
+  const needsSetup = !realtimeUsable && (!voice.supported || (voice.preferences.processing === "local" && (!voice.localSupported || !voice.localAvailable)) || (voice.preferences.processing === "browser" && !voice.preferences.browserConsent));
   const problem = error || voice.error;
-  const status = !voice.ready ? "Assist se prépare" : !voice.preferences.active ? "Assist en pause" : pendingEdit ? "Modification à valider" : settingsOpen ? "Réglages d’Assist" : voice.speaking ? "Assist vous répond" : voice.preparingSpeech ? "Préparation de la voix…" : loading ? "Assist réfléchit" : listening ? voice.conversation && !voice.interim ? "À vous · je vous écoute" : "Assist vous écoute" : waiting ? `Dites « ${WAKE_PHRASE} »` : voice.state === "starting" ? "Connexion au microphone" : needsSetup ? "Configurer Assist" : problem ? "Assist · réessayer" : "Parler à Assist";
+  const status = !voice.ready ? "Assist se prépare" : !voice.preferences.active ? "Assist en pause" : pendingEdit ? "Modification à valider" : settingsOpen ? "Réglages d’Assist" : voice.speaking ? "Assist vous répond" : voice.preparingSpeech ? "Préparation de la voix…" : thinking ? "Assist réfléchit" : listening ? voice.conversation && !voice.interim ? "À vous · je vous écoute" : "Assist vous écoute" : waiting ? `Dites « ${WAKE_PHRASE} »` : voice.state === "starting" ? "Connexion au microphone" : needsSetup ? "Configurer Assist" : problem ? "Assist · réessayer" : "Parler à Assist";
 
   function toggleActive() {
     if (needsSetup) setSettingsOpen(true);
@@ -285,10 +317,10 @@ function DoctorVoiceIsland({ accountId, workspaceDoctorId }: { accountId: string
   }
 
   return <aside className="assist-island-wrap print:hidden" aria-label="Assistant vocal Assist">
-    <div className={`assist-island ${listening || voice.speaking ? "is-active" : ""} ${loading ? "is-thinking" : ""}`}>
-      <button type="button" className="assist-island-main" onClick={toggleActive} aria-label={voice.speaking || voice.preparingSpeech || loading ? "Interrompre et parler à Assist" : needsSetup ? "Configurer Assist" : "Parler à Assist"}>
-        <span className={`assist-wave ${waiting || listening || voice.speaking || loading ? "is-moving" : ""}`} aria-hidden><i /><i /><i /><i /><i /></span>
-        <span className="assist-island-label"><strong role="status">{status}</strong><small>{voice.speaking ? voice.interruptAvailable ? "« Bonjour assist » pour interrompre" : "Touchez la barre pour interrompre" : listening ? voice.interim || "Je vous écoute…" : usePatient && draft?.id ? "Dossier actif · cabinet" : "Cabinet · dossiers et agenda"}</small></span>
+    <div className={`assist-island ${listening || voice.speaking ? "is-active" : ""} ${thinking ? "is-thinking" : ""}`}>
+      <button type="button" className="assist-island-main" onClick={toggleActive} aria-label={voice.speaking || voice.preparingSpeech || thinking ? "Interrompre et parler à Assist" : needsSetup ? "Configurer Assist" : "Parler à Assist"}>
+        <span className={`assist-wave ${waiting || listening || voice.speaking || thinking ? "is-moving" : ""}`} aria-hidden><i /><i /><i /><i /><i /></span>
+        <span className="assist-island-label"><strong role="status">{status}</strong><small>{voice.realtimeActive ? "Audio temps réel · parlez pour interrompre" : voice.speaking ? voice.interruptAvailable ? "Parlez ou dites « stop » pour interrompre" : "Touchez la barre pour interrompre" : listening ? voice.interim || "Je vous écoute…" : usePatient && draft?.id ? "Dossier actif · cabinet" : "Cabinet · dossiers et agenda"}</small></span>
       </button>
       {lastReply && !loading && <button type="button" className="assist-island-icon" onClick={() => voice.speak(lastReply)} aria-label="Réécouter la réponse" title="Réécouter">▷</button>}
       {voice.preferences.active && <button type="button" className="assist-island-icon assist-pause" onClick={() => { cancelRequest(); voice.updatePreferences({ active: false }); }} aria-label="Mettre Assist en pause" title="Mettre en pause">Ⅱ</button>}
@@ -300,9 +332,10 @@ function DoctorVoiceIsland({ accountId, workspaceDoctorId }: { accountId: string
     {appointment && createPortal(<RdvModal mode="create" open prefillDate={appointment.date} prefillHeure={appointment.heure} prefillPatient={appointment.patient} onClose={() => setAppointment(null)} onSaved={(id) => { savedAppointment.current = id; setAppointment(null); setNotice("Rendez-vous ajouté à l’agenda. La synchronisation du cabinet est en cours."); }} />, document.body)}
     {settingsOpen && <section id={settingsId} className="assist-island-card" aria-label="Réglages vocaux">
       <header><strong>Assist · Réglages vocaux</strong><button type="button" onClick={() => setSettingsOpen(false)} aria-label="Fermer les réglages">×</button></header>
-      <p>Dites <b>« bonjour assist »</b> ou <b>« bonjour assiste »</b>, puis votre demande. Après la réponse, vous avez 20 secondes pour poursuivre sans répéter le mot d’activation.</p>
-      <p>Pour interrompre une réponse, dites de nouveau « bonjour assist », ou touchez la barre. « C’est tout » termine l’échange ; « mets-toi en pause » désactive l’écoute.</p>
+      <p>Dites <b>« bonjour assist »</b> ou <b>« bonjour assiste »</b>, puis votre demande. En audio temps réel, poursuivez naturellement. En mode navigateur, vous avez 20 secondes après la réponse pour poursuivre sans répéter le mot d’activation.</p>
+      <p>Vous pouvez parler pendant une réponse pour interrompre, dire « stop », ou toucher la barre. En mode navigateur, cette fonction dépend du microphone et du navigateur. « C’est tout » termine l’échange ; « mets-toi en pause » désactive l’écoute.</p>
       <label className="assist-check"><input type="checkbox" checked={voice.preferences.active} onChange={(event) => voice.updatePreferences({ active: event.target.checked })} />Activation automatique</label>
+      {voice.serverSpeechAvailable ? <label className="assist-check"><input type="checkbox" checked={voice.preferences.serverSpeech !== false} onChange={(event) => voice.updatePreferences({ serverSpeech: event.target.checked })} />Voix OpenRouter. Le texte des réponses, y compris les informations du dossier demandées, est envoyé au fournisseur vocal. Décochez pour utiliser la voix de l’appareil.</label> : voice.realtimeAvailable && voice.realtimeSupported ? <label className="assist-check"><input type="checkbox" checked={voice.preferences.realtime !== false} onChange={(event) => voice.updatePreferences({ realtime: event.target.checked })} />Conversation audio temps réel OpenAI après activation : écoute continue avec suppression d’écho et interruptions vocales. L’audio de la conversation est envoyé à OpenAI.</label> : <p>Le mode navigateur est actif. La conversation audio temps réel n’est pas disponible sur ce serveur ou cet appareil.</p>}
       <label className="assist-check"><input type="checkbox" checked={usePatient} onChange={(event) => setUsePatient(event.target.checked)} />Utiliser le dossier ouvert pour les questions</label>
       <label className="assist-select">Reconnaissance<select value={voice.preferences.processing} onChange={(event) => voice.updatePreferences({ processing: event.target.value as "local" | "browser" })}><option value="local">Sur cet appareil</option><option value="browser">Service du navigateur</option></select></label>
       {!voice.supported && <p>Reconnaissance indisponible : utilisez un navigateur compatible, en HTTPS ou sur localhost.</p>}
@@ -310,7 +343,7 @@ function DoctorVoiceIsland({ accountId, workspaceDoctorId }: { accountId: string
         <p>{voice.localSupported ? "Le français local nécessite un pack de langue disponible." : "Ce navigateur ne propose pas la reconnaissance locale. Choisissez son service vocal pour continuer."}</p>
         {voice.canInstall && <button type="button" disabled={voice.installing} onClick={() => void voice.installLocal()}>{voice.installing ? "Installation…" : "Installer le français local"}</button>}
       </> : <label className="assist-check"><input type="checkbox" checked={voice.preferences.browserConsent} onChange={(event) => voice.updatePreferences({ browserConsent: event.target.checked })} />J’autorise le service du navigateur. Mon audio peut lui être envoyé, y compris pendant l’attente du mot d’activation.</label>}
-      <p>Une autorisation du microphone peut être demandée au premier démarrage. La voix des réponses est générée par le navigateur.</p>
+      <p>Une autorisation du microphone peut être demandée au premier démarrage. {voice.serverSpeechAvailable ? "La reconnaissance utilise le mode choisi ci-dessus ; OpenRouter génère uniquement la voix des réponses. Les interruptions dépendent du navigateur et du microphone." : "En mode navigateur, la voix est générée par l’appareil. En audio temps réel, elle est générée par OpenAI. Si la reconnaissance du mot d’activation est indisponible, touchez la barre pour démarrer une conversation audio temps réel."}</p>
       {problem && <p role="alert">{problem}</p>}
       <button type="button" className="assist-primary" onClick={() => { voice.retry(); setSettingsOpen(false); }}>Activer Assist</button>
     </section>}

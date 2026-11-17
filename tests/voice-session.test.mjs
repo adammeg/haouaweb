@@ -27,11 +27,13 @@ function setup() {
 test("wake activation requires the complete prefix and preserves the actual request", () => {
   assert.equal(wakeRequest("Bonjour assist, ouvre l’agenda."), "ouvre l’agenda.");
   assert.equal(wakeRequest("Bonjour assiste, résume le dossier."), "résume le dossier.");
+  assert.equal(wakeRequest("Bonjour assistant, résume le dossier."), "résume le dossier.");
+  assert.equal(wakeRequest("Bonjour l’assist, résume le dossier."), "résume le dossier.");
   assert.equal(wakeRequest(" BONJOUR   ASSIST ! "), "");
-  for (const text of ["bonjour", "bonjour assistant", "bonjour assistante", "bonjour haoua", "elle a dit bonjour assist", "assist bonjour"]) assert.equal(wakeRequest(text), null);
+  for (const text of ["bonjour", "bonjour assistante", "bonjour haoua", "elle a dit bonjour assist", "assist bonjour"]) assert.equal(wakeRequest(text), null);
 });
 
-test("voice defaults to active, honors an explicit pause and never defaults to remote processing", () => {
+test("voice defaults to active, honors an explicit pause and never defaults to remote wake recognition", () => {
   assert.deepEqual(parseVoicePreferences(null), DEFAULT_VOICE_PREFERENCES);
   assert.equal(parseVoicePreferences("invalid").active, true);
   assert.equal(parseVoicePreferences('{"active":false}').active, false);
@@ -81,12 +83,12 @@ test("wake-only activation waits for the next utterance; unrelated speech is dis
   assert.equal(mic.aborted, true);
 });
 
-test("phrase and request in one utterance are retained and interim results never activate", async (t) => {
+test("interim wake detection acknowledges immediately but never submits provisional words", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
   const s = setup(); await s.session.start("wake", false); t.after(() => s.session.stop());
   const mic = s.instances.at(-1);
   mic.emit("Bonjour assist, ouvre l’agenda", false);
-  assert.equal(s.wakes(), 0);
+  assert.equal(s.wakes(), 1); assert.deepEqual(s.transcripts, []);
   mic.emit("Bonjour assist, ouvre l’agenda");
   t.mock.timers.tick(1500);
   assert.equal(s.wakes(), 1); assert.deepEqual(s.transcripts, ["ouvre l’agenda"]);

@@ -84,6 +84,7 @@ export async function POST(req: Request) {
         "X-Hawae-AI-Provider": provider.label, "X-Hawae-AI-Model": provider.model,
         "X-Hawae-Prompt-Version": PROMPT_VERSION, "X-Hawae-Knowledge-Version": KNOWLEDGE_VERSION,
         "X-Hawae-Patient-Revision": revision ?? "", "X-Hawae-Cache-Version": AI_CACHE_VERSION,
+        "X-Hawae-Engine-Version": ASSIST_VERSION, "X-Hawae-Evidence-Ids": JSON.stringify(meta.evidenceIds),
         "X-Hawae-Learning-Generation": learningPlan?.id ?? "",
       } });
     }

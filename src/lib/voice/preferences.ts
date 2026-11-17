@@ -1,5 +1,5 @@
-export type VoicePreferences = { active: boolean; processing: "local" | "browser"; browserConsent: boolean };
-export const DEFAULT_VOICE_PREFERENCES: VoicePreferences = { active: true, processing: "local", browserConsent: false };
+export type VoicePreferences = { active: boolean; processing: "local" | "browser"; browserConsent: boolean; realtime?: boolean; serverSpeech?: boolean };
+export const DEFAULT_VOICE_PREFERENCES: VoicePreferences = { active: true, processing: "local", browserConsent: false, realtime: true, serverSpeech: true };
 
 /** Only recognition preferences are persisted, never audio, transcripts or patient data. */
 export function parseVoicePreferences(raw: string | null): VoicePreferences {
@@ -7,7 +7,7 @@ export function parseVoicePreferences(raw: string | null): VoicePreferences {
     const value: unknown = JSON.parse(raw ?? "null");
     if (!value || typeof value !== "object") return { ...DEFAULT_VOICE_PREFERENCES };
     const prefs = value as Record<string, unknown>;
-    return { active: prefs.active !== false, processing: prefs.processing === "browser" ? "browser" : "local", browserConsent: prefs.browserConsent === true };
+    return { active: prefs.active !== false, processing: prefs.processing === "browser" ? "browser" : "local", browserConsent: prefs.browserConsent === true, realtime: prefs.realtime !== false, serverSpeech: prefs.serverSpeech !== false };
   } catch { return { ...DEFAULT_VOICE_PREFERENCES }; }
 }
 

@@ -1,6 +1,6 @@
 # Voice interaction audit
 
-Scope: browser recognition lifecycle, doctor voice island, spoken playback, conversational history, request cancellation and `/api/ia` voice requests. This is source inspection plus synthetic DOM/API regression testing; it is not an acoustic accuracy or real-device certification.
+Scope: browser recognition lifecycle, doctor voice island, streaming spoken playback through HeyGen/OpenRouter or device synthesis, optional native WebRTC audio, conversational history, request cancellation and `/api/ia` voice requests. This is source inspection plus synthetic DOM/API regression testing; it is not an acoustic accuracy or real-device certification. See [OpenRouter speech setup](voice-openrouter.md) and [native realtime setup](voice-realtime.md).
 
 ## Findings and corrections
 
@@ -9,7 +9,9 @@ Scope: browser recognition lifecycle, doctor voice island, spoken playback, conv
 | Every reply ended the conversation | A natural follow-up without “bonjour assist” was silently ignored | A visible 20-second follow-up window accepts the next utterance directly. Silence returns to wake-only listening. DOM tests cover both paths and retained general conversation history. |
 | Main island button meant pause | Clicking the assistant to speak disabled it | Main action now starts capture, including during an answer. A separate pause control and “mets-toi en pause” preserve deliberate disable behavior. |
 | Navigation accepted only rigid imperative wording | “Peux-tu ouvrir l’agenda ?” missed the command path | Known polite prefixes and infinitive forms now normalize to the same allowlisted commands. Negated/composite commands remain rejected. |
-| Recognition stopped during thinking/playback | A doctor could not interrupt by voice | A constrained recognizer accepts only the wake prefix while thinking or speaking. It cancels the previous request/output and captures the replacement request. Ordinary playback text is discarded. Tests cover both completed-output and pending-request interruption. |
+| Recognition stopped during thinking/playback | A doctor could not interrupt by voice | Native audio uses speech-start events to mute/clear output and invalidate old tool results before transcription. The browser fallback accepts wake prefixes, interim stop controls and nonmatching speech while discarding matching playback text. Tests cover both paths and late callbacks. |
+| Reasoning waited for a complete text answer | No audio could start while the answer was being generated | The fallback speaks sentence chunks from the HTTP stream, with revision checks before speech and an ordered cancellable queue. A test keeps the response open while verifying that the first sentence has already started. Native conversations use continuous audio and model-driven application tool calls. |
+| Wake acknowledgement waited for final recognition | The doctor could repeat the phrase before seeing feedback | Interim wake acknowledgement reacts sooner; only final recognition dispatches a request. Common assistant/l'assist variants are accepted, local pack verification is cached, and capture restart/silence delays are reduced. Acoustic wake accuracy remains unmeasured. |
 | UI claimed audio was playing when it was merely queued | Autoplay failure could leave “Assist vous répond” visible for up to three minutes | Speaking state now follows the actual synthesis `start` event; queued audio shows a preparation state. Missing start fails after six seconds with replay guidance. |
 | Responses used the document-style patient prompt | Long, formatted responses sounded like a report rather than a conversation | Explicit validated `voice: true` requests add concise spoken-answer instructions and a 600-token ceiling, retaining clinical uncertainty/alerts and existing authorization. Presentation markup is removed only for speech; provenance and original answers remain stored. |
 | Local support was inferred from an API property alone | Missing French packs looked like an endless retry problem | Check language-pack availability where the browser exposes it and route to setup. No silent remote fallback. |
@@ -21,9 +23,10 @@ The initial follow-up, tap-to-talk, interruption and false-speaking regressions 
 
 ## Limits that remain
 
-- Speech still uses a browser recognition → text reasoning → browser speech pipeline. Reasoning waits for a completed answer before playback; this is not a realtime speech-to-speech session and latency is not measured by synthetic tests.
-- Concurrent recognition and synthesis varies by browser/device. If interruption capture fails, playback continues and the island shows a tap-to-interrupt fallback. Headphones and real speaker-echo tests are needed. Ordinary non-wake echo is discarded, but actual false wake activations cannot be ruled out by mocked events.
-- Wake activation still depends on transcription recognizing “bonjour assist” or “bonjour assiste”; no trained acoustic keyword model is shipped.
+- Native speech-to-speech requires a configured direct OpenAI key, explicit server activation and model access. It is separate from OpenRouter text reasoning and speech synthesis. Tests mock the provider; live microphone/provider behavior and response latency are not established by these tests.
+- HeyGen/OpenRouter generates speech output only. It reuses the OpenRouter key but leaves recognition and interruption detection in the browser. PCM streaming, scheduled-node cancellation and provider limits are tested with synthetic audio. The selected free endpoint is announced to retire November 30, 2026; there is no automatic paid fallback. See the setup guide for primary sources and alternatives within the existing configuration.
+- The browser fallback still uses recognition → streamed text reasoning → browser speech. Concurrent recognition and synthesis varies by browser/device. Its text echo filter is approximate and can falsely interrupt. If interruption capture fails, playback continues with a visible tap fallback. Native VAD and requested echo cancellation also require speaker/headphone testing on target devices.
+- Wake activation still depends on transcription recognizing “bonjour assist” and its accepted variants; no trained acoustic keyword model is shipped. Native audio only starts after a recognized request or an explicit tap.
 - Microphone permissions, local French language packs and speech-service availability still govern activation. Browser-service mode continues to require explicit authorization.
 - Clinical edits still require the review card's Apply action. Voice conversation does not silently commit structured clinical changes.
 
@@ -32,7 +35,7 @@ The initial follow-up, tap-to-talk, interruption and false-speaking regressions 
 1. Start with an authorized doctor and a known synthetic patient. Verify the actual microphone and selected speech engine are available.
 2. Say “bonjour assist, résume le dossier”. Check recognition, saved dossier synchronization, audible output and the waiting/thinking/speaking states.
 3. After the answer, ask “quelles informations manquent ?” without the wake phrase. Verify the same patient context is used.
-4. During an answer, say “bonjour assist, répète”. Check interruption or the visible tap fallback. Test once with speakers and once with headphones.
+4. During an answer, ask a new question without the wake phrase, then test “stop” and “bonjour assist, répète”. Check immediate silence, cancellation of queued/late output and the new answer. Test native audio and fallback, once with speakers and once with headphones. If browser capture fails, verify the visible tap fallback.
 5. Say “c’est tout”, then unrelated speech; it should not invoke the model. Say “bonjour assist, mets-toi en pause”; it should remain paused after page visibility changes.
 6. Switch patient during capture and during model generation. No old answer, replay or pending clinical edit should carry into the new patient.
 

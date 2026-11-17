@@ -5,3 +5,8 @@ export function spokenText(text: string): string {
     .replace(/^\s*[-*]\s+/gm, "")
     .replace(/\*\*|__|`/g, "").trim();
 }
+
+/** HeyGen consumes square brackets as control tags or silent text; retain their contents. */
+export function heygenSpokenText(text: string): string {
+  return spokenText(text).replace(/[\[\]]/g, "");
+}

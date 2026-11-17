@@ -27,6 +27,7 @@ type Callbacks = {
   capture?: () => void;
   error: (message: string) => void;
   idle?: () => void;
+  interruption?: (text: string) => boolean;
 };
 
 /** One recognizer owner. Invalidating its generation makes late browser callbacks harmless. */
@@ -45,6 +46,8 @@ export class VoiceRecognitionSession {
   private wakeFragmentAt = 0;
   private pendingInterim = false;
   private requestStarted = false;
+  private provisionalWake = false;
+  private localVerified = false;
 
   constructor(private readonly Constructor: RecognitionConstructor, private readonly callbacks: Callbacks) {}
 
@@ -65,17 +68,18 @@ export class VoiceRecognitionSession {
   async start(mode: CaptureMode, local: boolean) {
     this.stop();
     this.mode = mode; this.local = local; this.activated = mode === "dictate" || mode === "followup"; this.text = ""; this.wakeFragment = ""; this.restartCount = 0;
-    this.pendingInterim = false; this.requestStarted = mode === "dictate";
+    this.pendingInterim = false; this.requestStarted = mode === "dictate"; this.provisionalWake = false;
     this.deadline = Date.now() + (mode === "dictate" ? 30_000 : mode === "followup" ? 20_000 : 5 * 60_000);
     const generation = this.generation;
     this.callbacks.error(""); this.callbacks.state("starting");
     try {
-      if (local) {
+      if (local && !this.localVerified) {
         const probe = new this.Constructor();
         if (!("processLocally" in probe)) throw new Error("La reconnaissance locale est indisponible. Choisissez le service du navigateur ou utilisez le clavier.");
         if (this.Constructor.available && await this.Constructor.available({ langs: ["fr-FR"], processLocally: true }) !== "available") {
           throw new Error("Le français local n’est pas installé. Installez le pack français ou choisissez le service du navigateur.");
         }
+        this.localVerified = true;
       }
       if (generation === this.generation) {
         if (this.activated) this.callbacks.capture?.();
@@ -130,6 +134,14 @@ export class VoiceRecognitionSession {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         const raw = result[0].transcript.trim();
+        if (!this.activated && !this.provisionalWake && wakeRequest(raw) !== null) {
+          // Give feedback and silence output on interim wake detection; submit final text only.
+          this.provisionalWake = true; this.callbacks.wake(); this.callbacks.state("recording"); this.armTimeout(generation, 10_000);
+        }
+        if (this.mode === "interrupt" && !this.activated && !this.provisionalWake && this.callbacks.interruption?.(raw)) {
+          this.activated = true; this.requestStarted = true; this.deadline = Date.now() + 30_000;
+          this.callbacks.capture?.(); this.callbacks.state("recording");
+        }
         if (!result.isFinal) {
           if (this.activated) {
             if (!this.requestStarted && raw) { this.requestStarted = true; this.deadline = Date.now() + 30_000; }
@@ -144,15 +156,15 @@ export class VoiceRecognitionSession {
           this.wakeFragmentAt = Date.now();
           if (request === null) continue;
           this.wakeFragment = "";
-          this.activated = true; this.callbacks.wake(); this.callbacks.state("recording");
+          this.activated = true; if (!this.provisionalWake) this.callbacks.wake(); this.callbacks.state("recording");
           this.requestStarted = true;
           this.deadline = Date.now() + 30_000;
           this.text = request;
-          this.armTimeout(generation, request ? 900 : 10_000);
+          this.armTimeout(generation, request ? 450 : 10_000);
         } else {
           if (!this.requestStarted) { this.requestStarted = true; this.deadline = Date.now() + 30_000; }
           this.text = [this.text, wakeRequest(raw) ?? raw].filter(Boolean).join(" ");
-          this.armTimeout(generation, 900);
+          this.armTimeout(generation, 450);
         }
         if (this.text.length > MAX_VOICE_CHARACTERS) { this.finish(); return; }
       }
@@ -163,6 +175,7 @@ export class VoiceRecognitionSession {
     recognition.onerror = ({ error }) => {
       if (generation !== this.generation || this.recognition !== recognition) return;
       if (error === "no-speech") return; // onend restarts a bounded waiting session.
+      if (error === "language-not-supported") this.localVerified = false;
       this.stop();
       const messages: Record<string, string> = {
         "not-allowed": "Microphone refusé. Autorisez-le dans les paramètres du navigateur.",
