@@ -1,10 +1,14 @@
 # Refonte du dossier, étape 2 : échographies et biologies datées
 
-Statut : **partie 1 codée le 26/11/2026 (non commitée)** : modèle des examens datés, valeur la plus
-récente recopiée dans les champs du dossier, onglet Examens avec biologie par bilan, biologie retirée
-de l'anamnèse obstétricale. Code : `src/lib/dossier/examens.ts`, `src/components/dossier/bio-exams.tsx` ;
-tests : `tests/examens.test.mjs`. Parties 2 à 4 (échographies, reprise, courbes) : à faire.
-Date : 26/11/2026. S'appuie sur l'étape 1 (anamnèse commune, commit `d2e64e7`).
+Statut au 26/11/2026 :
+- **partie 1 commitée** (`f3481a3`) : biologie datée par bilan ;
+- **partie 2 codée, non commitée** : échographies datées (datation précoce, croissance, Doppler et BPP,
+  cervicométrie, pelvienne, bilan d'infertilité, monitorage folliculaire), sous-onglet « Écho & BPP »
+  retiré, et **import d'un compte rendu** (PDF ou photo) : archivage dans les documents de la patiente,
+  lecture du texte sur le poste, masquage de l'identité, classement par Hawae (ou lecture locale si l'IA
+  n'est pas configurée), examen prérempli à vérifier par le médecin avant enregistrement.
+- Restent : écho T1 + FMF et Morpho T2 en examens datés, Bridge échographe, reprise des consultations
+  archivées, courbes.
 
 ## 1. Objectif
 

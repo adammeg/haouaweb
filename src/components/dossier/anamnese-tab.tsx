@@ -35,8 +35,8 @@ export function AnamneseTab({
         />
       </AnaCard>
 
-      {spec === "gyn" && <GynAnamnese draft={draft} onField={onField} />}
-      {spec === "obst" && <ObstAnamnese draft={draft} onField={onField} />}
+      {spec === "gyn" && <GynAnamnese draft={draft} onField={onField} patchDraft={patchDraft} />}
+      {spec === "obst" && <ObstAnamnese draft={draft} onField={onField} patchDraft={patchDraft} />}
       {spec === "inf" && <InfAnamnese draft={draft} onField={onField} />}
 
       {spec && (

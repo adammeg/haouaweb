@@ -43,3 +43,21 @@ test("term at the exam date and readable summary", () => {
   assert.equal(termeAt("2026-05-10", "2026-04-01"), "");
   assert.equal(examSummary(exam("a", "2026-08-02", { rai: "neg", hb: "11.2" }, "prenatal_t1")), "RAI Négatif · Hémoglobine 11.2 g/dL");
 });
+
+test("growth biometry shows its Salomon percentile at the exam term", async () => {
+  const { biometryPercentiles, examSummary, termeWeeks } = await import("../src/lib/dossier/examens.ts");
+  assert.ok(Math.abs(termeWeeks("27 SA + 5 j") - 27.714) < 0.01);
+  const e = { id: "e", date: "2026-11-20", kind: "echo", panel: "echo_croissance", terme: "32 SA + 0 j", values: { pfe: "1700", placenta: "antérieur" }, origin: "saisie" };
+  assert.match(biometryPercentiles(e).pfe, /^(\d+e|< 5e|> 95e)$/);
+  assert.match(examSummary(e), /PFE 1700 g \(.+ p\.\)/);
+  assert.deepEqual(biometryPercentiles({ ...e, terme: undefined }), {}, "no term, no percentile");
+});
+
+test("current cycle: day, lateness and list toggles", async () => {
+  const { cycleStatus, toggleInList } = await import("../src/lib/dossier/cycle.ts");
+  assert.deepEqual(cycleStatus("2026-10-20", "28", new Date("2026-11-26T10:00:00Z")), { day: 38, usual: 28, lateBy: 10 });
+  assert.deepEqual(cycleStatus("2026-11-20", "", new Date("2026-11-26T10:00:00Z")), { day: 7, usual: null, lateBy: 0 });
+  assert.equal(cycleStatus("", "28"), null);
+  assert.equal(toggleInList("Prurit", "Brûlures"), "Prurit, Brûlures");
+  assert.equal(toggleInList("Prurit, Brûlures", "Prurit"), "Brûlures");
+});

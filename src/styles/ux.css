@@ -145,3 +145,34 @@
 /* Biologie datée */
 .bio-panels { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .socle-empty { color: var(--muted); font-size: 14px; }
+
+/* Import d'un compte rendu */
+.exam-drop { display: grid; gap: 4px; padding: 18px 20px; border: 2px dashed var(--border-teal); border-radius: var(--radius-s); background: var(--cream); cursor: pointer; color: var(--ink-mid); font-size: 14px; }
+.exam-drop strong { font-size: 15px; color: var(--ink); }
+.exam-drop:hover { border-color: var(--teal-light); }
+.exam-import-status { margin-top: 10px; font-size: 14px; font-weight: 600; }
+.exam-import-status.busy { color: var(--ink-mid); }
+.exam-import-status.ok { color: #15703a; }
+.exam-import-status.error { color: #b91c1c; }
+[data-theme="dark"] .exam-import-status.ok { color: #86efac; }
+[data-theme="dark"] .exam-import-status.error { color: #fca5a5; }
+.exam-import-privacy { margin-top: 8px; font-size: 12px; color: var(--muted); max-width: 75ch; }
+.exam-import-note { margin-bottom: 12px; padding: 10px 12px; border-left: 4px solid #e8b04b; border-radius: var(--radius-s); background: #fff8e8; font-size: 14px; color: var(--ink); }
+.exam-import-note ul { margin-top: 6px; padding-left: 18px; list-style: disc; font-size: 13px; color: var(--ink-mid); }
+[data-theme="dark"] .exam-import-note { background: rgb(232 176 75 / 0.12); }
+
+/* Cycle actuel */
+.cycle-status { align-self: end; min-height: 44px; padding: 10px 14px; border-radius: var(--radius-s); background: var(--cream); font-size: 14px; color: var(--ink-mid); }
+.cycle-status strong { color: var(--ink); }
+.cycle-late { margin-top: 4px; font-weight: 700; color: #9a3412; }
+[data-theme="dark"] .cycle-late { color: #fdba74; }
+.cycle-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cycle-chips button { min-height: 36px; padding: 0 12px; border: 1px solid var(--border-teal); border-radius: 999px; font-size: 13px; color: var(--ink-mid); background: var(--surface); }
+.cycle-chips button.on { background: #0a5c5c; border-color: #0a5c5c; color: #fff; font-weight: 600; }
+/* Clichés d'échographie */
+.exam-attach { display: grid; gap: 10px; margin-top: 12px; }
+.exam-attach > label { justify-self: start; }
+.exam-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.exam-thumbs li { display: grid; gap: 4px; justify-items: center; }
+.exam-thumbs img { width: 96px; height: 72px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+.exam-thumb-remove { font-size: 12px; color: var(--muted); text-decoration: underline; }

@@ -13,7 +13,6 @@ import { FmfConverterPanel } from "@/components/dossier/fmf-converter";
 import {
   O_CONCEPT,
   O_DV_FLUX,
-  O_EDF,
   O_PRES,
   O_SUIVI,
   O_TYPE,
@@ -30,6 +29,7 @@ import {
 import { ObstCalendrierPanel } from "@/components/dossier/obst-calendrier-panel";
 import { ObstPartogramPanel } from "@/components/dossier/obst-partogram-panel";
 import { T2MorphoTab } from "@/components/dossier/t2-morpho-tab";
+import { ExamsCard } from "@/components/dossier/exams-card";
 
 const OBST_TABS = [
   { id: "motif", label: "💬 Motif" },
@@ -37,17 +37,19 @@ const OBST_TABS = [
   { id: "calendrier", label: "📅 Calendrier" },
   { id: "partogramme", label: "📈 Partogramme" },
   { id: "t1", label: "🔬 T1 / FMF" },
-  { id: "echo", label: "📡 Écho & BPP" },
   { id: "morpho", label: "🫀 Morpho T2" },
+  { id: "echo_t3", label: "📡 Écho T3" },
   { id: "surv", label: "📊 Surveillance" },
 ];
 
 export function ObstAnamnese({
   draft,
   onField,
+  patchDraft,
 }: {
   draft: PatientSnapshot;
   onField: (p: FieldPatch) => void;
+  patchDraft: (p: Partial<PatientSnapshot>) => void;
 }) {
   const [sub, setSub] = useState("motif");
   const patch = useAnaPatch(onField);
@@ -223,102 +225,18 @@ export function ObstAnamnese({
         </AnaCard>
       )}
 
-      {sub === "echo" && (
-        <AnaCard title="📡 Biométrie & Doppler fœtal" ar="قياسات الجنين">
-          <div className="dossier-form-grid triple">
-            <Field label="BIP (mm)">
-              <TextInput type="number" value={draft.o_bip} onChange={(v) => patch("o_bip", v)} />
-            </Field>
-            <Field label="PC / HC (mm)">
-              <TextInput type="number" value={draft.o_pc} onChange={(v) => patch("o_pc", v)} />
-            </Field>
-            <Field label="CA / AC (mm)">
-              <TextInput type="number" value={draft.o_ca} onChange={(v) => patch("o_ca", v)} />
-            </Field>
-            <Field label="LF / FL (mm)">
-              <TextInput type="number" value={draft.o_lf} onChange={(v) => patch("o_lf", v)} />
-            </Field>
-            <Field label="PFE / EFW (g)">
-              <TextInput type="number" value={draft.o_pfe} onChange={(v) => patch("o_pfe", v)} />
-            </Field>
-            <Field label="Longueur col (mm)">
-              <TextInput type="number" value={draft.o_col} onChange={(v) => patch("o_col", v)} />
-            </Field>
-          </div>
-          <SectionDivider>Doppler fœtal</SectionDivider>
-          <div className="dossier-form-grid triple">
-            <Field label="IP artère ombilicale">
-              <TextInput type="number" value={draft.o_ip_ao} onChange={(v) => patch("o_ip_ao", v)} />
-            </Field>
-            <Field label="EDF ombilicale">
-              <SelectInput value={draft.o_edf} onChange={(v) => patch("o_edf", v)} options={O_EDF} />
-            </Field>
-            <Field label="IP ACM">
-              <TextInput type="number" value={draft.o_ip_acm} onChange={(v) => patch("o_ip_acm", v)} />
-            </Field>
-          </div>
-          <SectionDivider>Score BPP</SectionDivider>
-          <div className="dossier-form-grid triple">
-            <Field label="RCF / NST">
-              <PillGroup
-                name="o-bpp-nst"
-                value={draft.o_bpp_nst || "1"}
-                options={[
-                  { value: "1", label: "Réactif" },
-                  { value: "0", label: "Non réactif" },
-                ]}
-                onChange={(v) => patch("o_bpp_nst", v)}
-              />
-            </Field>
-            <Field label="Mouvements respiratoires">
-              <PillGroup
-                name="o-bpp-resp"
-                value={draft.o_bpp_resp || "1"}
-                options={[
-                  { value: "1", label: "Présents" },
-                  { value: "0", label: "Absents" },
-                ]}
-                onChange={(v) => patch("o_bpp_resp", v)}
-              />
-            </Field>
-            <Field label="Mouvements actifs fœtaux">
-              <PillGroup
-                name="o-bpp-mvt"
-                value={draft.o_bpp_mvt || "1"}
-                options={[
-                  { value: "1", label: "≥3 mvts" },
-                  { value: "0", label: "<3 mvts" },
-                ]}
-                onChange={(v) => patch("o_bpp_mvt", v)}
-              />
-            </Field>
-            <Field label="Tonus fœtal">
-              <PillGroup
-                name="o-bpp-tonus"
-                value={draft.o_bpp_tonus || "1"}
-                options={[
-                  { value: "1", label: "Normal" },
-                  { value: "0", label: "Absent" },
-                ]}
-                onChange={(v) => patch("o_bpp_tonus", v)}
-              />
-            </Field>
-            <Field label="Liquide amniotique">
-              <PillGroup
-                name="o-bpp-la"
-                value={draft.o_bpp_la || "1"}
-                options={[
-                  { value: "1", label: "Normal" },
-                  { value: "0", label: "Oligoamnios" },
-                ]}
-                onChange={(v) => patch("o_bpp_la", v)}
-              />
-            </Field>
-          </div>
-        </AnaCard>
-      )}
-
       {sub === "morpho" && <T2MorphoTab draft={draft} onField={onField} />}
+
+      {sub === "echo_t3" && (
+        <ExamsCard
+          draft={draft}
+          patchDraft={patchDraft}
+          kind="echo"
+          panels={["echo_croissance", "echo_doppler_bpp", "echo_col"]}
+          title="📡 Échographie du 3e trimestre"
+          sub="Croissance avec percentiles (Salomon), Doppler, score biophysique et col. Chaque échographie garde sa date et son terme ; joignez vos clichés."
+        />
+      )}
 
       {sub === "surv" && (
         <AnaCard title="📊 Constantes du jour" ar="قياسات اليوم">
