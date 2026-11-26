@@ -240,7 +240,7 @@ export const SOCLE_SECTIONS: SocleSection[] = [
 ];
 
 export const SOCLE_KEYS: Key[] = SOCLE_SECTIONS.flatMap((s) => s.fields.map((f) => f.key));
-export const SOCLE_META_KEYS = ["socleLog", "socleConfirmedAt", "socleMigrated"] as const;
+export const SOCLE_META_KEYS = ["socleLog", "socleConfirmedAt", "socleMigrated", "examens"] as const;
 
 // ── Reprise des anciens champs en double ────────────────────────────────────────
 

@@ -369,9 +369,32 @@ export interface PatientSnapshot {
   socleConfirmedAt?: string;
   /** "1" une fois les anciens champs en double repris dans l'anamnèse commune. */
   socleMigrated?: string;
+  /** Examens datés de la patiente (jamais vidés par une nouvelle consultation). */
+  examens?: ExamEntry[];
+  bio_syphilis?: string;
+  bio_sgb?: string;
+  bio_sflt_plgf?: string;
+  bio_t4l?: string;
 }
 
 export type SocleLogEntry = { date: string; text: string };
+
+/** Examen daté (biologie ; échographies à venir). */
+export type ExamEntry = {
+  id: string;
+  /** Date de l'examen (AAAA-MM-JJ). */
+  date: string;
+  kind: "bio";
+  /** Bilan biologique (voir BIO_PANELS). */
+  panel?: string;
+  /** Terme à la date de l'examen, si grossesse en cours. */
+  terme?: string;
+  values: Record<string, string>;
+  conclusion?: string;
+  origin: "saisie" | "reprise";
+  createdAt?: string;
+  updatedAt?: string;
+};
 
 export interface ConsultationEntry {
   id: string;

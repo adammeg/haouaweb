@@ -14,11 +14,8 @@ import {
   O_CONCEPT,
   O_DV_FLUX,
   O_EDF,
-  O_GRP,
   O_PRES,
-  O_RUBEO,
   O_SUIVI,
-  O_TOXO,
   O_TYPE,
   OBST_MOTIFS,
   calcTermeFromDdr,
@@ -42,7 +39,6 @@ const OBST_TABS = [
   { id: "t1", label: "🔬 T1 / FMF" },
   { id: "echo", label: "📡 Écho & BPP" },
   { id: "morpho", label: "🫀 Morpho T2" },
-  { id: "serol", label: "🧪 Séro & Bio" },
   { id: "surv", label: "📊 Surveillance" },
 ];
 
@@ -323,80 +319,6 @@ export function ObstAnamnese({
       )}
 
       {sub === "morpho" && <T2MorphoTab draft={draft} onField={onField} />}
-
-      {sub === "serol" && (
-        <AnaCard title="🧪 Sérologies & Biologie" ar="التحاليل البيولوجية">
-          <div className="dossier-form-grid triple">
-            <Field label="Groupe / Rhésus">
-              <SelectInput value={draft.o_grp} onChange={(v) => patch("o_grp", v)} options={O_GRP} />
-            </Field>
-            <Field label="RAI">
-              <PillGroup
-                name="o-rai"
-                value={draft.o_rai || "neg"}
-                options={[
-                  { value: "neg", label: "Nég." },
-                  { value: "pos", label: "Pos." },
-                  { value: "nd", label: "ND" },
-                ]}
-                onChange={(v) => patch("o_rai", v)}
-              />
-            </Field>
-            <Field label="Toxoplasmose">
-              <SelectInput value={draft.o_toxo} onChange={(v) => patch("o_toxo", v)} options={O_TOXO} />
-            </Field>
-            <Field label="Rubéole">
-              <SelectInput value={draft.o_rubeo} onChange={(v) => patch("o_rubeo", v)} options={O_RUBEO} />
-            </Field>
-            <Field label="Ag HBs">
-              <PillGroup
-                name="o-hbv"
-                value={draft.o_hbv || "neg"}
-                options={[
-                  { value: "neg", label: "Nég." },
-                  { value: "pos", label: "Pos." },
-                ]}
-                onChange={(v) => patch("o_hbv", v)}
-              />
-            </Field>
-            <Field label="VIH">
-              <PillGroup
-                name="o-vih"
-                value={draft.o_vih || "neg"}
-                options={[
-                  { value: "neg", label: "Nég." },
-                  { value: "pos", label: "Pos." },
-                  { value: "nd", label: "ND" },
-                ]}
-                onChange={(v) => patch("o_vih", v)}
-              />
-            </Field>
-            <Field label="NFS — Hb (g/dL)">
-              <TextInput type="number" value={draft.o_hb} onChange={(v) => patch("o_hb", v)} />
-            </Field>
-            <Field label="Glycémie à jeun (g/L)">
-              <TextInput type="number" value={draft.o_gly} onChange={(v) => patch("o_gly", v)} />
-            </Field>
-            <Field label="HGPO T1h (g/L)">
-              <TextInput type="number" value={draft.o_hgpo_t1} onChange={(v) => patch("o_hgpo_t1", v)} />
-            </Field>
-            <Field label="HGPO T2h (g/L)">
-              <TextInput type="number" value={draft.o_hgpo_t2} onChange={(v) => patch("o_hgpo_t2", v)} />
-            </Field>
-            <Field label="ECBU">
-              <PillGroup
-                name="o-ecbu"
-                value={draft.o_ecbu || "norm"}
-                options={[
-                  { value: "norm", label: "Normal" },
-                  { value: "pos", label: "Positif" },
-                ]}
-                onChange={(v) => patch("o_ecbu", v)}
-              />
-            </Field>
-          </div>
-        </AnaCard>
-      )}
 
       {sub === "surv" && (
         <AnaCard title="📊 Constantes du jour" ar="قياسات اليوم">

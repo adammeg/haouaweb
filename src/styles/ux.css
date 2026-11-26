@@ -141,3 +141,7 @@
   .socle-row { flex-direction: column; gap: 8px; }
   .socle-row .pb-btn { width: 100%; justify-content: center; }
 }
+
+/* Biologie datée */
+.bio-panels { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.socle-empty { color: var(--muted); font-size: 14px; }

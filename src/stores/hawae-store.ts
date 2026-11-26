@@ -19,6 +19,7 @@ import {
   appendSocleLog,
   planSocleMigration,
 } from "@/lib/dossier/socle";
+import { projectLatest } from "@/lib/dossier/examens";
 
 const AVATAR_COLORS = [
   "#0d6e6e",
@@ -330,6 +331,8 @@ export const useHawaeStore = create<HawaeState>()(
             id,
             specialite: (draft.specialite as Specialty) || "",
             ...emptyConsultFields(),
+            // Les résultats datés restent connus : leur valeur la plus récente reste dans le dossier.
+            ...projectLatest(draft.examens ?? []),
             hawaeIaHistory: draft.hawaeIaHistory,
             ordonnanceLines: draft.ordonnanceLines,
             ordonnanceNote: draft.ordonnanceNote,

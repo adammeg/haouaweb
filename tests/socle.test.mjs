@@ -88,3 +88,8 @@ test("a disputed value is never shown as if it were settled", () => {
   assert.equal(sectionSummary(section("immunite"), d, disputed), "Groupe : à vérifier");
   assert.equal(sectionSummary(section("obstetrique"), d, disputed), "G/P/A : à vérifier");
 });
+
+test("dated exams belong to the patient and survive a new consultation", () => {
+  const draft = { id: "p", socleMigrated: "1", examens: [{ id: "a", date: "2026-11-02", kind: "bio", values: { hb: "10.4" }, origin: "saisie" }] };
+  assert.deepEqual({ ...extractIdentitySnapshot(draft), ...emptyConsultFields() }.examens, draft.examens);
+});

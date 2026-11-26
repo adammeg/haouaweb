@@ -233,7 +233,7 @@ export function DossierFormView({
             {tab === "examen" && (
               <ExamenCliniqueTab draft={draft} onField={onField} />
             )}
-            {tab === "bilans" && <ExamensBilansTab draft={draft} onField={onField} />}
+            {tab === "bilans" && <ExamensBilansTab draft={draft} onField={onField} patchDraft={patchDraft} />}
             {tab === "pma" && <PmaClient patientId={draft.id} embedded />}
             {tab === "scores" && <DossierScoresTab />}
             {tab === "hawae" && <HawaeUnifiedPanel draft={draft} />}
