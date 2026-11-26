@@ -355,7 +355,23 @@ export interface PatientSnapshot {
   /** Dernier résultat Hawae Assist (JSON sérialisé). */
   hawaeAssistResultJson?: string;
   hawaeAssistAt?: string;
+
+  /** Antécédents familiaux (anamnèse commune). */
+  fam_sein_ovaire?: string;
+  fam_diabete?: string;
+  fam_hta?: string;
+  fam_thrombose?: string;
+  fam_genetique?: string;
+  fam_details?: string;
+  /** Journal daté des modifications de l'anamnèse commune. */
+  socleLog?: SocleLogEntry[];
+  /** Dernière confirmation « Rien de nouveau » de l'anamnèse commune (ISO). */
+  socleConfirmedAt?: string;
+  /** "1" une fois les anciens champs en double repris dans l'anamnèse commune. */
+  socleMigrated?: string;
 }
+
+export type SocleLogEntry = { date: string; text: string };
 
 export interface ConsultationEntry {
   id: string;

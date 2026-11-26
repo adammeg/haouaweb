@@ -1,5 +1,6 @@
 import type { PatientSnapshot, Specialty } from "@/types/domain";
 import { ageYears } from "@/lib/clinical/parse";
+import { SOCLE_ALIASES, SOCLE_KEYS, SOCLE_META_KEYS } from "@/lib/dossier/socle";
 
 export function getPatientDisplayName(p: PatientSnapshot): string {
   const n = `${p.prenom ?? ""} ${p.nom ?? ""}`.trim();
@@ -10,11 +11,21 @@ export function patientAgeYears(ddn?: string): number | null {
   return ageYears(ddn);
 }
 
-/** Champs conservés après « Nouvelle consultation » (logique template). */
+/** Champs conservés après « Nouvelle consultation » : identité et anamnèse commune complète. */
 export function extractIdentitySnapshot(
   data: PatientSnapshot,
 ): Partial<PatientSnapshot> {
+  // Tant que la reprise n'est pas terminée, les anciens champs en double suivent aussi.
+  const legacy = data.socleMigrated
+    ? []
+    : Object.values(SOCLE_ALIASES).flatMap((list) => (list ?? []).map((a) => a.key));
+  const socle = Object.fromEntries(
+    [...SOCLE_KEYS, ...SOCLE_META_KEYS, ...legacy]
+      .filter((k) => data[k] !== undefined)
+      .map((k) => [k, data[k]]),
+  );
   return {
+    ...socle,
     nom: data.nom,
     prenom: data.prenom,
     ddn: data.ddn,
@@ -27,6 +38,8 @@ export function extractIdentitySnapshot(
     thyroide: data.thyroide,
     atcdMed: data.atcdMed,
     chir: data.chir,
+    // Sécurité : une allergie ne disparaît pas en changeant de consultation.
+    allergies: data.allergies,
     tabac: data.tabac,
     traitements: data.traitements,
     imc: data.imc,
@@ -38,12 +51,12 @@ export function extractIdentitySnapshot(
   };
 }
 
+/** Champs vidés par « Nouvelle consultation ». L'anamnèse commune n'en fait jamais partie. */
 export function emptyConsultFields(): Partial<PatientSnapshot> {
-  return {
+  const fields: Partial<PatientSnapshot> = {
     motif: "",
     symptomes: "",
     debut: "",
-    allergies: "",
     eva: "0",
     g_ddr: "",
     g_cycle: "",
@@ -105,6 +118,10 @@ export function emptyConsultFields(): Partial<PatientSnapshot> {
     ec_hpres: "",
     ec_conclusion: "",
   };
+  for (const k of SOCLE_KEYS) delete fields[k];
+  // Les anciens champs en double ne sont plus saisis : ils restent tels quels jusqu'à leur reprise.
+  for (const list of Object.values(SOCLE_ALIASES)) for (const a of list ?? []) delete fields[a.key];
+  return fields;
 }
 
 const ANAM_KEYS: (keyof PatientSnapshot)[] = [

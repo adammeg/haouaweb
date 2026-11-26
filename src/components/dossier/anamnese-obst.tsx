@@ -15,7 +15,6 @@ import {
   O_DV_FLUX,
   O_EDF,
   O_GRP,
-  O_INDCS,
   O_PRES,
   O_RUBEO,
   O_SUIVI,
@@ -27,8 +26,6 @@ import {
 import {
   AnaCard,
   AnaSubTabs,
-  AtcdCommun,
-  GpaRow,
   PillGroup,
   SectionDivider,
   useAnaPatch,
@@ -46,9 +43,7 @@ const OBST_TABS = [
   { id: "echo", label: "📡 Écho & BPP" },
   { id: "morpho", label: "🫀 Morpho T2" },
   { id: "serol", label: "🧪 Séro & Bio" },
-  { id: "atcdobs", label: "📋 ATCD obst." },
   { id: "surv", label: "📊 Surveillance" },
-  { id: "atcd", label: "📜 ATCD médic." },
 ];
 
 export function ObstAnamnese({
@@ -115,15 +110,17 @@ export function ObstAnamnese({
       {sub === "grossesse" && (
         <AnaCard title="🤰 Grossesse actuelle" ar="الحمل الحالي">
           <div className="dossier-form-grid triple">
-            <Field label="G / P / A">
-              <GpaRow
-                g={draft.o_gest}
-                p={draft.o_par}
-                a={draft.o_abort}
-                onG={(v) => patch("o_gest", v)}
-                onP={(v) => patch("o_par", v)}
-                onA={(v) => patch("o_abort", v)}
+            <Field label="G / P / A (anamnèse commune)">
+              <input
+                type="text"
+                readOnly
+                aria-readonly
+                className="hawae-input dossier-imc-readonly"
+                value={draft.o_gest || draft.o_par || draft.o_abort ? `G${draft.o_gest || "?"} P${draft.o_par || "?"} A${draft.o_abort || "0"}` : "Non renseigné"}
               />
+            </Field>
+            <Field label="IMC pré-grossesse">
+              <TextInput type="number" value={draft.imc} onChange={(v) => patch("imc", v)} />
             </Field>
             <Field label="DDR">
               <TextInput type="date" value={draft.o_ddr} onChange={onDdr} />
@@ -401,104 +398,6 @@ export function ObstAnamnese({
         </AnaCard>
       )}
 
-      {sub === "atcdobs" && (
-        <AnaCard title="📋 Antécédents obstétricaux" ar="السوابق التوليدية">
-          <div className="dossier-form-grid">
-            <Field label="Grossesses précédentes — détails">
-              <TextArea
-                value={draft.o_atcd_gross}
-                rows={4}
-                placeholder="G1 (2020): AVB 39SA…"
-                onChange={(v) => patch("o_atcd_gross", v)}
-              />
-            </Field>
-            <Field label="Complications obstétricales">
-              <TextArea
-                value={draft.o_complic}
-                rows={4}
-                placeholder="MAP, HTA gravidique, pré-éclampsie…"
-                onChange={(v) => patch("o_complic", v)}
-              />
-            </Field>
-            <Field label="Nombre CS antérieures">
-              <TextInput type="number" value={draft.o_ncs} onChange={(v) => patch("o_ncs", v)} />
-            </Field>
-            <Field label="Indication CS">
-              <SelectInput value={draft.o_indcs} onChange={(v) => patch("o_indcs", v)} options={O_INDCS} />
-            </Field>
-          </div>
-          <SectionDivider>Facteurs de risque — PE · VTE · Diabète</SectionDivider>
-          <div className="dossier-form-grid triple">
-            <Field label="ATCD pré-éclampsie">
-              <PillGroup
-                name="o-atcd-pe"
-                value={draft.o_atcd_pe ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("o_atcd_pe", v)}
-              />
-            </Field>
-            <Field label="ATCD prématurité spontanée">
-              <PillGroup
-                name="o-atcd-prem"
-                value={draft.o_atcd_prematurite ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("o_atcd_prematurite", v)}
-              />
-            </Field>
-            <Field label="ATCD thrombose (TVP/EP)">
-              <PillGroup
-                name="o-atcd-vte"
-                value={draft.o_atcd_vte ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("o_atcd_vte", v)}
-              />
-            </Field>
-            <Field label="Thrombophilie">
-              <SelectInput
-                value={draft.o_thrombophilie}
-                onChange={(v) => patch("o_thrombophilie", v)}
-                options={[
-                  { value: "non", label: "Aucune" },
-                  { value: "basse", label: "Faible risque" },
-                  { value: "haute", label: "Haut risque" },
-                ]}
-              />
-            </Field>
-            <Field label="Lupus (LED)">
-              <PillGroup
-                name="o-led"
-                value={draft.o_led ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("o_led", v)}
-              />
-            </Field>
-            <Field label="SAPL">
-              <PillGroup
-                name="o-apl"
-                value={draft.o_apl ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("o_apl", v)}
-              />
-            </Field>
-          </div>
-        </AnaCard>
-      )}
-
       {sub === "surv" && (
         <AnaCard title="📊 Constantes du jour" ar="قياسات اليوم">
           <div className="dossier-form-grid triple">
@@ -611,24 +510,6 @@ export function ObstAnamnese({
               <PillGroup name="o-saignement-douleur" value={draft.o_saignement_douleur ?? ""} options={[{ value: "non", label: "Non" }, { value: "oui", label: "Oui" }]} onChange={(v) => patch("o_saignement_douleur", v)} />
             </Field>
           </div>
-        </AnaCard>
-      )}
-
-      {sub === "atcd" && (
-        <AnaCard title="📜 ATCD médicaux & Mode de vie" ar="السوابق الطبية">
-          <AtcdCommun
-            draft={draft}
-            patch={patch}
-            diabeteExtra={[
-              { value: "non", label: "Non" },
-              { value: "t1", label: "DT1" },
-              { value: "t2", label: "DT2" },
-              { value: "gesta", label: "Gesta." },
-            ]}
-          />
-          <Field label="IMC pré-grossesse" className="mt-4 max-w-xs">
-            <TextInput type="number" value={draft.imc} onChange={(v) => patch("imc", v)} />
-          </Field>
         </AnaCard>
       )}
     </div>

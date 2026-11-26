@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import type { ReactNode, SVGProps } from "react";
 import type { NavItem } from "@/components/layout/nav-types";
-import { ToolsNavGroups } from "@/components/layout/tools-nav-groups";
+import { IconBell, IconCalendar, ToolsNavGroups } from "@/components/layout/tools-nav-groups";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { useHawaeStore } from "@/stores/hawae-store";
 import { UserSwitcher } from "@/components/users/user-switcher";
 import { LogoutControl } from "@/components/auth/logout-control";
 import { HawaeLogo } from "@/components/brand/hawae-logo";
 import { NewPatientModal } from "@/components/patient/new-patient-modal";
 import { BackupModal } from "@/components/backup/backup-modal";
+import { CommandPalette } from "@/components/layout/command-palette";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { useModulesWorkspace } from "@/stores/modules-store";
 import { todayIso } from "@/lib/waiting-room/utils";
@@ -120,19 +121,12 @@ const PRIMARY_NAV: NavItem[] = [
     icon: IconWaiting,
     emoji: "🚪",
   },
-  {
-    href: "/dossier",
-    label: "Dossier patiente",
-    icon: IconFolder,
-    emoji: "📋",
-  },
-  {
-    href: "/dashboard",
-    label: "Dashboard",
-    icon: IconDashboard,
-    emoji: "📊",
-  },
+  { href: "/agenda", label: "Agenda & RDV", icon: IconCalendar },
+  { href: "/dossier", label: "Dossier patiente", icon: IconFolder, emoji: "📋" },
+  { href: "/rappels", label: "Rappels", icon: IconBell },
+  { href: "/dashboard", label: "Dashboard", icon: IconDashboard, emoji: "📊" },
 ];
+const SECRETARY_HREFS = ["/salle-attente", "/agenda", "/rappels"];
 
 function SidebarItem({
   item,
@@ -200,10 +194,11 @@ export function AppChrome({
   };
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [newPatientOpen, setNewPatientOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const openNewPatient = useCallback(() => setNewPatientOpen(true), []);
   const saveDraft = useHawaeStore((s) => s.saveDraft);
   const draft = useHawaeStore((s) => s.draft);
   const ws = useModulesWorkspace();
@@ -293,7 +288,7 @@ export function AppChrome({
             Espaces
           </div>
           {(doctor.role === "secretary"
-            ? PRIMARY_NAV.filter((item) => item.href === "/salle-attente")
+            ? PRIMARY_NAV.filter((item) => SECRETARY_HREFS.includes(item.href))
             : PRIMARY_NAV
           ).map((item) => (
             <SidebarItem
@@ -309,9 +304,9 @@ export function AppChrome({
             />
           ))}
 
-          <div className="sidebar-nav-label">
-            Outils
-          </div>
+          {doctor.role !== "secretary" ? (
+            <div className="sidebar-nav-label">Outils</div>
+          ) : null}
           {doctor.role !== "secretary" ? (
           <button
             type="button"
@@ -331,23 +326,6 @@ export function AppChrome({
             </span>
           </button>
           ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              router.push("/agenda");
-              closeMobile();
-            }}
-            className="sidebar-nav-item group flex w-full items-center gap-3 text-left"
-          >
-            <span className="sidebar-nav-icon flex shrink-0 items-center justify-center">
-              ＋
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12.5px] font-semibold leading-tight text-white/90">
-                Nouveau RDV
-              </span>
-            </span>
-          </button>
           {doctor.role !== "secretary" ? (
           <button
             type="button"
@@ -461,9 +439,23 @@ export function AppChrome({
               </svg>
             </button>
             <div className="min-w-0 flex-1">
-              <span className="topbar-space-title truncate font-display text-base tracking-tight sm:text-[17px]">
-                {pageTitle}
-              </span>
+              <span className="sr-only">{pageTitle}</span>
+              <button
+                type="button"
+                className="search-trigger"
+                onClick={() => setSearchOpen(true)}
+                aria-haspopup="dialog"
+                aria-keyshortcuts="Control+K"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-4-4" strokeLinecap="round" />
+                </svg>
+                <span className="truncate">
+                  {doctor.role === "secretary" ? "Rechercher une page" : "Rechercher une patiente"}
+                </span>
+                <kbd>Ctrl K</kbd>
+              </button>
             </div>
             <div className="topbar-actions flex shrink-0 items-center gap-1.5 sm:gap-2">
               <UserSwitcher
@@ -483,7 +475,7 @@ export function AppChrome({
                 }
               />
               <NotificationBell />
-              {doctor.role !== "secretary" ? (
+              {doctor.role !== "secretary" && draft && pathname.startsWith("/dossier") ? (
               <>
               <button
                 type="button"
@@ -491,38 +483,10 @@ export function AppChrome({
                 className="btn-header hidden sm:inline-flex"
                 title="Sauvegarder le dossier en cours"
               >
-                💾 Sauvegarder
+                Sauvegarder
               </button>
               </>
               ) : null}
-              <Link
-                href="/agenda"
-                className="btn-header hidden sm:inline-flex"
-                style={{
-                  background: "var(--teal-pale)",
-                  color: "var(--teal)",
-                  borderColor: "var(--teal)",
-                }}
-                title="Prendre un RDV"
-              >
-                📅 RDV
-              </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  if (draft?.id) saveDraft();
-                  router.push("/salle-attente");
-                }}
-                className="btn-header hidden sm:inline-flex"
-                title="Envoyer en salle d'attente"
-                style={{
-                  background: "#fef9e7",
-                  color: "#92400e",
-                  borderColor: "#fde68a",
-                }}
-              >
-                🚪 Attente
-              </button>
             </div>
           </div>
         </div>
@@ -537,6 +501,12 @@ export function AppChrome({
 
       <MobileBottomNav onOpenMenu={() => setMobileOpen(true)} secretary={doctor.role === "secretary"} />
 
+      <CommandPalette
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        secretary={doctor.role === "secretary"}
+        onNewPatient={openNewPatient}
+      />
       <NewPatientModal
         open={newPatientOpen}
         onClose={() => setNewPatientOpen(false)}

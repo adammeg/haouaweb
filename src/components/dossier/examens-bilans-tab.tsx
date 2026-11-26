@@ -8,17 +8,14 @@ import {
   TextInput,
   type FieldPatch,
 } from "@/components/dossier/form-primitives";
+import { O_GRP, O_RUBEO, O_TOXO } from "@/lib/dossier/anamnese-config";
 
 const RAI_OPTIONS = [
   { value: "Négative", label: "Négative" },
   { value: "Positive (préciser)", label: "Positive (préciser)" },
 ];
 
-const SERO_IMMUNE = [
-  { value: "Immune (IgG+)", label: "Immune (IgG+)" },
-  { value: "Non immune (IgG−)", label: "Non immune (IgG−)" },
-  { value: "Infection active (IgM+)", label: "Infection active (IgM+)" },
-];
+// Groupe, rubéole et toxoplasmose : mêmes champs que l'anamnèse commune (une seule valeur par patiente).
 
 const INFECT_OPTIONS = [
   { value: "AgHBs− / HIV−", label: "AgHBs− / HIV−" },
@@ -152,7 +149,7 @@ export function ExamensBilansTab({
           <div className="bio-section-title">🦠 Sérologies & Groupe sanguin</div>
           <div className="dossier-form-grid triple">
             <Field label="Groupe / Rhésus">
-              <TextInput value={draft.bio_groupe} placeholder="A+ / O-" onChange={(v) => p("bio_groupe", v)} />
+              <SelectInput value={draft.o_grp} onChange={(v) => p("o_grp", v)} options={O_GRP} />
             </Field>
             <Field label="RAI">
               <SelectInput value={draft.bio_rai} onChange={(v) => p("bio_rai", v)} options={RAI_OPTIONS} />
@@ -167,10 +164,10 @@ export function ExamensBilansTab({
               <TextInput type="number" value={draft.bio_he4} placeholder="70" onChange={(v) => p("bio_he4", v)} />
             </Field>
             <Field label="Rubéole">
-              <SelectInput value={draft.bio_rubeole} onChange={(v) => p("bio_rubeole", v)} options={SERO_IMMUNE} />
+              <SelectInput value={draft.o_rubeo} onChange={(v) => p("o_rubeo", v)} options={O_RUBEO} />
             </Field>
             <Field label="Toxoplasmose">
-              <SelectInput value={draft.bio_toxo} onChange={(v) => p("bio_toxo", v)} options={SERO_IMMUNE} />
+              <SelectInput value={draft.o_toxo} onChange={(v) => p("o_toxo", v)} options={O_TOXO} />
             </Field>
             <Field label="AgHBs / HIV">
               <SelectInput value={draft.bio_infect} onChange={(v) => p("bio_infect", v)} options={INFECT_OPTIONS} />

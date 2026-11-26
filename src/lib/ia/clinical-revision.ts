@@ -6,7 +6,7 @@ const CORE = new Set(["id", "specialite", "motif", "symptomes", "debut", "hta", 
 
 export function clinicalProjection(d: PatientSnapshot): Record<string, unknown> {
   return Object.fromEntries(Object.entries(d)
-    .filter(([k, v]) => v !== undefined && (CORE.has(k) || /^(g_|o_|i_|bio_|ec_|t2_|popq_)/.test(k)) && !k.includes("ia_") && !["t2_operateur", "t2_machine"].includes(k))
+    .filter(([k, v]) => v !== undefined && (CORE.has(k) || /^(g_|o_|i_|bio_|ec_|t2_|popq_|fam_)/.test(k)) && !k.includes("ia_") && !["t2_operateur", "t2_machine"].includes(k))
     .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
 }
 

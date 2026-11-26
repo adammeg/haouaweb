@@ -93,7 +93,7 @@
   --card: rgba(255, 255, 255, 0.72);
   --ink: var(--color-ink);
   --ink-mid: #3d5c5c;
-  --muted: #7a9a9a;
+  --muted: #527070;
   --muted-light: #adc4c4;
   --border: #d4e8e8;
   --border-teal: #c9e3e3;
@@ -1531,8 +1531,8 @@ video {
   letter-spacing: -.02em;
 }
 .sidebar-logo-text > span {
-  font-size: 10px;
-  color: rgba(255,255,255,.38);
+  font-size: 12px;
+  color: rgba(255,255,255,.75);
   letter-spacing: .03em;
   text-transform: none;
 }
@@ -1543,11 +1543,9 @@ video {
 .sidebar-nav-label {
   padding: 0 12px;
   margin: 18px 0 2px;
-  color: rgba(255,255,255,.28);
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: .14em;
-  text-transform: uppercase;
+  color: rgba(255,255,255,.75);
+  font-size: 12px;
+  font-weight: 600;
 }
 .sidebar-nav-label:first-child { margin-top: 4px; }
 .sidebar-nav-item {

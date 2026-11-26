@@ -12,13 +12,18 @@ import {
 import { CrOpModal } from "@/components/dossier/cr-op-modal";
 import { OrdonnanceModal } from "@/components/ordo/ordonnance-modal";
 import { practitionerDisplayName, usePractitionerStore } from "@/stores/practitioner-store";
-import {
-  DossierFormView,
-  type DossierTabId,
-} from "@/components/dossier/dossier-form-view";
+import { DossierFormView } from "@/components/dossier/dossier-form-view";
+import type { DossierTabId } from "@/lib/dossier/dossier-nav";
 import { DossierListView } from "@/components/dossier/dossier-list-view";
 import { NewPatientModal } from "@/components/patient/new-patient-modal";
 import type { VoiceTab } from "@/lib/voice/commands";
+
+/** Vrai si le brouillon diffère de la copie rangée dans le store. */
+function hasUnsavedDraft(): boolean {
+  const s = useHawaeStore.getState();
+  if (!s.draft || !s.currentPatientId || !s.currentUserId) return false;
+  return s.patientsByUser[s.currentUserId]?.[s.currentPatientId] !== s.draft;
+}
 
 export function DossierWorkspace() {
   const router = useRouter();
@@ -58,6 +63,24 @@ export function DossierWorkspace() {
   const practitioner = usePractitionerStore((s) => s.profile);
 
   const handledQueryRef = useRef<string | null>(null);
+
+  // Chaque dossier s'ouvre sur l'anamnèse (avant la navigation vocale, qui peut choisir une autre section).
+  useEffect(() => {
+    setTab("anamnese");
+  }, [currentPatientId]);
+
+  // Enregistre la dernière saisie si l'on quitte la page avant la fin du délai automatique.
+  useEffect(() => {
+    const doctorId = window.__HAWAE_DOCTOR_ID__;
+    const flush = () => {
+      if (window.__HAWAE_DOCTOR_ID__ === doctorId && hasUnsavedDraft()) useHawaeStore.getState().saveDraft();
+    };
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
 
   // Voice navigation uses the same tab callback as the visible dossier controls.
   useEffect(() => {
@@ -105,6 +128,8 @@ export function DossierWorkspace() {
 
   useEffect(() => {
     if (!draft?.id || !currentPatientId) return;
+    // saveDraft remplace le brouillon : sans ce test, il se relance sans fin et l'envoi au serveur est sans cesse repoussé.
+    if (!hasUnsavedDraft()) return;
     setSaveStatus("saving");
     const t = setTimeout(() => {
       saveDraft();
@@ -166,6 +191,7 @@ export function DossierWorkspace() {
           onField={onField}
           patchDraft={patchDraft}
           onClose={() => {
+            if (hasUnsavedDraft()) saveDraft();
             closePatient();
             setTab("anamnese");
           }}

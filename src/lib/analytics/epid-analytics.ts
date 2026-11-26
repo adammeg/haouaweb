@@ -5,6 +5,7 @@
  */
 
 import type { PatientSnapshot } from "@/types/domain";
+import { socleValue } from "@/lib/dossier/socle";
 
 export type AnalyticType =
   | "pyramide"
@@ -328,12 +329,12 @@ function dgTerme(pts: PatientSnapshot[]): AnalyticResult {
 
 // ── Parité ──
 function parite(pts: PatientSnapshot[]): AnalyticResult {
-  const obst = pts.filter((p) => p.specialite === "obst" || p.g_par || p.o_par);
+  const obst = pts.filter((p) => p.specialite === "obst" || socleValue(p, "o_par"));
   const labels = ["P0", "P1", "P2–3", "P4+"];
   const counts = [0, 0, 0, 0];
   let n = 0;
   for (const p of obst) {
-    const par = parseInt(p.o_par || p.g_par || "", 10);
+    const par = parseInt(socleValue(p, "o_par"), 10);
     if (Number.isNaN(par)) continue;
     n++;
     const i = par === 0 ? 0 : par === 1 ? 1 : par <= 3 ? 2 : 3;

@@ -13,6 +13,7 @@ import {
   formatGaFromDdr,
   genDossierNumber,
 } from "@/lib/documents/smart-fields";
+import { socleValue } from "@/lib/dossier/socle";
 
 export function buildPatientDocContext(
   draft?: PatientSnapshot | null,
@@ -45,7 +46,7 @@ export function buildPatientDocContext(
     dossierId: genDossierNumber(spec as "gyn" | "obs"),
     cnam: draft.cin ?? "",
     adresse: [draft.profession, draft.tel].filter(Boolean).join(" · "),
-    parite: `G${draft.o_gest ?? draft.g_gest ?? "0"}P${draft.o_par ?? draft.g_par ?? "0"}`,
+    parite: `G${socleValue(draft, "o_gest") || "0"}P${socleValue(draft, "o_par") || "0"}`,
     terme: draft.o_terme ?? formatGaFromDdr(ddr) ?? "",
     ddr,
     dpa: draft.o_dpa ?? computeDpaFromDdr(ddr),

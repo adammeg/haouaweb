@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode, type SVGProps } from "react";
 import type { NavItem } from "./nav-types";
 
-function IconCalendar(props: SVGProps<SVGSVGElement>) {
+export function IconCalendar(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden {...props}>
       <rect x="3" y="5" width="18" height="16" rx="2" />
@@ -12,7 +12,7 @@ function IconCalendar(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function IconBell(props: SVGProps<SVGSVGElement>) {
+export function IconBell(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden {...props}>
       <path d="M6 8a6 6 0 1 1 12 0c0 6 2 7 2 7H4s2-1 2-7Z" strokeLinecap="round" />
@@ -83,14 +83,6 @@ function IconSettings(props: SVGProps<SVGSVGElement>) {
 
 export const TOOL_GROUPS: { id: string; label: string; items: NavItem[] }[] = [
   {
-    id: "planning",
-    label: "Planning",
-    items: [
-      { href: "/agenda", label: "Agenda & RDV", sub: "Planning semaine", icon: IconCalendar },
-      { href: "/rappels", label: "Rappels", sub: "RDV à confirmer", icon: IconBell },
-    ],
-  },
-  {
     id: "clinique",
     label: "Clinique",
     items: [
@@ -127,7 +119,6 @@ export function ToolsNavGroups({
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({
-    planning: true,
     clinique: true,
     archives: true,
   });
@@ -153,7 +144,7 @@ export function ToolsNavGroups({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Rechercher un outil…"
-          className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/15"
+          className="w-full rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs text-white placeholder:text-white/70 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/15"
           aria-label="Rechercher dans les outils"
         />
       </div>
@@ -166,11 +157,11 @@ export function ToolsNavGroups({
               onClick={() =>
                 setOpen((s) => ({ ...s, [group.id]: !expanded }))
               }
-              className="flex w-full items-center justify-between px-2.5 py-1.5 text-left text-[9px] font-bold uppercase tracking-[1.8px] text-white/35 hover:text-white/55"
+              className="flex w-full items-center justify-between px-2.5 py-1.5 text-left min-h-9 text-xs font-semibold text-white/75 hover:text-white"
               aria-expanded={expanded}
             >
               {group.label}
-              <span className="text-white/40">{expanded ? "−" : "+"}</span>
+              <span className="text-white/70">{expanded ? "−" : "+"}</span>
             </button>
             {expanded
               ? group.items.map((item) =>
@@ -185,7 +176,7 @@ export function ToolsNavGroups({
         );
       })}
       {query && filtered.length === 0 ? (
-        <p className="px-3 py-2 text-xs text-white/45">Aucun outil trouvé.</p>
+        <p className="px-3 py-2 text-xs text-white/70">Aucun outil trouvé.</p>
       ) : null}
     </>
   );
