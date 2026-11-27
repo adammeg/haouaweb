@@ -92,6 +92,12 @@ export function ExamenCliniqueTab({
     [draft.ec_poids, draft.ec_taille],
   );
 
+  // L'IMC du jour alimente les scores ; en obstétrique, le champ IMC reste l'IMC pré-grossesse.
+  const onAnthro = (poids: string, taille: string) => {
+    const imc = draft.specialite === "obst" ? "" : calcImc(poids, taille);
+    onField({ ec_poids: poids, ec_taille: taille, ...(imc ? { imc } : {}) });
+  };
+
   const toggleChip = (label: string) => {
     setChips((prev) => {
       const next = new Set(prev);
@@ -139,7 +145,7 @@ export function ExamenCliniqueTab({
                 type="number"
                 value={draft.ec_poids}
                 placeholder="68"
-                onChange={(v) => p("ec_poids", v)}
+                onChange={(v) => onAnthro(v, draft.ec_taille ?? "")}
               />
             </Field>
             <Field label="Taille (cm)">
@@ -147,7 +153,7 @@ export function ExamenCliniqueTab({
                 type="number"
                 value={draft.ec_taille}
                 placeholder="165"
-                onChange={(v) => p("ec_taille", v)}
+                onChange={(v) => onAnthro(draft.ec_poids ?? "", v)}
               />
             </Field>
             <Field label="IMC calculé">

@@ -1,5 +1,6 @@
 import type { PatientSnapshot } from "@/types/domain";
 import type { Specialty } from "@/types/domain";
+import { socleValue } from "@/lib/dossier/socle";
 
 export type ChecklistItemDef = {
   id: string;
@@ -27,26 +28,26 @@ export const CHECKLISTS: Record<Specialty, ChecklistItemDef[]> = {
       id: "g3",
       label: "DDR et caractère des cycles notés",
       sub: "Date des dernières règles + régularité",
-      check: (d) => !!d.g_ddr && !!d.g_reg,
+      check: (d) => !!d.g_ddr && !!socleValue(d, "g_reg"),
     },
     {
       id: "g4",
       label: "Contraception actuelle documentée",
       sub: "Aucun moyen = à préciser explicitement",
-      check: (d) => !!d.g_contra,
+      check: (d) => !!socleValue(d, "g_contra"),
     },
     {
       id: "g5",
       label: "Dernier FCV daté et résultat noté",
       sub: "Dépistage cancer col — obligatoire dès 25 ans",
-      check: (d) => !!d.g_fcv && !!d.g_fcv_res,
+      check: (d) => !!socleValue(d, "g_fcv") && !!socleValue(d, "g_fcv_res"),
       warn: true,
     },
     {
       id: "g6",
       label: "Gestité / Parité renseignée",
-      sub: "G / P / A dans les ATCD gynéco",
-      check: (d) => !!d.g_gest || d.g_gest === "0",
+      sub: "G / P / A dans l'anamnèse commune",
+      check: (d) => !!socleValue(d, "o_gest"),
     },
     {
       id: "g7",
@@ -164,7 +165,7 @@ export const CHECKLISTS: Record<Specialty, ChecklistItemDef[]> = {
       id: "i2",
       label: "Caractère des cycles documenté",
       sub: "Régularité, durée, dysménorrhée",
-      check: (d) => !!d.i_reg,
+      check: (d) => !!socleValue(d, "g_reg"),
     },
     {
       id: "i3",

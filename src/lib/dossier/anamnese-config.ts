@@ -144,8 +144,8 @@ export const O_GRP = opts([
   "Inconnu",
 ]);
 
-export const O_TOXO = opts(["Immune", "Non immune", "Inconnu"]);
-export const O_RUBEO = opts(["Immune", "Non immune", "Inconnu"]);
+export const O_TOXO = opts(["Immune", "Non immune", "Infection active (IgM+)", "Inconnu"]);
+export const O_RUBEO = opts(["Immune", "Non immune", "Infection active (IgM+)", "Inconnu"]);
 
 export const O_PRES = opts([
   "Céphalique",

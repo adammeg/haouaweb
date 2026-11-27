@@ -10,8 +10,6 @@ import {
   type FieldPatch,
 } from "@/components/dossier/form-primitives";
 import {
-  GYN_DYSMEN,
-  GYN_REG,
   I_COELIO,
   I_HSG,
   I_HYSTERO,
@@ -21,8 +19,6 @@ import {
 import {
   AnaCard,
   AnaSubTabs,
-  AtcdCommun,
-  GpaRow,
   PillGroup,
   SectionDivider,
   useAnaPatch,
@@ -31,10 +27,9 @@ import { PmaClient } from "@/components/pma/pma-client";
 
 const INF_TABS = [
   { id: "motif", label: "💬 Motif" },
-  { id: "cycles", label: "🔵 Cycles" },
+  { id: "cycles", label: "🔵 Cycle actuel" },
   { id: "bilan", label: "🔬 Bilan réalisé" },
   { id: "homme", label: "👨 Facteur ♂" },
-  { id: "atcd", label: "📜 ATCD" },
   { id: "pma", label: "🧬 PMA / FIV" },
 ];
 
@@ -94,30 +89,10 @@ export function InfAnamnese({
       )}
 
       {sub === "cycles" && (
-        <AnaCard title="🔵 Cycles & Ovulation" ar="الدورة والإباضة">
+        <AnaCard title="🔵 Cycle actuel et ovulation" ar="الدورة والإباضة">
           <div className="dossier-form-grid triple">
             <Field label="DDR">
               <TextInput type="date" value={draft.i_ddr} onChange={(v) => patch("i_ddr", v)} />
-            </Field>
-            <Field label="Durée cycle (j)">
-              <TextInput type="number" value={draft.i_cycle} placeholder="28" onChange={(v) => patch("i_cycle", v)} />
-            </Field>
-            <Field label="Régularité">
-              <SelectInput value={draft.i_reg} onChange={(v) => patch("i_reg", v)} options={GYN_REG} />
-            </Field>
-            <Field label="Dysménorrhée">
-              <SelectInput value={draft.i_dysmen} onChange={(v) => patch("i_dysmen", v)} options={GYN_DYSMEN} />
-            </Field>
-            <Field label="Dyspareunie profonde">
-              <PillGroup
-                name="i-dysp"
-                value={draft.i_dysp ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("i_dysp", v)}
-              />
             </Field>
             <Field label="Signes SOPK">
               <PillGroup
@@ -129,12 +104,6 @@ export function InfAnamnese({
                 ]}
                 onChange={(v) => patch("i_sopk", v)}
               />
-            </Field>
-            <Field label="Âge ménarche">
-              <TextInput type="number" value={draft.i_menarche} onChange={(v) => patch("i_menarche", v)} />
-            </Field>
-            <Field label="Contraception ancienne">
-              <TextInput value={draft.i_contra} onChange={(v) => patch("i_contra", v)} />
             </Field>
           </div>
         </AnaCard>
@@ -270,38 +239,6 @@ export function InfAnamnese({
 
       {sub === "pma" && (
         <PmaClient patientId={draft.id} embedded />
-      )}
-
-      {sub === "atcd" && (
-        <AnaCard title="📜 ATCD médicaux & Mode de vie">
-          <div className="dossier-form-grid triple">
-            <Field label="G / P / A">
-              <GpaRow
-                g={draft.i_gest}
-                p={draft.i_par}
-                a={draft.i_abort}
-                onG={(v) => patch("i_gest", v)}
-                onP={(v) => patch("i_par", v)}
-                onA={(v) => patch("i_abort", v)}
-              />
-            </Field>
-            <Field label="ATCD IST / Salpingite">
-              <PillGroup
-                name="i-ist"
-                value={draft.i_ist ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("i_ist", v)}
-              />
-            </Field>
-            <Field label="IMC">
-              <TextInput type="number" value={draft.imc} onChange={(v) => patch("imc", v)} />
-            </Field>
-          </div>
-          <AtcdCommun draft={draft} patch={patch} />
-        </AnaCard>
       )}
     </div>
   );

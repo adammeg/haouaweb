@@ -4,6 +4,7 @@ import { pushWorkspaceNow } from "@/lib/storage/workspace-sync-client";
 import { useEffect, useRef } from "react";
 import { useHawaeStore } from "@/stores/hawae-store";
 import { markAssistantData } from "@/stores/assistant-data-status";
+import { markSync } from "@/stores/sync-status";
 import type {
   ConsultationEntry,
   PatientSnapshot,
@@ -50,13 +51,19 @@ export function WorkspaceSync({ doctorId: requestedDoctorId }: { doctorId?: stri
     const doctorId = requestedDoctorId ?? window.__HAWAE_DOCTOR_ID__;
     initialDone.current = false; applyingRemote.current = false; lastPushed.current = "";
     markAssistantData(doctorId, "patients", "loading");
+    markSync("idle");
 
     async function push() {
       if (cancelled || applyingRemote.current) return;
       try {
         const result = await pushWorkspaceNow();
-        if (!cancelled) { lastPushed.current = result.snapshot; markAssistantData(doctorId, "patients", "ready"); }
+        if (!cancelled) {
+          lastPushed.current = result.snapshot;
+          markAssistantData(doctorId, "patients", "ready");
+          markSync(snapshotForSync(useHawaeStore.getState()) === result.snapshot ? "saved" : "pending");
+        }
       } catch {
+        if (!cancelled) markSync("error");
         /* Explicit AI saves surface errors; background synchronization retries on subsequent changes. */
       }
     }
@@ -101,7 +108,7 @@ export function WorkspaceSync({ doctorId: requestedDoctorId }: { doctorId?: stri
             setupDone: remote.workspace.setupDone,
             workspaceSavedAt: remote.updatedAt,
           });
-          useHawaeStore.getState().ensureDefaultUser();
+          useHawaeStore.getState().ensureDefaultUser(); markSync("saved");
           applyingRemote.current = false;
           lastPushed.current = snapshotForSync(useHawaeStore.getState());
         } else {
@@ -111,7 +118,10 @@ export function WorkspaceSync({ doctorId: requestedDoctorId }: { doctorId?: stri
       } catch {
         initialDone.current = true;
       } finally {
-        if (!cancelled) markAssistantData(doctorId, "patients", verified ? "ready" : "error");
+        if (!cancelled) {
+          markAssistantData(doctorId, "patients", verified ? "ready" : "error");
+          if (!verified) markSync("error");
+        }
       }
     }
 
@@ -121,6 +131,7 @@ export function WorkspaceSync({ doctorId: requestedDoctorId }: { doctorId?: stri
       if (!initialDone.current || applyingRemote.current) return;
       const snap = snapshotForSync(state);
       if (snap === lastPushed.current) return;
+      markSync("pending");
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         debounceRef.current = null;

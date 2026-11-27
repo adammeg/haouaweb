@@ -13,6 +13,13 @@ import {
   emptyConsultFields,
   extractIdentitySnapshot,
 } from "@/lib/patient-utils";
+import {
+  SOCLE_KEYS,
+  SOCLE_META_KEYS,
+  appendSocleLog,
+  planSocleMigration,
+} from "@/lib/dossier/socle";
+import { projectLatest } from "@/lib/dossier/examens";
 
 const AVATAR_COLORS = [
   "#0d6e6e",
@@ -84,6 +91,21 @@ function newPatientId(): string {
 
 function newUserId(): string {
   return `user_${Date.now()}`;
+}
+
+/**
+ * Reprise silencieuse des anciens champs en double dans l'anamnèse commune. En cas de valeurs
+ * contradictoires, seules les données sans conflit sont reprises : le médecin tranche le reste.
+ */
+export function withSocleMigrated(p: PatientSnapshot): PatientSnapshot {
+  if (p.socleMigrated) return { ...p };
+  const { patch, conflicts } = planSocleMigration(p);
+  const next: PatientSnapshot = { ...p, ...patch };
+  if (Object.keys(patch).length) {
+    next.socleLog = appendSocleLog(next, "Anamnèse commune reprise des anciennes rubriques par spécialité");
+  }
+  if (!conflicts.length) next.socleMigrated = "1";
+  return next;
 }
 
 function emptyDraft(id: string): PatientSnapshot {
@@ -191,7 +213,7 @@ export const useHawaeStore = create<HawaeState>()(
         if (!p) return;
         set({
           currentPatientId: id,
-          draft: { ...p },
+          draft: withSocleMigrated(p),
         });
       },
 
@@ -211,6 +233,7 @@ export const useHawaeStore = create<HawaeState>()(
           ...emptyDraft(id),
           ...fields,
           id,
+          socleMigrated: "1",
           createdAt: now,
           updatedAt: now,
         };
@@ -308,6 +331,8 @@ export const useHawaeStore = create<HawaeState>()(
             id,
             specialite: (draft.specialite as Specialty) || "",
             ...emptyConsultFields(),
+            // Les résultats datés restent connus : leur valeur la plus récente reste dans le dossier.
+            ...projectLatest(draft.examens ?? []),
             hawaeIaHistory: draft.hawaeIaHistory,
             ordonnanceLines: draft.ordonnanceLines,
             ordonnanceNote: draft.ordonnanceNote,
@@ -344,7 +369,17 @@ export const useHawaeStore = create<HawaeState>()(
         const list = get().historyByUser[uid]?.[id] ?? [];
         const c = list.find((x) => x.id === consultId);
         if (!c) return;
-        set({ draft: { ...c.data, id } });
+        // L'anamnèse commune appartient à la patiente, pas à la consultation : la version actuelle prime,
+        // l'archive ne comble que les champs vides.
+        const draft = get().draft;
+        const current: Partial<PatientSnapshot> = {};
+        if (draft?.id === id) {
+          for (const k of [...SOCLE_KEYS, ...SOCLE_META_KEYS]) {
+            const v = draft[k];
+            if (v !== undefined && !(typeof v === "string" && !v.trim())) Object.assign(current, { [k]: v });
+          }
+        }
+        set({ draft: { ...c.data, ...current, id } });
       },
 
       deleteConsultation: (consultId) => {

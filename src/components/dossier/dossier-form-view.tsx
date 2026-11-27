@@ -1,19 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHawaeStore } from "@/stores/hawae-store";
 import { useModulesStore, useModulesWorkspace } from "@/stores/modules-store";
 import { EMPTY_PATIENTS_MAP } from "@/lib/empty-stable";
 import { addPatientToWaitingQueue } from "@/lib/waiting-room/register-arrival";
 import { todayIso } from "@/lib/waiting-room/utils";
 import type { ConsultationEntry, PatientSnapshot } from "@/types/domain";
-import { computeCompleteness, patientAgeYears } from "@/lib/patient-utils";
-import {
-  buildPatientSubtitle,
-  dossierDisplayName,
-} from "@/lib/dossier/patient-meta";
+import { patientAgeYears } from "@/lib/patient-utils";
+import { dossierDisplayName } from "@/lib/dossier/patient-meta";
+import { dossierStages, type DossierTabId } from "@/lib/dossier/dossier-nav";
+import { PatientBanner } from "@/components/dossier/patient-banner";
 import { generateDossierCompletPdf } from "@/lib/dossier/dossier-pdf";
 import { DossierAlertsBar } from "@/components/dossier/dossier-alerts-bar";
 import { BioCurvesPanel } from "@/components/dossier/bio-curves-panel";
@@ -32,21 +30,6 @@ import { DocumentsClient } from "@/components/documents/documents-client";
 import { DossierScoresTab } from "@/components/scores/dossier-scores-tab";
 import { DossierHistoriqueTab } from "@/components/dossier/dossier-tab-panels";
 
-export type DossierTabId =
-  | "anamnese"
-  | "examen"
-  | "bilans"
-  | "pma"
-  | "scores"
-  | "hawae"
-  | "checklist"
-  | "historique"
-  | "docs"
-  | "certificat"
-  | "protocoles"
-  | "rappels"
-  | "partogramme";
-
 type Props = {
   draft: PatientSnapshot;
   tab: DossierTabId;
@@ -63,26 +46,12 @@ type Props = {
   onOpenCrOp?: () => void;
 };
 
-const BASE_TABS: { id: DossierTabId; label: string }[] = [
-  { id: "anamnese", label: "📋 Anamnèse" },
-  { id: "examen", label: "🩺 Examen clinique" },
-  { id: "bilans", label: "🔬 Examens & Bilans" },
-  { id: "scores", label: "📊 Scores" },
-  { id: "hawae", label: "🌬️ Hawae" },
-  { id: "checklist", label: "✅ Checklist" },
-  { id: "historique", label: "🕐 Historique" },
-  { id: "docs", label: "📄 Docs" },
-  { id: "certificat", label: "🧾 Certificat" },
-  { id: "protocoles", label: "📚 Protocoles" },
-  { id: "rappels", label: "🔔 Rappels" },
-  { id: "partogramme", label: "📈 Partogramme" },
-];
-
 export function DossierFormView({
   draft,
   tab,
   onTab,
   onField,
+  patchDraft,
   onClose,
   onNewConsultation,
   history,
@@ -112,13 +81,34 @@ export function DossierFormView({
     [ws.waitingQueue],
   );
 
-  const completeness = computeCompleteness(draft);
+  const stages = useMemo(() => dossierStages(draft.specialite), [draft.specialite]);
+  const stage = stages.find((s) => s.tabs.some((t) => t.id === tab)) ?? stages[0]!;
+  const position = stage.tabs.findIndex((t) => t.id === tab);
+  const nextTab = stage.tabs[position + 1];
+  const lastTabs = useRef<Record<string, DossierTabId>>({});
+  useEffect(() => {
+    lastTabs.current[stage.id] = tab;
+  }, [stage.id, tab]);
 
-  const tabs = useMemo(() => {
-    const list = BASE_TABS.filter((t) => t.id !== "pma");
-    list.push({ id: "pma", label: "🧬 PMA / FIV" });
-    return list;
-  }, []);
+  function openStage(id: string) {
+    const target = stages.find((s) => s.id === id)!;
+    const last = lastTabs.current[id];
+    onTab(target.tabs.some((t) => t.id === last) ? last! : target.tabs[0]!.id);
+  }
+
+  function moveTab(e: React.KeyboardEvent) {
+    const n = stage.tabs.length;
+    const to =
+      e.key === "ArrowRight" ? (position + 1) % n
+      : e.key === "ArrowLeft" ? (position + n - 1) % n
+      : e.key === "Home" ? 0
+      : e.key === "End" ? n - 1
+      : -1;
+    if (to < 0) return;
+    e.preventDefault();
+    onTab(stage.tabs[to]!.id);
+    document.getElementById(`dossier-tab-${stage.tabs[to]!.id}`)?.focus();
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -172,103 +162,52 @@ export function DossierFormView({
         </div>
       ) : null}
 
-      <button type="button" className="dossier-back-btn" onClick={onClose}>
-        ← Retour à la liste
-      </button>
-
       <div className="dossier-app-body dossier-app-body--solo">
         <main className="dossier-main-content">
-          <div className="dossier-page-title">
-            <div>
-              <h1>{dossierDisplayName(draft)}</h1>
-              <div className="subtitle">{buildPatientSubtitle(draft)}</div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="btn-header"
-                title="Envoyer en salle d'attente"
-                style={{
-                  background: "#fef9e7",
-                  color: "#92400e",
-                  borderColor: "#fde68a",
-                }}
-                onClick={sendToWaiting}
-              >
-                🚪 Attente
-              </button>
-              <button
-                type="button"
-                className="btn-header"
-                disabled={pdfBusy}
-                onClick={exportPdf}
-              >
-                📤 PDF
-              </button>
-            </div>
-          </div>
-
-          <div className="storage-banner">
-            <span className="sb-dot" aria-hidden />
-            <span>
-              <strong>Stockage local actif</strong> — Sauvegarde automatique
-            </span>
-            <div className="ml-auto flex flex-wrap items-center gap-2">
-              <Link
-                href="/bridge"
-                className={`storage-pill storage-pill-bridge ${bridgeOnline ? "online" : ""}`}
-              >
-                <span className="bridge-dot" />
-                <span>{bridgeOnline ? "Bridge connecté" : "Bridge hors ligne"}</span>
-              </Link>
-              <button
-                type="button"
-                className="storage-pill storage-pill-echo"
-                onClick={() => setOcrOpen(true)}
-              >
-                📷 Écho
-              </button>
-              <span
-                className={`save-indicator ${saveStatus === "saved" ? "saved" : saveStatus === "saving" ? "saving" : ""}`}
-              >
-                {saveStatus === "saving"
-                  ? "Sauvegarde…"
-                  : saveStatus === "saved"
-                    ? "✓ Sauvegardé"
-                    : "—"}
-              </span>
-              <button
-                type="button"
-                className="storage-btn-consult"
-                onClick={onNewConsultation}
-              >
-                ➕ Nouvelle consultation
-              </button>
-            </div>
-          </div>
-
-          <div className="progress-wrap">
-            <div className="progress-label">
-              <span>Complétude du dossier</span>
-              <span>{completeness}%</span>
-            </div>
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${completeness}%` }}
-              />
-            </div>
-          </div>
+          <PatientBanner
+            draft={draft}
+            history={history}
+            saving={saveStatus === "saving"}
+            bridgeOnline={bridgeOnline}
+            pdfBusy={pdfBusy}
+            onClose={onClose}
+            onNewConsultation={onNewConsultation}
+            onOrdonnance={onOpenOrdonnance}
+            onCrOp={onOpenCrOp}
+            onWaiting={sendToWaiting}
+            onPdf={exportPdf}
+            onEcho={() => setOcrOpen(true)}
+          />
 
           <DossierAlertsBar draft={draft} />
 
-          <div className="dossier-tabs" role="tablist" aria-label="Sections du dossier">
-            {tabs.map((t) => (
+          <nav className="stage-nav" aria-label="Étapes du dossier">
+            {stages.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                aria-current={s.id === stage.id ? "true" : undefined}
+                onClick={() => openStage(s.id)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </nav>
+          <div
+            className="dossier-tabs stage-tabs"
+            role="tablist"
+            aria-label={`Sections : ${stage.label}`}
+            onKeyDown={moveTab}
+          >
+            {stage.tabs.map((t) => (
               <button
                 key={t.id}
+                id={`dossier-tab-${t.id}`}
                 type="button"
                 role="tab"
                 aria-selected={tab === t.id}
+                aria-controls="dossier-panel"
+                tabIndex={tab === t.id ? 0 : -1}
                 className={`dossier-tab ${tab === t.id ? "active" : ""}`}
                 onClick={() => onTab(t.id)}
               >
@@ -277,18 +216,24 @@ export function DossierFormView({
             ))}
           </div>
 
-          <div className="dossier-tab-panel">
+          <div
+            className="dossier-tab-panel"
+            id="dossier-panel"
+            role="tabpanel"
+            aria-labelledby={`dossier-tab-${tab}`}
+          >
             {tab === "anamnese" && (
               <AnamneseTab
                 draft={draft}
                 onField={onField}
                 onNavigateTab={onTab}
+                patchDraft={patchDraft}
               />
             )}
             {tab === "examen" && (
               <ExamenCliniqueTab draft={draft} onField={onField} />
             )}
-            {tab === "bilans" && <ExamensBilansTab draft={draft} onField={onField} />}
+            {tab === "bilans" && <ExamensBilansTab draft={draft} onField={onField} patchDraft={patchDraft} />}
             {tab === "pma" && <PmaClient patientId={draft.id} embedded />}
             {tab === "scores" && <DossierScoresTab />}
             {tab === "hawae" && <HawaeUnifiedPanel draft={draft} />}
@@ -299,6 +244,7 @@ export function DossierFormView({
                 <DossierHistoriqueTab
                   entries={history}
                   onLoad={(id) => {
+                    if (!window.confirm("Ouvrir cette consultation remplace la consultation en cours dans le dossier. Les allergies actuelles sont conservées. Continuer ?")) return;
                     onLoadConsultation(id);
                     onTab("anamnese");
                   }}
@@ -331,6 +277,20 @@ export function DossierFormView({
                 initialParite={draft.o_par ?? "0"}
               />
             )}
+            {nextTab && stage.id === "consultation" ? (
+              <div className="stage-next">
+                <button
+                  type="button"
+                  className="pb-btn primary"
+                  onClick={() => {
+                    onTab(nextTab.id);
+                    window.scrollTo({ top: 0 });
+                  }}
+                >
+                  Continuer : {nextTab.label}
+                </button>
+              </div>
+            ) : null}
           </div>
         </main>
       </div>

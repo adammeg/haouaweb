@@ -3,11 +3,7 @@
 import type { ReactNode } from "react";
 import type { PatientSnapshot, Specialty } from "@/types/domain";
 import { SPECIALTY_LABELS } from "@/types/domain";
-import {
-  Field,
-  TextInput,
-  type FieldPatch,
-} from "@/components/dossier/form-primitives";
+import type { FieldPatch } from "@/components/dossier/form-primitives";
 
 export function AnaCard({
   title,
@@ -171,124 +167,6 @@ export function SpecChooser({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-export function GpaRow({
-  g,
-  p,
-  a,
-  onG,
-  onP,
-  onA,
-}: {
-  g?: string;
-  p?: string;
-  a?: string;
-  onG: (v: string) => void;
-  onP: (v: string) => void;
-  onA: (v: string) => void;
-}) {
-  return (
-    <div className="gpa-row">
-      <TextInput value={g} placeholder="G" onChange={onG} />
-      <TextInput value={p} placeholder="P" onChange={onP} />
-      <TextInput value={a} placeholder="A" onChange={onA} />
-    </div>
-  );
-}
-
-/** ATCD médicaux partagés (HTA, diabète, thyroïde, tabac…). */
-export function AtcdCommun({
-  draft,
-  patch,
-  diabeteExtra,
-}: {
-  draft: PatientSnapshot;
-  patch: (k: keyof PatientSnapshot, v: string) => void;
-  diabeteExtra?: { value: string; label: string }[];
-}) {
-  const diabOpts = diabeteExtra ?? [
-    { value: "non", label: "Non" },
-    { value: "t1", label: "DT1" },
-    { value: "t2", label: "DT2" },
-  ];
-
-  return (
-    <div className="dossier-form-grid triple">
-      <Field label="HTA">
-        <PillGroup
-          name="hta"
-          value={draft.hta || "non"}
-          options={[
-            { value: "non", label: "Non" },
-            { value: "oui", label: "Oui" },
-            { value: "traite", label: "Traité" },
-          ]}
-          onChange={(v) => patch("hta", v)}
-        />
-      </Field>
-      <Field label="Diabète">
-        <PillGroup
-          name="diab"
-          value={draft.diabete || "non"}
-          options={diabOpts}
-          onChange={(v) => patch("diabete", v)}
-        />
-      </Field>
-      <Field label="Thyroïde">
-        <PillGroup
-          name="thyro"
-          value={draft.thyroide || "non"}
-          options={[
-            { value: "non", label: "Non" },
-            { value: "hypo", label: "Hypo" },
-            { value: "hyper", label: "Hyper" },
-          ]}
-          onChange={(v) => patch("thyroide", v)}
-        />
-      </Field>
-      <Field label="Autres ATCD">
-        <TextInput
-          value={draft.atcdMed}
-          placeholder="ex: asthme, coagulopathie…"
-          onChange={(v) => patch("atcdMed", v)}
-        />
-      </Field>
-      <Field label="Chirurgies">
-        <TextInput
-          value={draft.chir}
-          placeholder="ex: appendicectomie…"
-          onChange={(v) => patch("chir", v)}
-        />
-      </Field>
-      <Field label="Allergies">
-        <TextInput
-          value={draft.allergies}
-          placeholder="médicaments, latex…"
-          onChange={(v) => patch("allergies", v)}
-        />
-      </Field>
-      <Field label="Tabac">
-        <PillGroup
-          name="tabac"
-          value={draft.tabac || "non"}
-          options={[
-            { value: "non", label: "Non" },
-            { value: "oui", label: "Oui" },
-            { value: "sevré", label: "Sevré" },
-          ]}
-          onChange={(v) => patch("tabac", v)}
-        />
-      </Field>
-      <Field label="Traitements en cours" className="span2">
-        <TextInput
-          value={draft.traitements}
-          placeholder="médicaments, compléments…"
-          onChange={(v) => patch("traitements", v)}
-        />
-      </Field>
     </div>
   );
 }

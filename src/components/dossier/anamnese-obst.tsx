@@ -13,13 +13,8 @@ import { FmfConverterPanel } from "@/components/dossier/fmf-converter";
 import {
   O_CONCEPT,
   O_DV_FLUX,
-  O_EDF,
-  O_GRP,
-  O_INDCS,
   O_PRES,
-  O_RUBEO,
   O_SUIVI,
-  O_TOXO,
   O_TYPE,
   OBST_MOTIFS,
   calcTermeFromDdr,
@@ -27,8 +22,6 @@ import {
 import {
   AnaCard,
   AnaSubTabs,
-  AtcdCommun,
-  GpaRow,
   PillGroup,
   SectionDivider,
   useAnaPatch,
@@ -36,6 +29,7 @@ import {
 import { ObstCalendrierPanel } from "@/components/dossier/obst-calendrier-panel";
 import { ObstPartogramPanel } from "@/components/dossier/obst-partogram-panel";
 import { T2MorphoTab } from "@/components/dossier/t2-morpho-tab";
+import { ExamsCard } from "@/components/dossier/exams-card";
 
 const OBST_TABS = [
   { id: "motif", label: "💬 Motif" },
@@ -43,20 +37,19 @@ const OBST_TABS = [
   { id: "calendrier", label: "📅 Calendrier" },
   { id: "partogramme", label: "📈 Partogramme" },
   { id: "t1", label: "🔬 T1 / FMF" },
-  { id: "echo", label: "📡 Écho & BPP" },
   { id: "morpho", label: "🫀 Morpho T2" },
-  { id: "serol", label: "🧪 Séro & Bio" },
-  { id: "atcdobs", label: "📋 ATCD obst." },
+  { id: "echo_t3", label: "📡 Écho T3" },
   { id: "surv", label: "📊 Surveillance" },
-  { id: "atcd", label: "📜 ATCD médic." },
 ];
 
 export function ObstAnamnese({
   draft,
   onField,
+  patchDraft,
 }: {
   draft: PatientSnapshot;
   onField: (p: FieldPatch) => void;
+  patchDraft: (p: Partial<PatientSnapshot>) => void;
 }) {
   const [sub, setSub] = useState("motif");
   const patch = useAnaPatch(onField);
@@ -115,15 +108,17 @@ export function ObstAnamnese({
       {sub === "grossesse" && (
         <AnaCard title="🤰 Grossesse actuelle" ar="الحمل الحالي">
           <div className="dossier-form-grid triple">
-            <Field label="G / P / A">
-              <GpaRow
-                g={draft.o_gest}
-                p={draft.o_par}
-                a={draft.o_abort}
-                onG={(v) => patch("o_gest", v)}
-                onP={(v) => patch("o_par", v)}
-                onA={(v) => patch("o_abort", v)}
+            <Field label="G / P / A (anamnèse commune)">
+              <input
+                type="text"
+                readOnly
+                aria-readonly
+                className="hawae-input dossier-imc-readonly"
+                value={draft.o_gest || draft.o_par || draft.o_abort ? `G${draft.o_gest || "?"} P${draft.o_par || "?"} A${draft.o_abort || "0"}` : "Non renseigné"}
               />
+            </Field>
+            <Field label="IMC pré-grossesse">
+              <TextInput type="number" value={draft.imc} onChange={(v) => patch("imc", v)} />
             </Field>
             <Field label="DDR">
               <TextInput type="date" value={draft.o_ddr} onChange={onDdr} />
@@ -230,273 +225,17 @@ export function ObstAnamnese({
         </AnaCard>
       )}
 
-      {sub === "echo" && (
-        <AnaCard title="📡 Biométrie & Doppler fœtal" ar="قياسات الجنين">
-          <div className="dossier-form-grid triple">
-            <Field label="BIP (mm)">
-              <TextInput type="number" value={draft.o_bip} onChange={(v) => patch("o_bip", v)} />
-            </Field>
-            <Field label="PC / HC (mm)">
-              <TextInput type="number" value={draft.o_pc} onChange={(v) => patch("o_pc", v)} />
-            </Field>
-            <Field label="CA / AC (mm)">
-              <TextInput type="number" value={draft.o_ca} onChange={(v) => patch("o_ca", v)} />
-            </Field>
-            <Field label="LF / FL (mm)">
-              <TextInput type="number" value={draft.o_lf} onChange={(v) => patch("o_lf", v)} />
-            </Field>
-            <Field label="PFE / EFW (g)">
-              <TextInput type="number" value={draft.o_pfe} onChange={(v) => patch("o_pfe", v)} />
-            </Field>
-            <Field label="Longueur col (mm)">
-              <TextInput type="number" value={draft.o_col} onChange={(v) => patch("o_col", v)} />
-            </Field>
-          </div>
-          <SectionDivider>Doppler fœtal</SectionDivider>
-          <div className="dossier-form-grid triple">
-            <Field label="IP artère ombilicale">
-              <TextInput type="number" value={draft.o_ip_ao} onChange={(v) => patch("o_ip_ao", v)} />
-            </Field>
-            <Field label="EDF ombilicale">
-              <SelectInput value={draft.o_edf} onChange={(v) => patch("o_edf", v)} options={O_EDF} />
-            </Field>
-            <Field label="IP ACM">
-              <TextInput type="number" value={draft.o_ip_acm} onChange={(v) => patch("o_ip_acm", v)} />
-            </Field>
-          </div>
-          <SectionDivider>Score BPP</SectionDivider>
-          <div className="dossier-form-grid triple">
-            <Field label="RCF / NST">
-              <PillGroup
-                name="o-bpp-nst"
-                value={draft.o_bpp_nst || "1"}
-                options={[
-                  { value: "1", label: "Réactif" },
-                  { value: "0", label: "Non réactif" },
-                ]}
-                onChange={(v) => patch("o_bpp_nst", v)}
-              />
-            </Field>
-            <Field label="Mouvements respiratoires">
-              <PillGroup
-                name="o-bpp-resp"
-                value={draft.o_bpp_resp || "1"}
-                options={[
-                  { value: "1", label: "Présents" },
-                  { value: "0", label: "Absents" },
-                ]}
-                onChange={(v) => patch("o_bpp_resp", v)}
-              />
-            </Field>
-            <Field label="Mouvements actifs fœtaux">
-              <PillGroup
-                name="o-bpp-mvt"
-                value={draft.o_bpp_mvt || "1"}
-                options={[
-                  { value: "1", label: "≥3 mvts" },
-                  { value: "0", label: "<3 mvts" },
-                ]}
-                onChange={(v) => patch("o_bpp_mvt", v)}
-              />
-            </Field>
-            <Field label="Tonus fœtal">
-              <PillGroup
-                name="o-bpp-tonus"
-                value={draft.o_bpp_tonus || "1"}
-                options={[
-                  { value: "1", label: "Normal" },
-                  { value: "0", label: "Absent" },
-                ]}
-                onChange={(v) => patch("o_bpp_tonus", v)}
-              />
-            </Field>
-            <Field label="Liquide amniotique">
-              <PillGroup
-                name="o-bpp-la"
-                value={draft.o_bpp_la || "1"}
-                options={[
-                  { value: "1", label: "Normal" },
-                  { value: "0", label: "Oligoamnios" },
-                ]}
-                onChange={(v) => patch("o_bpp_la", v)}
-              />
-            </Field>
-          </div>
-        </AnaCard>
-      )}
-
       {sub === "morpho" && <T2MorphoTab draft={draft} onField={onField} />}
 
-      {sub === "serol" && (
-        <AnaCard title="🧪 Sérologies & Biologie" ar="التحاليل البيولوجية">
-          <div className="dossier-form-grid triple">
-            <Field label="Groupe / Rhésus">
-              <SelectInput value={draft.o_grp} onChange={(v) => patch("o_grp", v)} options={O_GRP} />
-            </Field>
-            <Field label="RAI">
-              <PillGroup
-                name="o-rai"
-                value={draft.o_rai || "neg"}
-                options={[
-                  { value: "neg", label: "Nég." },
-                  { value: "pos", label: "Pos." },
-                  { value: "nd", label: "ND" },
-                ]}
-                onChange={(v) => patch("o_rai", v)}
-              />
-            </Field>
-            <Field label="Toxoplasmose">
-              <SelectInput value={draft.o_toxo} onChange={(v) => patch("o_toxo", v)} options={O_TOXO} />
-            </Field>
-            <Field label="Rubéole">
-              <SelectInput value={draft.o_rubeo} onChange={(v) => patch("o_rubeo", v)} options={O_RUBEO} />
-            </Field>
-            <Field label="Ag HBs">
-              <PillGroup
-                name="o-hbv"
-                value={draft.o_hbv || "neg"}
-                options={[
-                  { value: "neg", label: "Nég." },
-                  { value: "pos", label: "Pos." },
-                ]}
-                onChange={(v) => patch("o_hbv", v)}
-              />
-            </Field>
-            <Field label="VIH">
-              <PillGroup
-                name="o-vih"
-                value={draft.o_vih || "neg"}
-                options={[
-                  { value: "neg", label: "Nég." },
-                  { value: "pos", label: "Pos." },
-                  { value: "nd", label: "ND" },
-                ]}
-                onChange={(v) => patch("o_vih", v)}
-              />
-            </Field>
-            <Field label="NFS — Hb (g/dL)">
-              <TextInput type="number" value={draft.o_hb} onChange={(v) => patch("o_hb", v)} />
-            </Field>
-            <Field label="Glycémie à jeun (g/L)">
-              <TextInput type="number" value={draft.o_gly} onChange={(v) => patch("o_gly", v)} />
-            </Field>
-            <Field label="HGPO T1h (g/L)">
-              <TextInput type="number" value={draft.o_hgpo_t1} onChange={(v) => patch("o_hgpo_t1", v)} />
-            </Field>
-            <Field label="HGPO T2h (g/L)">
-              <TextInput type="number" value={draft.o_hgpo_t2} onChange={(v) => patch("o_hgpo_t2", v)} />
-            </Field>
-            <Field label="ECBU">
-              <PillGroup
-                name="o-ecbu"
-                value={draft.o_ecbu || "norm"}
-                options={[
-                  { value: "norm", label: "Normal" },
-                  { value: "pos", label: "Positif" },
-                ]}
-                onChange={(v) => patch("o_ecbu", v)}
-              />
-            </Field>
-          </div>
-        </AnaCard>
-      )}
-
-      {sub === "atcdobs" && (
-        <AnaCard title="📋 Antécédents obstétricaux" ar="السوابق التوليدية">
-          <div className="dossier-form-grid">
-            <Field label="Grossesses précédentes — détails">
-              <TextArea
-                value={draft.o_atcd_gross}
-                rows={4}
-                placeholder="G1 (2020): AVB 39SA…"
-                onChange={(v) => patch("o_atcd_gross", v)}
-              />
-            </Field>
-            <Field label="Complications obstétricales">
-              <TextArea
-                value={draft.o_complic}
-                rows={4}
-                placeholder="MAP, HTA gravidique, pré-éclampsie…"
-                onChange={(v) => patch("o_complic", v)}
-              />
-            </Field>
-            <Field label="Nombre CS antérieures">
-              <TextInput type="number" value={draft.o_ncs} onChange={(v) => patch("o_ncs", v)} />
-            </Field>
-            <Field label="Indication CS">
-              <SelectInput value={draft.o_indcs} onChange={(v) => patch("o_indcs", v)} options={O_INDCS} />
-            </Field>
-          </div>
-          <SectionDivider>Facteurs de risque — PE · VTE · Diabète</SectionDivider>
-          <div className="dossier-form-grid triple">
-            <Field label="ATCD pré-éclampsie">
-              <PillGroup
-                name="o-atcd-pe"
-                value={draft.o_atcd_pe ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("o_atcd_pe", v)}
-              />
-            </Field>
-            <Field label="ATCD prématurité spontanée">
-              <PillGroup
-                name="o-atcd-prem"
-                value={draft.o_atcd_prematurite ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("o_atcd_prematurite", v)}
-              />
-            </Field>
-            <Field label="ATCD thrombose (TVP/EP)">
-              <PillGroup
-                name="o-atcd-vte"
-                value={draft.o_atcd_vte ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("o_atcd_vte", v)}
-              />
-            </Field>
-            <Field label="Thrombophilie">
-              <SelectInput
-                value={draft.o_thrombophilie}
-                onChange={(v) => patch("o_thrombophilie", v)}
-                options={[
-                  { value: "non", label: "Aucune" },
-                  { value: "basse", label: "Faible risque" },
-                  { value: "haute", label: "Haut risque" },
-                ]}
-              />
-            </Field>
-            <Field label="Lupus (LED)">
-              <PillGroup
-                name="o-led"
-                value={draft.o_led ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("o_led", v)}
-              />
-            </Field>
-            <Field label="SAPL">
-              <PillGroup
-                name="o-apl"
-                value={draft.o_apl ?? ""}
-                options={[
-                  { value: "non", label: "Non" },
-                  { value: "oui", label: "Oui" },
-                ]}
-                onChange={(v) => patch("o_apl", v)}
-              />
-            </Field>
-          </div>
-        </AnaCard>
+      {sub === "echo_t3" && (
+        <ExamsCard
+          draft={draft}
+          patchDraft={patchDraft}
+          kind="echo"
+          panels={["echo_croissance", "echo_doppler_bpp", "echo_col"]}
+          title="📡 Échographie du 3e trimestre"
+          sub="Croissance avec percentiles (Salomon), Doppler, score biophysique et col. Chaque échographie garde sa date et son terme ; joignez vos clichés."
+        />
       )}
 
       {sub === "surv" && (
@@ -611,24 +350,6 @@ export function ObstAnamnese({
               <PillGroup name="o-saignement-douleur" value={draft.o_saignement_douleur ?? ""} options={[{ value: "non", label: "Non" }, { value: "oui", label: "Oui" }]} onChange={(v) => patch("o_saignement_douleur", v)} />
             </Field>
           </div>
-        </AnaCard>
-      )}
-
-      {sub === "atcd" && (
-        <AnaCard title="📜 ATCD médicaux & Mode de vie" ar="السوابق الطبية">
-          <AtcdCommun
-            draft={draft}
-            patch={patch}
-            diabeteExtra={[
-              { value: "non", label: "Non" },
-              { value: "t1", label: "DT1" },
-              { value: "t2", label: "DT2" },
-              { value: "gesta", label: "Gesta." },
-            ]}
-          />
-          <Field label="IMC pré-grossesse" className="mt-4 max-w-xs">
-            <TextInput type="number" value={draft.imc} onChange={(v) => patch("imc", v)} />
-          </Field>
         </AnaCard>
       )}
     </div>

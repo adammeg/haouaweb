@@ -355,7 +355,59 @@ export interface PatientSnapshot {
   /** Dernier résultat Hawae Assist (JSON sérialisé). */
   hawaeAssistResultJson?: string;
   hawaeAssistAt?: string;
+
+  /** Antécédents familiaux (anamnèse commune). */
+  fam_sein_ovaire?: string;
+  fam_diabete?: string;
+  fam_hta?: string;
+  fam_thrombose?: string;
+  fam_genetique?: string;
+  fam_details?: string;
+  /** Journal daté des modifications de l'anamnèse commune. */
+  socleLog?: SocleLogEntry[];
+  /** Dernière confirmation « Rien de nouveau » de l'anamnèse commune (ISO). */
+  socleConfirmedAt?: string;
+  /** "1" une fois les anciens champs en double repris dans l'anamnèse commune. */
+  socleMigrated?: string;
+  /** Examens datés de la patiente (jamais vidés par une nouvelle consultation). */
+  examens?: ExamEntry[];
+  bio_syphilis?: string;
+  bio_sgb?: string;
+  bio_sflt_plgf?: string;
+  bio_t4l?: string;
+  /** Cycle en cours (consultation gynécologique). */
+  g_regles_act_duree?: string;
+  g_regles_act_abond?: string;
+  g_leuco_signes?: string;
+  g_grossesse_possible?: string;
+  g_symptomes_cycle?: string;
+  /** Longueur cranio-caudale (mm), écho de datation. */
+  o_lcc?: string;
 }
+
+export type SocleLogEntry = { date: string; text: string };
+
+/** Examen daté : bilan biologique ou échographie. */
+export type ExamEntry = {
+  id: string;
+  /** Date de l'examen (AAAA-MM-JJ). */
+  date: string;
+  kind: "bio" | "echo";
+  /** Bilan ou type d'échographie (voir BIO_PANELS et ECHO_PANELS). */
+  panel?: string;
+  /** Terme à la date de l'examen, si grossesse en cours. */
+  terme?: string;
+  values: Record<string, string>;
+  conclusion?: string;
+  origin: "saisie" | "reprise" | "import";
+  /** Document source (module Documents) quand l'examen a été lu depuis un PDF ou une photo. */
+  documentId?: string;
+  documentName?: string;
+  /** Clichés joints (module Documents). */
+  imageIds?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+};
 
 export interface ConsultationEntry {
   id: string;

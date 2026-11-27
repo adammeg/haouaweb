@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { SVGProps } from "react";
+import { IconCalendar } from "@/components/layout/tools-nav-groups";
 
 function NavIcon({
   children,
@@ -15,7 +16,7 @@ function NavIcon({
     <span
       className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
         active
-          ? "bg-[var(--pink)] text-white shadow-[var(--shadow-pink)]"
+          ? "bg-[var(--teal)] text-white"
           : "text-[var(--muted)]"
       }`}
     >
@@ -40,17 +41,6 @@ function IconFolder(props: SVGProps<SVGSVGElement>) {
   );
 }
 
-function IconDashboard(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden {...props}>
-      <rect x="3" y="3" width="8" height="10" rx="2" />
-      <rect x="13" y="3" width="8" height="6" rx="2" />
-      <rect x="13" y="11" width="8" height="10" rx="2" />
-      <rect x="3" y="15" width="8" height="6" rx="2" />
-    </svg>
-  );
-}
-
 function IconMenu(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden {...props}>
@@ -61,8 +51,8 @@ function IconMenu(props: SVGProps<SVGSVGElement>) {
 
 const ITEMS = [
   { href: "/salle-attente", label: "Attente", icon: IconWaiting },
+  { href: "/agenda", label: "Agenda", icon: IconCalendar },
   { href: "/dossier", label: "Dossier", icon: IconFolder },
-  { href: "/dashboard", label: "Stats", icon: IconDashboard },
 ] as const;
 
 export function MobileBottomNav({ onOpenMenu, secretary = false }: { onOpenMenu: () => void; secretary?: boolean }) {
@@ -77,7 +67,7 @@ export function MobileBottomNav({ onOpenMenu, secretary = false }: { onOpenMenu:
       aria-label="Navigation rapide"
     >
       <div className="mx-auto flex max-w-lg items-stretch justify-around overflow-hidden">
-        {(secretary ? ITEMS.filter((item) => item.href === "/salle-attente") : ITEMS).map(({ href, label, icon: Icon }) => {
+        {(secretary ? ITEMS.filter((item) => item.href !== "/dossier") : ITEMS).map(({ href, label, icon: Icon }) => {
           const active = isActive(href);
           return (
             <Link
@@ -90,7 +80,7 @@ export function MobileBottomNav({ onOpenMenu, secretary = false }: { onOpenMenu:
                 <Icon className="h-5 w-5" />
               </NavIcon>
               <span
-                className={`text-[10px] font-semibold ${active ? "text-[var(--teal)]" : "text-[var(--muted)]"}`}
+                className={`text-xs font-semibold ${active ? "text-[var(--teal)]" : "text-[var(--muted)]"}`}
               >
                 {label}
               </span>
@@ -106,7 +96,7 @@ export function MobileBottomNav({ onOpenMenu, secretary = false }: { onOpenMenu:
           <NavIcon active={false}>
             <IconMenu className="h-5 w-5" />
           </NavIcon>
-          <span className="text-[10px] font-semibold text-[var(--muted)]">Menu</span>
+          <span className="text-xs font-semibold text-[var(--muted)]">Menu</span>
         </button>
       </div>
     </nav>

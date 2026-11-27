@@ -5,6 +5,7 @@ import {
   EMPTY_IVF_PROFILE,
   type IvfPatientProfile,
 } from "@/lib/pma/ivf-types";
+import { socleValue } from "@/lib/dossier/socle";
 
 function mapSopk(v?: string): string {
   if (v === "oui") return "oui";
@@ -14,10 +15,10 @@ function mapSopk(v?: string): string {
 
 function mapEndo(d: PatientSnapshot): string {
   if (d.i_cause_inf === "endometriose" || d.g_endometriose === "oui") {
-    if (d.i_dysp === "oui") return "stade34";
+    if (socleValue(d, "g_dysp") === "prof") return "stade34";
     return "stade12";
   }
-  if (d.i_dysp === "oui") return "stade12";
+  if (socleValue(d, "g_dysp") === "prof") return "stade12";
   return "non";
 }
 
