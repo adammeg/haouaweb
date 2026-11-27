@@ -2,16 +2,15 @@
 const encoder = new TextEncoder();
 export class OpenAiChatError extends Error {
   readonly status: number;
-  readonly detail?: string;
-  constructor(message: string, status: number, detail?: string) {
+  constructor(message: string, status: number) {
     super(message);
     this.name = "OpenAiChatError";
     this.status = status;
-    this.detail = detail;
   }
 }
 
 type ChatParams = {
+  provider: "openai" | "openrouter";
   url: string;
   headers: Record<string, string>;
   model: string;
@@ -23,14 +22,53 @@ type ChatParams = {
   requireParameters?: boolean;
 };
 
+function providerRejection(status: number, reason: string, requestId: string | null) {
+  let message = `Le fournisseur IA a rejeté la requête (HTTP ${status}).`;
+  if (/context_length_exceeded|maximum context length|context window/i.test(reason)) {
+    message += " Le dossier dépasse la capacité de contexte du modèle.";
+  } else if (/response_format|json_schema|structured outputs/i.test(reason)) {
+    message += " Vérifiez la prise en charge du schéma JSON par le modèle configuré.";
+  } else if (/model_not_found|invalid model|not a valid model|no endpoints found/i.test(reason)) {
+    message += " Vérifiez que le modèle configuré est disponible pour les requêtes de chat.";
+  }
+  if (requestId && /^[\w-]{1,100}$/.test(requestId)) message += ` Référence fournisseur : ${requestId}.`;
+  return new OpenAiChatError(message, status);
+}
+
 async function request(params: ChatParams, stream: boolean, signal: AbortSignal) {
-  const res = await fetch(params.url, {
-    method: "POST", headers: params.headers, signal,
-    body: JSON.stringify({ model: params.model, temperature: params.temperature, max_tokens: params.maxTokens, stream, messages: params.messages, ...(params.responseFormat ? { response_format: params.responseFormat } : {}), ...(params.requireParameters ? { provider: { require_parameters: true } } : {}) }),
-  });
-  if (!res.ok) throw new OpenAiChatError(`Fournisseur IA (${res.status})`, res.status, (await res.text()).slice(0, 500));
-  if (!res.body) throw new OpenAiChatError("Réponse fournisseur vide", 502);
-  return res;
+  let tokenParameter = params.provider === "openai" ? "max_completion_tokens" : "max_tokens";
+  let temperature: number | undefined = params.temperature;
+  for (;;) {
+    const res = await fetch(params.url, {
+      method: "POST", headers: params.headers, signal,
+      body: JSON.stringify({
+        model: params.model, stream, messages: params.messages, temperature,
+        [tokenParameter]: params.maxTokens,
+        response_format: params.responseFormat,
+        provider: params.requireParameters ? { require_parameters: true } : undefined,
+      }),
+    });
+    if (res.ok) {
+      if (!res.body) throw new OpenAiChatError("Réponse fournisseur vide", 502);
+      return res;
+    }
+    // Provider messages can quote clinical input. Use them only to identify known errors.
+    const envelope = await res.json().catch(() => null);
+    const error = envelope?.error;
+    const reason = [error?.code, error?.param, error?.message, error?.metadata?.raw]
+      .filter((value) => typeof value === "string").join(" ");
+    if (res.status === 400 && tokenParameter === "max_tokens" &&
+        /\bmax_tokens\b/i.test(reason) && /use ['"`]?max_completion_tokens\b/i.test(reason)) {
+      tokenParameter = "max_completion_tokens";
+      continue;
+    }
+    if (res.status === 400 && temperature !== undefined &&
+        /\btemperature\b/i.test(reason) && /unsupported|not supported|does not support|only the default/i.test(reason)) {
+      temperature = undefined;
+      continue;
+    }
+    throw providerRejection(res.status, reason, res.headers.get("x-request-id"));
+  }
 }
 
 export async function createChatCompletion(params: ChatParams): Promise<string> {

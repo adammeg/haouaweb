@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       catch { return false; }
     };
     const params = {
-      url: provider.chatCompletionsUrl, headers: provider.headers, model: provider.model,
+      provider: provider.label, url: provider.chatCompletionsUrl, headers: provider.headers, model: provider.model,
       temperature: boundedNumber(process.env.IA_TEMPERATURE ?? process.env.OPENROUTER_TEMPERATURE ?? process.env.OPENAI_TEMPERATURE, 0.2, 0, 2),
       maxTokens: Math.min(body.voice ? 600 : body.mode === "chat" ? 900 : 8192, Math.floor(boundedNumber(process.env.IA_MAX_TOKENS ?? process.env.OPENROUTER_MAX_TOKENS ?? process.env.OPENAI_MAX_TOKENS, 4096, 256, 8192))),
       messages, signal: req.signal,

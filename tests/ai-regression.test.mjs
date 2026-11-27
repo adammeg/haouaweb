@@ -148,7 +148,7 @@ test("request validation rejects malformed types and missing revision, and tempe
   assert.equal(boundedNumber("NaN", 0.2, 0, 2), 0.2);
 });
 
-const params = { url: "https://invalid.example", headers: {}, model: "mock", temperature: 0, maxTokens: 128, messages: [] };
+const params = { provider: "openrouter", url: "https://invalid.example", headers: {}, model: "mock", temperature: 0, maxTokens: 128, messages: [] };
 const event = (content) => JSON.stringify({ choices: [{ delta: { content } }] });
 async function mockedFetch(implementation, run) {
   const saved = globalThis.fetch; globalThis.fetch = implementation;
@@ -194,4 +194,43 @@ test("strict output options reach the provider and restrict citation IDs", async
     assert.equal(body.response_format.json_schema.strict, true);
     return Response.json({ choices: [{ finish_reason: "stop", message: { content: "{}" } }] });
   }, async () => assert.equal(await createChatCompletion({ ...params, responseFormat, requireParameters: true }), "{}"));
+});
+
+test("provider parameter rejections retain the same clinical request, schema and token budget", async () => {
+  const bodies = [];
+  const responseFormat = clinicalOutputFormat([]);
+  const messages = [{ role: "user", content: "Synthetic dossier" }];
+  await mockedFetch(async (_url, init) => {
+    const body = JSON.parse(init.body);
+    bodies.push(body);
+    if (bodies.length === 1) return Response.json({ error: { metadata: { raw: "Unsupported parameter: 'max_tokens'. Use 'max_completion_tokens' instead." } } }, { status: 400 });
+    if (bodies.length === 2) return Response.json({ error: { param: "temperature", code: "unsupported_value" } }, { status: 400 });
+    return Response.json({ choices: [{ finish_reason: "stop", message: { content: "{}" } }] });
+  }, async () => assert.equal(await createChatCompletion({ ...params, messages, responseFormat, requireParameters: true }), "{}"));
+  assert.deepEqual(bodies.map(b => [b.max_tokens, b.max_completion_tokens, b.temperature]), [
+    [128, undefined, 0], [undefined, 128, 0], [undefined, 128, undefined],
+  ]);
+  for (const body of bodies) {
+    assert.deepEqual(body.messages, messages);
+    assert.deepEqual(body.response_format, responseFormat);
+    assert.equal(body.provider.require_parameters, true);
+  }
+});
+
+test("OpenAI uses its completion limit and unrecoverable errors omit raw provider content", async () => {
+  let calls = 0;
+  await mockedFetch(async (_url, init) => {
+    calls++;
+    const body = JSON.parse(init.body);
+    assert.equal(body.max_completion_tokens, params.maxTokens);
+    assert.equal(body.max_tokens, undefined);
+    return Response.json({ error: { code: "context_length_exceeded", message: "Synthetic private text" } },
+      { status: 400, headers: { "x-request-id": "req-123" } });
+  }, async () => assert.rejects(() => createChatCompletion({ ...params, provider: "openai" }), error => {
+    assert.match(error.message, /contexte/);
+    assert.match(error.message, /req-123/);
+    assert.doesNotMatch(error.message, /Synthetic private text/);
+    return true;
+  }));
+  assert.equal(calls, 1);
 });

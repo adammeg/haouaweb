@@ -64,7 +64,6 @@ export function DossierFormView({
   const router = useRouter();
   const [ocrOpen, setOcrOpen] = useState(false);
   const [pdfBusy, setPdfBusy] = useState(false);
-  const [bridgeOnline, setBridgeOnline] = useState(false);
   const [wrToast, setWrToast] = useState<string | null>(null);
 
   const patientsMap = useHawaeStore((s) => {
@@ -110,26 +109,6 @@ export function DossierFormView({
     document.getElementById(`dossier-tab-${stage.tabs[to]!.id}`)?.focus();
   }
 
-  useEffect(() => {
-    let cancelled = false;
-    async function poll() {
-      try {
-        const res = await fetch("http://localhost:3847/latest", {
-          signal: AbortSignal.timeout(2000),
-        });
-        if (!cancelled) setBridgeOnline(res.ok);
-      } catch {
-        if (!cancelled) setBridgeOnline(false);
-      }
-    }
-    poll();
-    const id = setInterval(poll, 15000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
-
   const exportPdf = useCallback(() => {
     setPdfBusy(true);
     void generateDossierCompletPdf(draft).finally(() => setPdfBusy(false));
@@ -168,7 +147,6 @@ export function DossierFormView({
             draft={draft}
             history={history}
             saving={saveStatus === "saving"}
-            bridgeOnline={bridgeOnline}
             pdfBusy={pdfBusy}
             onClose={onClose}
             onNewConsultation={onNewConsultation}

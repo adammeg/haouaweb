@@ -13,7 +13,6 @@ type Props = {
   draft: PatientSnapshot;
   history: ConsultationEntry[];
   saving: boolean;
-  bridgeOnline: boolean;
   pdfBusy: boolean;
   onClose: () => void;
   onNewConsultation: () => void;
@@ -140,7 +139,7 @@ export function PatientBanner(p: Props) {
               <button type="button" disabled={p.pdfBusy} onClick={run(p.onPdf)}>
                 {p.pdfBusy ? "Création du PDF…" : "Exporter le dossier en PDF"}
               </button>
-              <Link href="/bridge">Bridge écho : {p.bridgeOnline ? "connecté" : "hors ligne"}</Link>
+              <Link href="/bridge">Ouvrir le bridge écho</Link>
             </div>
           </details>
         </div>

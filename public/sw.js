@@ -1,4 +1,4 @@
-const CACHE = "hawae-md-v3";
+const CACHE = "hawae-md-v4";
 const OFFLINE_URL = "/offline.html";
 const STATIC_ASSETS = ["/manifest.webmanifest", "/logo.jpeg", OFFLINE_URL];
 
@@ -32,12 +32,18 @@ self.addEventListener("fetch", (event) => {
   // Always request current Next.js HTML. Stale HTML points to removed hashed CSS/JS chunks.
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(async () => (await caches.match(OFFLINE_URL)) || Response.error()),
+      fetch(request).catch(async () =>
+        (await caches.match(OFFLINE_URL).catch(() => undefined)) ||
+        new Response("Connexion indisponible. Vérifiez votre connexion puis réessayez.", {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        }),
+      ),
     );
     return;
   }
 
-  // Hashed Next.js assets are immutable: cache each exact URL after a successful response.
+  // Only public assets belong in this cache. Dossier data and route prefetches use the network.
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
       caches.match(request).then((cached) => {
@@ -54,7 +60,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first for other same-origin resources, with cache fallback.
+  if (!STATIC_ASSETS.includes(url.pathname)) return;
+
+  // Network-first for the public PWA resources precached on install.
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -64,6 +72,6 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || Response.error())),
+      .catch(async () => (await caches.match(request)) || new Response(null, { status: 503 })),
   );
 });
