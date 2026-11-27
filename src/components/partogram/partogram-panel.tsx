@@ -1,5 +1,6 @@
 "use client";
 
+import "@/styles/partogram.css";
 import {
   useCallback,
   useEffect,
@@ -418,7 +419,7 @@ export function PartogramPanel({
             💾 Enregistrer
           </button>
           <button type="button" className="parto-btn danger" onClick={resetAll}>
-            ↺ Reset
+            ↺ Réinitialiser
           </button>
         </div>
       </header>

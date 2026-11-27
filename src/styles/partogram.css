@@ -1,6 +1,7 @@
 /* Partogramme OMS — HawaeMD */
 
 .parto-root {
+  container: partogram / inline-size;
   --parto-teal: #007070;
   --parto-teal-deep: #0a5c5c;
   --parto-gold: #c9a84c;
@@ -8,7 +9,7 @@
 }
 
 .parto-root.embedded .parto-page-header {
-  display: none;
+  padding-top: 0.5rem;
 }
 
 .parto-page-header {
@@ -32,7 +33,7 @@
 }
 
 .parto-patient-card {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1.1rem 1.25rem;
@@ -49,13 +50,13 @@
 
 .parto-patient-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
 .parto-field label {
   display: block;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -66,6 +67,8 @@
 .parto-field input,
 .parto-field select {
   width: 100%;
+  min-width: 0;
+  min-height: 2.5rem;
   padding: 0.45rem 0.6rem;
   border: 1.5px solid var(--border);
   border-radius: 8px;
@@ -124,14 +127,30 @@
 
 .parto-layout {
   display: grid;
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: minmax(0, 1fr) 400px;
   gap: 1rem;
   align-items: start;
 }
 
-@media (max-width: 1100px) {
+.parto-layout > * {
+  min-width: 0;
+}
+
+@container partogram (max-width: 64rem) {
   .parto-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container partogram (max-width: 52rem) {
+  .parto-patient-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container partogram (max-width: 28rem) {
+  .parto-patient-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -231,7 +250,7 @@
 
 .parto-entry-form {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.6rem;
 }
 
@@ -305,6 +324,11 @@
   opacity: 0.92;
 }
 
+.parto-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .parto-btn.gold {
   background: var(--parto-gold);
   color: #1a1a1a;
@@ -350,25 +374,22 @@
 }
 
 @media print {
+  .parto-root {
+    page: partogram;
+  }
   .parto-no-print {
     display: none !important;
   }
   .parto-layout {
     grid-template-columns: 1fr;
   }
-  @page {
+  @page partogram {
     size: A4 landscape;
     margin: 10mm;
   }
 }
 
 @media (max-width: 767px) {
-  .parto-layout,
-  .parto-grid,
-  .parto-form-grid {
-    grid-template-columns: 1fr !important;
-  }
-
   .parto-card,
   .parto-panel {
     padding: 0.875rem;
