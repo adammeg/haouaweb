@@ -196,6 +196,25 @@ test("strict output options reach the provider and restrict citation IDs", async
   }, async () => assert.equal(await createChatCompletion({ ...params, responseFormat, requireParameters: true }), "{}"));
 });
 
+test("completion retries only length, reports the terminal cause, and never returns interrupted content", async () => {
+  for (const [choice, expectedMessage, expectedCalls] of [
+    [{ finish_reason: "length" }, /256 jetons/, 2],
+    [{ finish_reason: "content_filter", native_finish_reason: "stop" }, /refusé/, 1],
+    [{ finish_reason: "stop", error: { message: "private detail" } }, /sur une erreur/, 1],
+    [{ finish_reason: "tool_calls" }, /outil/, 1],
+    [{ finish_reason: null }, /pas confirmé/, 1],
+  ]) {
+    let calls = 0;
+    await mockedFetch(async () => {
+      calls++;
+      return Response.json({ choices: [{ message: { content: "partial" }, ...choice }] });
+    }, async () => assert.rejects(() => createChatCompletion(params, 256), expectedMessage));
+    assert.equal(calls, expectedCalls);
+  }
+  await mockedFetch(async () => Response.json({ choices: [{ finish_reason: null, native_finish_reason: "stop", message: { content: "complete" } }] }),
+    async () => assert.equal(await createChatCompletion(params), "complete"));
+});
+
 test("provider parameter rejections retain the same clinical request, schema and token budget", async () => {
   const bodies = [];
   const responseFormat = clinicalOutputFormat([]);

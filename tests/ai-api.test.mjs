@@ -52,3 +52,30 @@ test("API uses the exact saved revision and returns provenance with validated di
   assert.equal(result.analysis.schemaVersion, "clinical-analysis-v1");
   assert.equal(providerCalls, 1);
 });
+
+test("a length-limited diagnostic is regenerated once within its configured ceiling and validated", async (t) => {
+  const normalProvider = globalThis.fetch;
+  const requests = [];
+  const signals = [];
+  t.mock.method(globalThis, "fetch", async (url, init) => {
+    requests.push(JSON.parse(init.body));
+    signals.push(init.signal);
+    if (requests.length === 1) return Response.json({ choices: [{ finish_reason: "length", message: { content: "partial report" } }] });
+    return normalProvider(url, init);
+  });
+  const previous = process.env.IA_MAX_TOKENS;
+  process.env.IA_MAX_TOKENS = "6000";
+  t.after(() => {
+    if (previous === undefined) delete process.env.IA_MAX_TOKENS;
+    else process.env.IA_MAX_TOKENS = previous;
+  });
+  const revision = await clinicalRevision(a);
+  const res = await send({ mode: "diagnostic", patientId: a.id, expectedRevision: revision });
+  assert.equal(res.status, 200);
+  const result = await res.json();
+  assert.equal(result.analysis.schemaVersion, "clinical-analysis-v1");
+  assert.doesNotMatch(result.reply, /partial report/);
+  assert.deepEqual(requests.map(body => body.max_tokens), [4096, 6000]);
+  assert.deepEqual(requests[1], { ...requests[0], max_tokens: 6000 });
+  assert.equal(signals[0], signals[1]);
+});

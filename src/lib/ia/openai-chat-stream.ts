@@ -71,16 +71,33 @@ async function request(params: ChatParams, stream: boolean, signal: AbortSignal)
   }
 }
 
-export async function createChatCompletion(params: ChatParams): Promise<string> {
+export async function createChatCompletion(params: ChatParams, retryTokenLimit = params.maxTokens): Promise<string> {
   const signal = AbortSignal.any([AbortSignal.timeout(90_000), ...(params.signal ? [params.signal] : [])]);
-  const res = await request(params, false, signal);
-  const data = await res.json() as { error?: unknown; choices?: { finish_reason?: string; message?: { content?: string; refusal?: string } }[] };
-  const choice = data.choices?.[0];
-  if (data.error || choice?.message?.refusal) throw new OpenAiChatError("Réponse modèle refusée", 502);
-  if (choice?.finish_reason !== "stop") throw new OpenAiChatError("Réponse modèle incomplète ou interrompue", 502);
-  const text = choice.message?.content?.trim();
-  if (!text) throw new OpenAiChatError("Réponse modèle vide", 502);
-  return text;
+  let maxTokens = params.maxTokens;
+  for (;;) {
+    signal.throwIfAborted();
+    const res = await request({ ...params, maxTokens }, false, signal);
+    const data = await res.json() as { error?: unknown; choices?: {
+      error?: unknown; finish_reason?: string | null; native_finish_reason?: string | null;
+      message?: { content?: string; refusal?: string };
+    }[] };
+    const choice = data.choices?.[0];
+    const reason = choice?.finish_reason ?? (params.provider === "openrouter" ? choice?.native_finish_reason : undefined);
+    if (data.error || choice?.error || reason === "error") throw new OpenAiChatError("Le fournisseur IA a interrompu la génération sur une erreur.", 502);
+    if (choice?.message?.refusal || reason === "content_filter") throw new OpenAiChatError("Le fournisseur IA a refusé de générer cette réponse.", 502);
+    if (reason === "length") {
+      if (maxTokens < retryTokenLimit) {
+        maxTokens = retryTokenLimit;
+        continue;
+      }
+      throw new OpenAiChatError(`La génération a atteint sa limite de longueur (plafond demandé : ${maxTokens} jetons).`, 502);
+    }
+    if (reason === "tool_calls" || reason === "function_call") throw new OpenAiChatError("Le modèle a demandé un outil au lieu de terminer sa réponse.", 502);
+    if (reason !== "stop") throw new OpenAiChatError("Le fournisseur IA n’a pas confirmé la fin de la génération.", 502);
+    const text = choice?.message?.content?.trim();
+    if (!text) throw new OpenAiChatError("Réponse modèle vide", 502);
+    return text;
+  }
 }
 
 /** Incremental SSE: CRLF/LF/CR, split UTF-8, multiline data, explicit completion. */

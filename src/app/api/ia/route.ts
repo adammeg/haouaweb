@@ -69,10 +69,14 @@ export async function POST(req: Request) {
       try { return await captureLearningGeneration(learningPlan, { ...meta, patient, revision, mode: body.mode, question: body.question, reply }); }
       catch { return false; }
     };
+    const tokenLimit = Math.floor(boundedNumber(
+      process.env.IA_MAX_TOKENS ?? process.env.OPENROUTER_MAX_TOKENS ?? process.env.OPENAI_MAX_TOKENS,
+      diagnostic ? 8192 : 4096, 256, 8192,
+    ));
     const params = {
       provider: provider.label, url: provider.chatCompletionsUrl, headers: provider.headers, model: provider.model,
       temperature: boundedNumber(process.env.IA_TEMPERATURE ?? process.env.OPENROUTER_TEMPERATURE ?? process.env.OPENAI_TEMPERATURE, 0.2, 0, 2),
-      maxTokens: Math.min(body.voice ? 600 : body.mode === "chat" ? 900 : 8192, Math.floor(boundedNumber(process.env.IA_MAX_TOKENS ?? process.env.OPENROUTER_MAX_TOKENS ?? process.env.OPENAI_MAX_TOKENS, 4096, 256, 8192))),
+      maxTokens: Math.min(body.voice ? 600 : body.mode === "chat" ? 900 : diagnostic ? 4096 : tokenLimit, tokenLimit),
       messages, signal: req.signal,
       ...(diagnostic && process.env.IA_STRUCTURED_OUTPUTS === "true" ? { responseFormat: clinicalOutputFormat(meta.evidenceIds), requireParameters: provider.label === "openrouter" } : {}),
     };
@@ -88,7 +92,7 @@ export async function POST(req: Request) {
         "X-Hawae-Learning-Generation": learningPlan?.id ?? "",
       } });
     }
-    const rawReply = await createChatCompletion(params);
+    const rawReply = await createChatCompletion(params, diagnostic ? tokenLimit : params.maxTokens);
     if (diagnostic) {
       const analysis = parseClinicalAiAnalysis(rawReply, evidence.map((hit) => hit.chunk));
       const reply = clinicalAnalysisToText(analysis);
